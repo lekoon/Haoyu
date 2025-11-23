@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, AlertTriangle, Database, Shield } from 'lucide-react';
+import { format } from 'date-fns';
 
 const Settings: React.FC = () => {
-    const { factorDefinitions, addFactor, updateFactor, deleteFactor, recalculateScores } = useStore();
+    const { factorDefinitions, addFactor, updateFactor, deleteFactor, recalculateScores, projects, resourcePool } = useStore();
     const [newFactorName, setNewFactorName] = useState('');
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
 
     const totalWeight = factorDefinitions.reduce((acc, f) => acc + f.weight, 0);
 
@@ -15,10 +17,79 @@ const Settings: React.FC = () => {
         }
     };
 
+    // Backup Data
+    const handleBackup = () => {
+        const data = localStorage.getItem('ctpm-storage');
+        if (!data) {
+            alert('No data to backup');
+            return;
+        }
+
+        const backup = {
+            version: '1.0',
+            timestamp: new Date().toISOString(),
+            data: JSON.parse(data)
+        };
+
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ctpm-backup-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+
+    // Restore Data
+    const handleRestore = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const backup = JSON.parse(e.target?.result as string);
+                if (backup.data && backup.version) {
+                    localStorage.setItem('ctpm-storage', JSON.stringify(backup.data));
+                    alert('Data restored successfully! Please refresh the page.');
+                    window.location.reload();
+                } else {
+                    alert('Invalid backup file format');
+                }
+            } catch (error) {
+                alert('Error reading backup file');
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // Clear All Data
+    const handleClearData = () => {
+        if (showClearConfirm) {
+            localStorage.removeItem('ctpm-storage');
+            alert('All data cleared! The page will reload.');
+            window.location.reload();
+        } else {
+            setShowClearConfirm(true);
+            setTimeout(() => setShowClearConfirm(false), 5000);
+        }
+    };
+
+    // Calculate data statistics
+    const dataStats = {
+        projects: projects.length,
+        resources: resourcePool.length,
+        factors: factorDefinitions.length,
+        storageSize: new Blob([localStorage.getItem('ctpm-storage') || '']).size
+    };
+
     return (
         <div className="max-w-4xl mx-auto space-y-8">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-slate-900">Configuration</h1>
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900">System Configuration</h1>
+                    <p className="text-slate-500 mt-1">Manage scoring factors and data</p>
+                </div>
                 <button
                     onClick={recalculateScores}
                     className="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl font-bold hover:bg-blue-200 transition-colors"
@@ -27,12 +98,96 @@ const Settings: React.FC = () => {
                 </button>
             </div>
 
+            {/* Data Management */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                <div className="mb-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <Database className="text-blue-600" size={24} />
+                        <h2 className="text-xl font-bold text-slate-800">Data Management</h2>
+                    </div>
+                    <p className="text-slate-500">Backup, restore, and manage your system data</p>
+                </div>
+
+                {/* Data Statistics */}
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <p className="text-sm text-blue-600 font-medium">Projects</p>
+                        <p className="text-2xl font-bold text-blue-700">{dataStats.projects}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                        <p className="text-sm text-green-600 font-medium">Resources</p>
+                        <p className="text-2xl font-bold text-green-700">{dataStats.resources}</p>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                        <p className="text-sm text-purple-600 font-medium">Factors</p>
+                        <p className="text-2xl font-bold text-purple-700">{dataStats.factors}</p>
+                    </div>
+                    <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                        <p className="text-sm text-orange-600 font-medium">Storage</p>
+                        <p className="text-2xl font-bold text-orange-700">{(dataStats.storageSize / 1024).toFixed(1)} KB</p>
+                    </div>
+                </div>
+
+                {/* Backup & Restore Actions */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                        <Shield className="text-blue-600" size={24} />
+                        <div className="flex-1">
+                            <h3 className="font-bold text-blue-900">Backup Data</h3>
+                            <p className="text-sm text-blue-700">Download a complete backup of all your data</p>
+                        </div>
+                        <button
+                            onClick={handleBackup}
+                            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg"
+                        >
+                            <Download size={18} />
+                            Backup Now
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
+                        <Upload className="text-green-600" size={24} />
+                        <div className="flex-1">
+                            <h3 className="font-bold text-green-900">Restore Data</h3>
+                            <p className="text-sm text-green-700">Upload a backup file to restore your data</p>
+                        </div>
+                        <label className="px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors cursor-pointer flex items-center gap-2 shadow-lg">
+                            <Upload size={18} />
+                            Restore
+                            <input
+                                type="file"
+                                accept=".json"
+                                onChange={handleRestore}
+                                className="hidden"
+                            />
+                        </label>
+                    </div>
+
+                    <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-xl border border-red-200">
+                        <AlertTriangle className="text-red-600" size={24} />
+                        <div className="flex-1">
+                            <h3 className="font-bold text-red-900">Clear All Data</h3>
+                            <p className="text-sm text-red-700">
+                                {showClearConfirm ? '⚠️ Click again to confirm deletion' : 'Permanently delete all data (cannot be undone)'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleClearData}
+                            className={`px-6 py-3 font-bold rounded-xl transition-colors flex items-center gap-2 shadow-lg ${showClearConfirm ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                        >
+                            <Trash2 size={18} />
+                            {showClearConfirm ? 'Confirm Delete' : 'Clear Data'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Scoring Factors */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
                 <div className="mb-6 flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold text-slate-800">Scoring Factors</h2>
-                        <p className="text-slate-500">Define the criteria used to prioritize projects.</p>
+                        <p className="text-slate-500">Define the criteria used to prioritize projects</p>
                     </div>
                     <div className={`px-4 py-2 rounded-xl font-bold ${totalWeight === 100 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                         Total Weight: {totalWeight}%
@@ -75,11 +230,12 @@ const Settings: React.FC = () => {
                         className="flex-1 p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={newFactorName}
                         onChange={(e) => setNewFactorName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddFactor()}
                     />
                     <button
                         onClick={handleAddFactor}
                         disabled={!newFactorName}
-                        className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
                     >
                         <Plus size={20} />
                         Add Factor
