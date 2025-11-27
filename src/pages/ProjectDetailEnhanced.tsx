@@ -22,22 +22,27 @@ const ProjectDetailEnhanced: React.FC = () => {
     // const { t } = useTranslation(); // Unused for now
 
     const project = projects.find(p => p.id === projectId);
+
+    // Initialize from project data
     const [isEditing, setIsEditing] = useState(false);
-    const [milestones, setMilestones] = useState<Milestone[]>([
-        { id: '1', name: '需求分析完成', date: '2024-01-15', completed: true },
-        { id: '2', name: '设计评审', date: '2024-02-01', completed: true },
-        { id: '3', name: '开发完成', date: '2024-03-15', completed: false },
-        { id: '4', name: '测试完成', date: '2024-04-01', completed: false },
-        { id: '5', name: '项目交付', date: '2024-04-15', completed: false },
-    ]);
+    const [milestones, setMilestones] = useState<Milestone[]>(
+        project?.milestones || [
+            { id: '1', name: '需求分析完成', date: '2024-01-15', completed: true },
+            { id: '2', name: '设计评审', date: '2024-02-01', completed: true },
+            { id: '3', name: '开发完成', date: '2024-03-15', completed: false },
+            { id: '4', name: '测试完成', date: '2024-04-01', completed: false },
+            { id: '5', name: '项目交付', date: '2024-04-15', completed: false },
+        ]
+    );
     const [newMilestone, setNewMilestone] = useState({ name: '', date: '', description: '' });
     const [showAddMilestone, setShowAddMilestone] = useState(false);
+    const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
 
-    // Cost Management State
+    // Cost Management State - Initialize from project data
     const [activeTab, setActiveTab] = useState<'resources' | 'costs' | 'risks'>('resources');
     const [isCostFormOpen, setIsCostFormOpen] = useState(false);
-    const [projectCosts, setProjectCosts] = useState<CostEntry[]>([]); // Should come from project data
-    const [projectBudget, setProjectBudget] = useState(1000000); // Mock budget
+    const [projectCosts, setProjectCosts] = useState<CostEntry[]>(project?.costHistory || []);
+    const [projectBudget, setProjectBudget] = useState(project?.budget || 1000000);
 
     if (!project) {
         return (
@@ -65,40 +70,76 @@ const ProjectDetailEnhanced: React.FC = () => {
 
     const handleAddMilestone = () => {
         if (newMilestone.name && newMilestone.date) {
-            setMilestones([...milestones, {
+            const updatedMilestones = [...milestones, {
                 id: Date.now().toString(),
                 name: newMilestone.name,
                 date: newMilestone.date,
                 completed: false,
                 description: newMilestone.description
-            }]);
+            }];
+            setMilestones(updatedMilestones);
             setNewMilestone({ name: '', date: '', description: '' });
             setShowAddMilestone(false);
+
+            // Persist to store
+            updateProject(project.id, {
+                ...project,
+                milestones: updatedMilestones
+            });
         }
     };
 
     const toggleMilestone = (id: string) => {
-        setMilestones(milestones.map(m =>
+        const updatedMilestones = milestones.map(m =>
             m.id === id ? { ...m, completed: !m.completed } : m
-        ));
+        );
+        setMilestones(updatedMilestones);
+
+        // Persist to store
+        updateProject(project.id, {
+            ...project,
+            milestones: updatedMilestones
+        });
     };
 
     const deleteMilestone = (id: string) => {
-        setMilestones(milestones.filter(m => m.id !== id));
+        const updatedMilestones = milestones.filter(m => m.id !== id);
+        setMilestones(updatedMilestones);
+
+        // Persist to store
+        updateProject(project.id, {
+            ...project,
+            milestones: updatedMilestones
+        });
+    };
+
+    const updateMilestoneDate = (id: string, newDate: string) => {
+        const updatedMilestones = milestones.map(m =>
+            m.id === id ? { ...m, date: newDate } : m
+        );
+        setMilestones(updatedMilestones);
+
+        // Persist to store
+        updateProject(project.id, {
+            ...project,
+            milestones: updatedMilestones
+        });
     };
 
     const handleSaveCosts = (costs: CostEntry[], budget?: number) => {
         setProjectCosts(costs);
         if (budget) setProjectBudget(budget);
-        // In a real app, update project with new costs
-        if (project) {
-            updateProject(project.id, {
-                ...project,
-                // @ts-ignore - Assuming we extended Project type
-                costs: costs,
-                budget: budget
-            });
-        }
+
+        // Calculate total actual cost
+        const totalActualCost = costs.reduce((sum, c) => sum + c.amount, 0);
+
+        // Persist to store
+        updateProject(project.id, {
+            ...project,
+            costHistory: costs,
+            budget: budget || project.budget,
+            actualCost: totalActualCost
+        });
     };
 
     const totalCost = projectCosts.reduce((sum, c) => sum + c.amount, 0);
@@ -282,17 +323,32 @@ const ProjectDetailEnhanced: React.FC = () => {
                                         </div>
                                         <div className="flex-1 relative h-8 bg-slate-50 rounded">
                                             <div
-                                                className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full cursor-move transition-colors ${milestone.completed ? 'bg-green-500' : 'bg-blue-500'
+                                                className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full cursor-pointer transition-colors hover:scale-125 ${milestone.completed ? 'bg-green-500' : 'bg-blue-500'
                                                     }`}
                                                 style={{ left: `${Math.max(0, Math.min(100, position))}%` }}
-                                                title={milestone.date}
+                                                title={`${milestone.date} - 点击编辑日期`}
+                                                onClick={() => setEditingMilestoneId(milestone.id)}
                                             />
-                                            <div
-                                                className="absolute top-full mt-1 text-xs text-slate-500 whitespace-nowrap"
-                                                style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translateX(-50%)' }}
-                                            >
-                                                {milestone.date}
-                                            </div>
+                                            {editingMilestoneId === milestone.id ? (
+                                                <input
+                                                    type="date"
+                                                    value={milestone.date}
+                                                    onChange={(e) => updateMilestoneDate(milestone.id, e.target.value)}
+                                                    onBlur={() => setEditingMilestoneId(null)}
+                                                    autoFocus
+                                                    className="absolute top-full mt-1 px-2 py-1 text-xs border border-blue-500 rounded shadow-lg z-10 bg-white"
+                                                    style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translateX(-50%)' }}
+                                                />
+                                            ) : (
+                                                <div
+                                                    className="absolute top-full mt-1 text-xs text-slate-500 whitespace-nowrap cursor-pointer hover:text-blue-600 hover:font-semibold transition-colors"
+                                                    style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translateX(-50%)' }}
+                                                    onClick={() => setEditingMilestoneId(milestone.id)}
+                                                    title="点击编辑日期"
+                                                >
+                                                    {milestone.date}
+                                                </div>
+                                            )}
                                         </div>
                                         <button
                                             onClick={() => deleteMilestone(milestone.id)}

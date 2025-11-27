@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronRight, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Project } from '../../types';
 
 interface ProjectProgressCardsProps {
@@ -7,6 +8,8 @@ interface ProjectProgressCardsProps {
 }
 
 const ProjectProgressCards: React.FC<ProjectProgressCardsProps> = ({ projects }) => {
+    const navigate = useNavigate();
+
     // 模拟计算资源缺口状态
     const getResourceStatus = (_project: Project) => {
         // 这里应该根据实际分配 vs 需求计算
@@ -73,7 +76,10 @@ const ProjectProgressCards: React.FC<ProjectProgressCardsProps> = ({ projects })
                                     ></div>
                                 </div>
 
-                                <button className="w-full py-1.5 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                                <button
+                                    onClick={() => navigate(`/projects/${project.id}`)}
+                                    className="w-full py-1.5 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+                                >
                                     View Details <ChevronRight size={12} />
                                 </button>
                             </div>

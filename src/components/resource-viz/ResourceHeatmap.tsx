@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, User, Users } from 'lucide-react';
-import { format, addWeeks, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
-import type { ResourcePoolItem } from '../../types';
+import { format, addWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isWithinInterval, parseISO, startOfDay } from 'date-fns';
+import type { ResourcePoolItem, TeamMember } from '../../types';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -39,7 +39,7 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
         );
     };
 
-    // 模拟计算负载颜色
+    // Calculate load color
     const getLoadColor = (load: number) => {
         if (load === 0) return 'bg-slate-50';
         if (load < 50) return 'bg-green-100 hover:bg-green-200';
@@ -48,13 +48,35 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
         return 'bg-red-100 hover:bg-red-200';
     };
 
-    // 模拟获取某人某天的负载
-    const getMemberLoad = (_memberId: string, date: Date) => {
-        // 这里应该从真实数据计算，现在用随机数模拟演示效果
-        // 实际项目中需要根据 assignments 计算
-        const day = date.getDay();
-        if (day === 0 || day === 6) return 0; // 周末
-        return Math.floor(Math.random() * 120);
+    // Calculate member load for a specific day based on assignments
+    const getMemberLoad = (member: TeamMember, date: Date) => {
+        let totalHours = 0;
+        const assignments = member.assignments || [];
+        const dailyAssignments: { projectId: string; projectName: string; hours: number }[] = [];
+
+        const checkDate = startOfDay(date);
+
+        assignments.forEach(assign => {
+            const start = startOfDay(parseISO(assign.startDate));
+            const end = startOfDay(parseISO(assign.endDate));
+
+            if (isWithinInterval(checkDate, { start, end })) {
+                // Assume hours is weekly hours, distributed over 5 days
+                const dailyHours = assign.hours / 5;
+                totalHours += dailyHours;
+                dailyAssignments.push({
+                    projectId: assign.projectId,
+                    projectName: assign.projectName,
+                    hours: dailyHours
+                });
+            }
+        });
+
+        // Assume availability is weekly hours, distributed over 5 days
+        const dailyCapacity = (member.availability || 40) / 5;
+        const loadPercentage = dailyCapacity > 0 ? Math.round((totalHours / dailyCapacity) * 100) : 0;
+
+        return { load: loadPercentage, details: dailyAssignments };
     };
 
     return (
@@ -83,7 +105,7 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto pb-12"> {/* Added padding bottom for tooltip space */}
                 <table className="w-full border-collapse">
                     <thead>
                         <tr>
@@ -126,7 +148,7 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
                                 </tr>
 
                                 {/* Members Rows */}
-                                {expandedGroups.includes(resource.id) && resource.members?.map(member => (
+                                {expandedGroups.includes(resource.id) && resource.members?.map((member, memberIdx) => (
                                     <tr key={member.id} className="group">
                                         <td className="p-2 pl-8 border-b border-r border-slate-200 sticky left-0 bg-white group-hover:bg-slate-50 transition-colors z-10">
                                             <div className="flex items-center gap-2">
@@ -141,7 +163,10 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
                                         </td>
                                         {weeks.map(week => (
                                             week.days.slice(0, 5).map(day => { // Show Mon-Fri
-                                                const load = getMemberLoad(member.id, day);
+                                                const { load, details } = getMemberLoad(member, day);
+                                                // Determine tooltip position based on row index (first few rows show tooltip below)
+                                                const tooltipPosition = memberIdx < 2 ? 'top-full mt-2' : 'bottom-full mb-2';
+
                                                 return (
                                                     <td
                                                         key={day.toISOString()}
@@ -160,24 +185,25 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
 
                                                         {/* Tooltip */}
                                                         {load > 0 && (
-                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/cell:block z-50 w-48 bg-slate-900 text-white p-2 rounded-lg text-xs shadow-xl pointer-events-auto">
-                                                                <div className="font-bold mb-1">{format(day, 'EEE, MMM d')}</div>
-                                                                <div
-                                                                    className="flex justify-between cursor-pointer hover:text-blue-300 transition-colors"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        navigate('/projects'); // Navigate to projects list for now
-                                                                    }}
-                                                                >
-                                                                    <span>Project A:</span>
-                                                                    <span>4h</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span>Project B:</span>
-                                                                    <span>4h</span>
-                                                                </div>
-                                                                <div className="border-t border-slate-700 mt-1 pt-1 flex justify-between font-bold">
-                                                                    <span>Total:</span>
+                                                            <div className={`absolute ${tooltipPosition} left-1/2 -translate-x-1/2 hidden group-hover/cell:block z-50 w-56 bg-slate-900 text-white p-3 rounded-lg text-xs shadow-xl pointer-events-auto`}>
+                                                                <div className="font-bold mb-2 border-b border-slate-700 pb-1">{format(day, 'EEE, MMM d')}</div>
+
+                                                                {details.map((detail, idx) => (
+                                                                    <div
+                                                                        key={idx}
+                                                                        className="flex justify-between items-center mb-1 cursor-pointer hover:text-blue-300 transition-colors"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            navigate(`/projects/${detail.projectId}`);
+                                                                        }}
+                                                                    >
+                                                                        <span className="truncate max-w-[120px]" title={detail.projectName}>{detail.projectName}:</span>
+                                                                        <span>{detail.hours.toFixed(1)}h</span>
+                                                                    </div>
+                                                                ))}
+
+                                                                <div className="border-t border-slate-700 mt-2 pt-1 flex justify-between font-bold text-blue-200">
+                                                                    <span>Total Load:</span>
                                                                     <span>{load}%</span>
                                                                 </div>
                                                             </div>
