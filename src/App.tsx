@@ -11,7 +11,8 @@ import Resources from './pages/Resources';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import UserWorkbench from './pages/UserWorkbench';
-import ProjectDetail from './pages/ProjectDetail';
+// import ProjectDetail from './pages/ProjectDetail'; // Replaced by ProjectDetailEnhanced
+import ProjectDetailEnhanced from './pages/ProjectDetailEnhanced';
 import AIDecisionDashboard from './pages/AIDecisionDashboard';
 import AdvancedReports from './pages/AdvancedReports';
 import TemplateManager from './pages/TemplateManager';
@@ -55,7 +56,7 @@ function App() {
           <Route path="/projects/:projectId" element={
             <ProtectedRoute>
               <Layout>
-                <ProjectDetail />
+                <ProjectDetailEnhanced />
               </Layout>
             </ProtectedRoute>
           } />

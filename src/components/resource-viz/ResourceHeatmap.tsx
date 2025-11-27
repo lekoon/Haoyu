@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, User, Users } from 'lucide-react';
 import { format, addWeeks, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
-import type { ResourcePoolItem, TeamMember } from '../../types';
+import type { ResourcePoolItem } from '../../types';
 import clsx from 'clsx';
+import { useNavigate } from 'react-router-dom';
 
 interface ResourceHeatmapProps {
     resources: ResourcePoolItem[];
@@ -15,6 +16,7 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
     startDate = new Date(),
     weeksToShow = 4
 }) => {
+    const navigate = useNavigate();
     const [expandedGroups, setExpandedGroups] = useState<string[]>(resources.map(r => r.id));
     const [viewMode, setViewMode] = useState<'member' | 'group'>('member');
 
@@ -46,13 +48,8 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
         return 'bg-red-100 hover:bg-red-200';
     };
 
-    const getLoadText = (load: number) => {
-        if (load === 0) return '-';
-        return `${load}%`;
-    };
-
     // 模拟获取某人某天的负载
-    const getMemberLoad = (memberId: string, date: Date) => {
+    const getMemberLoad = (_memberId: string, date: Date) => {
         // 这里应该从真实数据计算，现在用随机数模拟演示效果
         // 实际项目中需要根据 assignments 计算
         const day = date.getDay();
@@ -123,7 +120,7 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
                                         </button>
                                     </td>
                                     {/* Group Summary Cells (Placeholder) */}
-                                    {weeks.map((week, idx) => (
+                                    {weeks.map((_week, idx) => (
                                         <td key={idx} colSpan={5} className="border-b border-r border-slate-200 bg-slate-50/50"></td>
                                     ))}
                                 </tr>
@@ -163,9 +160,15 @@ const ResourceHeatmap: React.FC<ResourceHeatmapProps> = ({
 
                                                         {/* Tooltip */}
                                                         {load > 0 && (
-                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/cell:block z-50 w-48 bg-slate-900 text-white p-2 rounded-lg text-xs shadow-xl pointer-events-none">
+                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/cell:block z-50 w-48 bg-slate-900 text-white p-2 rounded-lg text-xs shadow-xl pointer-events-auto">
                                                                 <div className="font-bold mb-1">{format(day, 'EEE, MMM d')}</div>
-                                                                <div className="flex justify-between">
+                                                                <div
+                                                                    className="flex justify-between cursor-pointer hover:text-blue-300 transition-colors"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        navigate('/projects'); // Navigate to projects list for now
+                                                                    }}
+                                                                >
                                                                     <span>Project A:</span>
                                                                     <span>4h</span>
                                                                 </div>

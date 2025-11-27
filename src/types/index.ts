@@ -39,10 +39,18 @@ export interface ResourcePoolItem {
 export interface TeamMember {
     id: string;
     name: string;
+    gender?: '男' | '女' | '其他';
+    department?: string;
+    position?: string; // 职称
     role: string; // e.g., "Senior Frontend Dev"
     avatar?: string;
+    email?: string;
+    phone?: string;
+    joinDate?: string;
     skills: string[]; // Skill IDs
+    certifications?: string[]; // 资质证书
     availability: number; // Hours per week or percentage
+    hourlyRate?: number; // 时薪（用于成本计算）
     assignments: {
         projectId: string;
         projectName: string;
@@ -76,6 +84,15 @@ export interface ResourceConflict {
     }[];
 }
 
+// Milestone
+export interface Milestone {
+    id: string;
+    name: string;
+    date: string;
+    completed: boolean;
+    description?: string;
+}
+
 // Cost Analysis
 export interface CostBreakdown {
     projectId: string;
@@ -92,13 +109,21 @@ export interface CostBreakdown {
     }[];
 }
 
+export interface CostEntry {
+    id: string;
+    date: string;
+    amount: number;
+    category: 'labor' | 'equipment' | 'materials' | 'overhead' | 'other';
+    description: string;
+}
+
 // Project
 export interface Project {
     id: string;
     name: string;
     description: string;
     status: 'planning' | 'active' | 'completed' | 'on-hold';
-    priority: 'P0' | 'P1' | 'P2' | 'P3'; // 新增优先级
+    priority: 'P0' | 'P1' | 'P2' | 'P3';
     startDate: string;
     endDate: string;
 
@@ -109,7 +134,23 @@ export interface Project {
     rank?: number;
 
     resourceRequirements: ResourceRequirement[];
-    estimatedCost?: number; // 预估成本
+
+    // Cost tracking
+    budget?: number; // 预算
+    actualCost?: number; // 实际成本
+    costBreakdown?: {
+        labor: number; // 人力成本
+        equipment: number; // 设备成本
+        materials: number; // 材料成本
+        overhead: number; // 管理费用
+        other: number; // 其他
+    };
+    costHistory?: CostEntry[];
+
+    // Milestones
+    milestones?: Milestone[];
+
+    estimatedCost?: number; // 预估成本（向后兼容）
 }
 
 // Default Factors (for initialization)
@@ -149,6 +190,7 @@ export interface ProjectTemplate {
     defaultDuration: number; // in months
     defaultFactors: Record<string, number>;
     defaultResources: Omit<ResourceRequirement, 'resourceId'>[];
+    defaultMilestones?: Omit<Milestone, 'id' | 'completed'>[];
     isBuiltIn: boolean;
     createdAt: string;
 }

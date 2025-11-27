@@ -30,6 +30,7 @@ import SkillMatchingAnalysis from '../components/SkillMatchingAnalysis';
 import DashboardCards from '../components/resource-viz/DashboardCards';
 import ResourceHeatmap from '../components/resource-viz/ResourceHeatmap';
 import ProjectProgressCards from '../components/resource-viz/ProjectProgressCards';
+import ResourceDetailForm from '../components/ResourceDetailForm';
 
 type ViewMode = 'dashboard' | 'pool' | 'capacity' | 'gantt' | 'analysis' | 'conflicts' | 'costs' | 'skills';
 
@@ -39,6 +40,11 @@ const Resources: React.FC = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<ResourcePoolItem>>({ name: '', totalQuantity: 0 });
+
+    // Member Management State
+    const [selectedResource, setSelectedResource] = useState<ResourcePoolItem | null>(null);
+    const [editingMember, setEditingMember] = useState<TeamMember | undefined>(undefined);
+    const [isMemberFormOpen, setIsMemberFormOpen] = useState(false);
 
     // Sensors for Drag and Drop
     const sensors = useSensors(
@@ -99,11 +105,52 @@ const Resources: React.FC = () => {
             addResource({
                 id: `res-${Date.now()}`,
                 name: formData.name,
-                totalQuantity: formData.totalQuantity
+                totalQuantity: formData.totalQuantity,
+                members: [] // Initialize with empty members
             });
             setIsModalOpen(false);
             setFormData({ name: '', totalQuantity: 0 });
         }
+    };
+
+    const handleEditResource = (resource: ResourcePoolItem) => {
+        setSelectedResource(resource);
+    };
+
+    const handleSaveMember = (memberData: Partial<TeamMember>) => {
+        if (!selectedResource) return;
+
+        const updatedMembers = [...(selectedResource.members || [])];
+
+        if (editingMember) {
+            // Update existing member
+            const index = updatedMembers.findIndex(m => m.id === editingMember.id);
+            if (index !== -1) {
+                updatedMembers[index] = { ...updatedMembers[index], ...memberData };
+            }
+        } else {
+            // Add new member
+            const newMember: TeamMember = {
+                id: `mem-${Date.now()}`,
+                name: memberData.name || 'New Member',
+                role: memberData.role || selectedResource.name,
+                skills: memberData.skills || [],
+                availability: memberData.availability || 40,
+                assignments: [],
+                ...memberData
+            } as TeamMember;
+            updatedMembers.push(newMember);
+        }
+
+        updateResource(selectedResource.id, { members: updatedMembers });
+        setIsMemberFormOpen(false);
+        setEditingMember(undefined);
+    };
+
+    const handleDeleteMember = (memberId: string) => {
+        if (!selectedResource) return;
+        const updatedMembers = selectedResource.members?.filter(m => m.id !== memberId) || [];
+        updateResource(selectedResource.id, { members: updatedMembers });
     };
 
     const getCellColor = (used: number, capacity: number) => {
@@ -239,6 +286,7 @@ const Resources: React.FC = () => {
                                         resource={resource}
                                         onUpdate={updateResource}
                                         onDelete={deleteResource}
+                                        onEdit={handleEditResource}
                                         utilizationPercentage={resourceUtilization.get(resource.id)}
                                     />
                                 ))}
@@ -409,6 +457,100 @@ const Resources: React.FC = () => {
                         </form>
                     </div>
                 </div>
+            )}
+            {/* Member Management Modal */}
+            {selectedResource && !isMemberFormOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                        <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900">{selectedResource.name} - {t('resources.members')}</h2>
+                                <p className="text-sm text-slate-500">Manage team members and their details</p>
+                            </div>
+                            <button onClick={() => setSelectedResource(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                <LayoutGrid size={24} className="text-slate-500" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {/* Add New Member Card */}
+                                <button
+                                    onClick={() => {
+                                        setEditingMember(undefined);
+                                        setIsMemberFormOpen(true);
+                                    }}
+                                    className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50 transition-all group min-h-[200px]"
+                                >
+                                    <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                        <Plus size={24} />
+                                    </div>
+                                    <span className="font-bold text-slate-600 group-hover:text-blue-600">Add Team Member</span>
+                                </button>
+
+                                {/* Member Cards */}
+                                {selectedResource.members?.map(member => (
+                                    <div key={member.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold">
+                                                    {member.name.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-slate-900">{member.name}</h3>
+                                                    <p className="text-xs text-slate-500">{member.role}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingMember(member);
+                                                        setIsMemberFormOpen(true);
+                                                    }}
+                                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                >
+                                                    <Activity size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteMember(member.id)}
+                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                    <AlertTriangle size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Availability:</span>
+                                                <span className="font-medium">{member.availability}h/week</span>
+                                            </div>
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Skills:</span>
+                                                <span className="font-medium">{member.skills.length}</span>
+                                            </div>
+                                            {member.department && (
+                                                <div className="flex justify-between text-slate-600">
+                                                    <span>Dept:</span>
+                                                    <span className="font-medium">{member.department}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Resource Detail Form */}
+            {isMemberFormOpen && (
+                <ResourceDetailForm
+                    member={editingMember}
+                    onSave={handleSaveMember}
+                    onClose={() => setIsMemberFormOpen(false)}
+                />
             )}
         </div>
     );

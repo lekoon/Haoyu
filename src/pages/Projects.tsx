@@ -1,15 +1,66 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import type { Project, ResourceRequirement } from '../types';
+import type { Project, ResourceRequirement, ProjectTemplate } from '../types';
 import { Plus, Trash2, Edit2, X, LayoutList, Kanban, Users, Calendar } from 'lucide-react';
 import { calculateProjectScore } from '../utils/algorithm';
-import { format, differenceInMonths, parseISO, startOfMonth, endOfMonth, addMonths, differenceInDays } from 'date-fns';
+import { format, differenceInMonths, parseISO, startOfMonth, endOfMonth, addMonths, differenceInDays, addMonths as addMonthsDate } from 'date-fns';
+import TemplateSelector from '../components/TemplateSelector';
+import KanbanBoard from '../components/KanbanBoard';
+import { useNavigate } from 'react-router-dom';
 
 const Projects: React.FC = () => {
     const { projects, addProject, deleteProject, updateProject, factorDefinitions, resourcePool } = useStore();
+    const navigate = useNavigate();
     const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('list');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    // Mock Templates (In a real app, these would come from the store or API)
+    const templates: ProjectTemplate[] = [
+        {
+            id: 'web-app',
+            name: 'Web Application',
+            description: 'Standard web application development project with frontend and backend.',
+            category: 'web',
+            defaultDuration: 3,
+            defaultFactors: { market: 8, value: 7, risk: 6, roi: 8, strategy: 7, innovation: 6, cost: 5 },
+            defaultResources: [
+                { count: 2, duration: 3, unit: 'month', requiredSkills: ['react', 'node'] },
+                { count: 1, duration: 3, unit: 'month', requiredSkills: ['design'] }
+            ],
+            isBuiltIn: true,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 'mobile-app',
+            name: 'Mobile App',
+            description: 'iOS and Android mobile application development.',
+            category: 'mobile',
+            defaultDuration: 4,
+            defaultFactors: { market: 9, value: 8, risk: 5, roi: 7, strategy: 8, innovation: 7, cost: 6 },
+            defaultResources: [
+                { count: 2, duration: 4, unit: 'month', requiredSkills: ['flutter'] },
+                { count: 1, duration: 2, unit: 'month', requiredSkills: ['qa'] }
+            ],
+            isBuiltIn: true,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 'data-analytics',
+            name: 'Data Analytics Platform',
+            description: 'Big data processing and analytics dashboard.',
+            category: 'data',
+            defaultDuration: 6,
+            defaultFactors: { market: 7, value: 9, risk: 4, roi: 9, strategy: 9, innovation: 8, cost: 4 },
+            defaultResources: [
+                { count: 3, duration: 6, unit: 'month', requiredSkills: ['python', 'sql'] },
+                { count: 1, duration: 6, unit: 'month', requiredSkills: ['data-science'] }
+            ],
+            isBuiltIn: true,
+            createdAt: new Date().toISOString()
+        }
+    ];
 
     // Form State
     const [formData, setFormData] = useState<Partial<Project>>({
@@ -39,8 +90,39 @@ const Projects: React.FC = () => {
                 if (mergedFactors[f.id] === undefined) mergedFactors[f.id] = 5;
             });
             setFormData({ ...project, factors: mergedFactors });
+            setIsModalOpen(true);
         } else {
-            setEditingId(null);
+            // Open template selector for new projects
+            setIsTemplateSelectorOpen(true);
+        }
+    };
+
+    const handleTemplateSelect = (template: ProjectTemplate | null) => {
+        setEditingId(null);
+
+        if (template) {
+            // Initialize from template
+            const startDate = new Date();
+            const endDate = addMonthsDate(startDate, template.defaultDuration);
+
+            // Map default resources to include a valid resourceId from the pool if possible
+            const mappedResources = template.defaultResources.map(req => ({
+                ...req,
+                resourceId: resourcePool[0]?.id || '', // Default to first resource
+            }));
+
+            setFormData({
+                name: `New ${template.name}`,
+                description: template.description,
+                status: 'planning',
+                priority: 'P2',
+                startDate: format(startDate, 'yyyy-MM-dd'),
+                endDate: format(endDate, 'yyyy-MM-dd'),
+                factors: { ...template.defaultFactors },
+                resourceRequirements: mappedResources
+            });
+        } else {
+            // Blank project
             setFormData({
                 name: '',
                 description: '',
@@ -52,6 +134,7 @@ const Projects: React.FC = () => {
                 resourceRequirements: []
             });
         }
+        setIsTemplateSelectorOpen(false);
         setIsModalOpen(true);
     };
 
@@ -99,13 +182,13 @@ const Projects: React.FC = () => {
 
     const currentScore = formData.factors ? calculateProjectScore(formData.factors, factorDefinitions) : 0;
 
-    // Kanban Columns
-    const columns = [
-        { id: 'planning', label: 'Planning', color: 'bg-blue-100 text-blue-700' },
-        { id: 'active', label: 'Active', color: 'bg-green-100 text-green-700' },
-        { id: 'on-hold', label: 'On Hold', color: 'bg-orange-100 text-orange-700' },
-        { id: 'completed', label: 'Completed', color: 'bg-purple-100 text-purple-700' },
-    ];
+    // Kanban Columns - Moved to KanbanBoard component
+    // const columns = [
+    //     { id: 'planning', label: 'Planning', color: 'bg-blue-100 text-blue-700' },
+    //     { id: 'active', label: 'Active', color: 'bg-green-100 text-green-700' },
+    //     { id: 'on-hold', label: 'On Hold', color: 'bg-orange-100 text-orange-700' },
+    //     { id: 'completed', label: 'Completed', color: 'bg-purple-100 text-purple-700' },
+    // ];
 
     return (
         <div>
@@ -164,7 +247,12 @@ const Projects: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <div className="font-medium text-slate-900">{project.name}</div>
+                                        <div
+                                            className="font-medium text-slate-900 cursor-pointer hover:text-blue-600"
+                                            onClick={() => navigate(`/projects/${project.id}`)}
+                                        >
+                                            {project.name}
+                                        </div>
                                         <div className="text-sm text-slate-500 truncate max-w-xs">{project.description}</div>
                                     </td>
                                     <td className="p-4">
@@ -199,34 +287,8 @@ const Projects: React.FC = () => {
                     </table>
                 </div>
             ) : viewMode === 'kanban' ? (
-                <div className="flex gap-6 overflow-x-auto pb-6">
-                    {columns.map(col => (
-                        <div key={col.id} className="min-w-[300px] bg-slate-100/50 rounded-2xl p-4">
-                            <div className={`mb-4 px-3 py-2 rounded-lg font-bold text-sm inline-block ${col.color}`}>
-                                {col.label}
-                            </div>
-                            <div className="space-y-4">
-                                {projects.filter(p => p.status === col.id).map(project => (
-                                    <div key={project.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleOpenModal(project)}>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-bold text-slate-900">{project.name}</h3>
-                                            <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded">
-                                                {project.score.toFixed(1)}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-slate-500 line-clamp-2 mb-3">{project.description}</p>
-                                        <div className="flex items-center justify-between text-xs text-slate-400">
-                                            <span>Rank #{project.rank}</span>
-                                            <div className="flex items-center gap-1" title="Total Headcount">
-                                                <Users size={12} />
-                                                {project.resourceRequirements.reduce((sum, req) => sum + req.count, 0)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                <div className="overflow-x-auto pb-6">
+                    <KanbanBoard onEditProject={handleOpenModal} />
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-6">
@@ -491,7 +553,15 @@ const Projects: React.FC = () => {
                     </div>
                 )
             }
-        </div >
+            {/* Template Selector */}
+            {isTemplateSelectorOpen && (
+                <TemplateSelector
+                    templates={templates}
+                    onSelect={handleTemplateSelect}
+                    onClose={() => setIsTemplateSelectorOpen(false)}
+                />
+            )}
+        </div>
     );
 };
 
