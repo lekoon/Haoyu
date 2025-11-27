@@ -146,8 +146,9 @@ export interface Task {
     status?: 'planning' | 'active' | 'completed' | 'on-hold';
 
     // Canvas positioning (for free-form layout)
-    x?: number; // X coordinate on canvas
+    x?: number; // X coordinate on canvas (Optional if bound to time)
     y?: number; // Y coordinate on canvas
+    height?: number; // Custom height
 
     // Dependencies
     dependencies?: string[]; // Array of task IDs this task depends on

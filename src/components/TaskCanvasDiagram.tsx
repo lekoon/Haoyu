@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Minus, Move, Flag, Edit3, Copy, Trash2, Link, X } from 'lucide-react';
+import { Plus, Minus, Move, Flag, Edit3, Copy, Trash2, Link, X, Calendar } from 'lucide-react';
 import type { Task } from '../types';
-import { format, addDays } from 'date-fns';
+import { format, addDays, differenceInDays, parseISO, eachDayOfInterval } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 
 interface TaskCanvasDiagramProps {
     tasks: Task[];
@@ -10,8 +11,10 @@ interface TaskCanvasDiagramProps {
     onTaskDelete: (taskId: string) => void;
 }
 
-const TASK_WIDTH = 220;
-const TASK_HEIGHT = 80;
+const PIXELS_PER_DAY = 60;
+const MIN_TASK_WIDTH = 60;
+const DEFAULT_TASK_HEIGHT = 80;
+const BASE_DATE = new Date(2024, 0, 1); // Reference date for x=0
 
 const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
     tasks,
@@ -26,11 +29,12 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
     const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
 
     // Interaction State
-    const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+    const [interactionMode, setInteractionMode] = useState<'none' | 'drag' | 'resize-w' | 'resize-h' | 'connect'>('none');
+    const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
     const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
-    const [connectingTaskId, setConnectingTaskId] = useState<string | null>(null); // For creating dependencies
+    const [connectingSourceId, setConnectingSourceId] = useState<string | null>(null);
 
-    // Context Menu
+    // Context Menu & Clipboard
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string } | null>(null);
     const [clipboardTask, setClipboardTask] = useState<Task | null>(null);
 
@@ -39,16 +43,29 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
 
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Initialize positions if missing
+    // Helpers for Coordinate <-> Date conversion
+    const dateToX = (dateStr: string) => {
+        try {
+            const date = parseISO(dateStr);
+            return differenceInDays(date, BASE_DATE) * PIXELS_PER_DAY;
+        } catch (e) {
+            return 0;
+        }
+    };
+
+    const xToDate = (x: number) => {
+        const days = Math.round(x / PIXELS_PER_DAY);
+        return format(addDays(BASE_DATE, days), 'yyyy-MM-dd');
+    };
+
+    // Initialize positions if missing (auto-layout vertically)
     useEffect(() => {
         tasks.forEach((task, index) => {
-            if (task.x === undefined || task.y === undefined) {
-                const updatedTask = {
+            if (task.y === undefined) {
+                onTaskUpdate({
                     ...task,
-                    x: task.x ?? 100 + (index * 250) % 1000,
-                    y: task.y ?? 100 + Math.floor(index / 4) * 150
-                };
-                onTaskUpdate(updatedTask);
+                    y: 100 + (index * 100)
+                });
             }
         });
     }, [tasks]);
@@ -60,7 +77,7 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
             e.preventDefault();
             const zoomSensitivity = 0.001;
             const delta = -e.deltaY * zoomSensitivity;
-            const newScale = Math.min(Math.max(0.1, scale + delta), 3);
+            const newScale = Math.min(Math.max(0.2, scale + delta), 2);
             setScale(newScale);
         } else {
             setOffset(prev => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
@@ -68,103 +85,109 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
     };
 
     const handleCanvasMouseDown = (e: React.MouseEvent) => {
-        if (e.button === 1 || (e.button === 0 && e.altKey)) { // Middle click or Alt+Left
+        if (e.button === 1 || (e.button === 0 && e.altKey)) {
             setIsDraggingCanvas(true);
             setLastMousePos({ x: e.clientX, y: e.clientY });
             e.preventDefault();
+            setContextMenu(null);
+        } else if (interactionMode === 'connect') {
+            setInteractionMode('none');
+            setConnectingSourceId(null);
+        } else {
+            setContextMenu(null);
         }
     };
 
     const handleCanvasMouseMove = (e: React.MouseEvent) => {
-        if (isDraggingCanvas) {
-            const dx = e.clientX - lastMousePos.x;
-            const dy = e.clientY - lastMousePos.y;
-            setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-            setLastMousePos({ x: e.clientX, y: e.clientY });
-        } else if (draggingTaskId) {
-            const task = tasks.find(t => t.id === draggingTaskId);
-            if (task) {
-                const dx = (e.clientX - lastMousePos.x) / scale;
-                const dy = (e.clientY - lastMousePos.y) / scale;
+        const dx = e.clientX - lastMousePos.x;
+        const dy = e.clientY - lastMousePos.y;
+        setLastMousePos({ x: e.clientX, y: e.clientY });
 
-                onTaskUpdate({
-                    ...task,
-                    x: (task.x || 0) + dx,
-                    y: (task.y || 0) + dy
-                });
-                setLastMousePos({ x: e.clientX, y: e.clientY });
+        if (isDraggingCanvas) {
+            setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+            return;
+        }
+
+        if (interactionMode !== 'none' && activeTaskId) {
+            const task = tasks.find(t => t.id === activeTaskId);
+            if (!task) return;
+
+            const deltaX = dx / scale;
+            const deltaY = dy / scale;
+
+            if (interactionMode === 'drag') {
+                const newY = (task.y || 0) + deltaY;
+                const currentX = dateToX(task.startDate);
+                const newX = currentX + deltaX;
+                const newStartDate = xToDate(newX);
+
+                const durationDays = differenceInDays(parseISO(task.endDate), parseISO(task.startDate));
+                const newEndDate = format(addDays(parseISO(newStartDate), durationDays), 'yyyy-MM-dd');
+
+                if (newStartDate !== task.startDate || Math.abs(deltaY) > 0) {
+                    onTaskUpdate({ ...task, startDate: newStartDate, endDate: newEndDate, y: newY });
+                }
+
+            } else if (interactionMode === 'resize-w') {
+                const currentEndX = dateToX(task.endDate);
+                const newEndX = currentEndX + deltaX;
+                const startX = dateToX(task.startDate);
+                if (newEndX - startX >= MIN_TASK_WIDTH) {
+                    const newEndDate = xToDate(newEndX);
+                    if (newEndDate !== task.endDate) {
+                        onTaskUpdate({ ...task, endDate: newEndDate });
+                    }
+                }
+
+            } else if (interactionMode === 'resize-h') {
+                const currentHeight = task.height || DEFAULT_TASK_HEIGHT;
+                const newHeight = Math.max(40, currentHeight + deltaY);
+                onTaskUpdate({ ...task, height: newHeight });
             }
         }
     };
 
     const handleCanvasMouseUp = () => {
         setIsDraggingCanvas(false);
-        setDraggingTaskId(null);
-        setConnectingTaskId(null);
+        if (interactionMode !== 'connect') {
+            setInteractionMode('none');
+            setActiveTaskId(null);
+        }
     };
 
     // --- Task Interaction ---
 
-    const handleTaskMouseDown = (e: React.MouseEvent, taskId: string) => {
-        if (e.button === 0 && !e.altKey && !connectingTaskId) {
+    const handleTaskMouseDown = (e: React.MouseEvent, taskId: string, mode: 'drag' | 'resize-w' | 'resize-h') => {
+        if (e.button === 0 && !e.altKey && interactionMode !== 'connect') {
             e.stopPropagation();
-            setDraggingTaskId(taskId);
+            setInteractionMode(mode);
+            setActiveTaskId(taskId);
             setLastMousePos({ x: e.clientX, y: e.clientY });
+            setContextMenu(null);
+        } else if (interactionMode === 'connect' && connectingSourceId) {
+            e.stopPropagation();
+            if (connectingSourceId !== taskId) {
+                const targetTask = tasks.find(t => t.id === taskId);
+                if (targetTask) {
+                    const currentDeps = targetTask.dependencies || [];
+                    if (!currentDeps.includes(connectingSourceId)) {
+                        onTaskUpdate({ ...targetTask, dependencies: [...currentDeps, connectingSourceId] });
+                    }
+                }
+            }
+            setInteractionMode('none');
+            setConnectingSourceId(null);
         }
     };
 
-    const handleContextMenu = (e: React.MouseEvent, taskId: string) => {
-        e.preventDefault();
+    const startConnection = (e: React.MouseEvent, taskId: string) => {
         e.stopPropagation();
-        setContextMenu({ x: e.clientX, y: e.clientY, taskId });
+        setInteractionMode('connect');
+        setConnectingSourceId(taskId);
+        setContextMenu(null);
     };
 
-    // --- Dependencies ---
-
-    const toggleDependency = (targetId: string) => {
-        if (!connectingTaskId || connectingTaskId === targetId) return;
-
-        const targetTask = tasks.find(t => t.id === targetId);
-        if (!targetTask) return;
-
-        const currentDeps = targetTask.dependencies || [];
-        const isConnected = currentDeps.includes(connectingTaskId);
-
-        let newDeps;
-        if (isConnected) {
-            newDeps = currentDeps.filter(id => id !== connectingTaskId);
-        } else {
-            newDeps = [...currentDeps, connectingTaskId];
-        }
-
-        onTaskUpdate({ ...targetTask, dependencies: newDeps });
-        setConnectingTaskId(null);
-    };
-
-    // --- CRUD Operations ---
-
-    const handleAddTask = (type: 'task' | 'milestone') => {
-        const container = containerRef.current;
-        const centerX = container ? (-offset.x + container.clientWidth / 2) / scale : 0;
-        const centerY = container ? (-offset.y + container.clientHeight / 2) / scale : 0;
-
-        const newTask: Task = {
-            id: Date.now().toString(),
-            name: type === 'task' ? '新任务' : '新里程碑',
-            startDate: format(new Date(), 'yyyy-MM-dd'),
-            endDate: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
-            progress: 0,
-            type,
-            color: type === 'task' ? '#3B82F6' : '#8B5CF6',
-            status: 'planning',
-            priority: 'P2',
-            x: centerX - TASK_WIDTH / 2,
-            y: centerY - TASK_HEIGHT / 2,
-            dependencies: []
-        };
-        onTaskAdd(newTask);
-    };
-
+    // --- Context Menu Actions ---
     const handleDelete = () => {
         if (contextMenu) {
             onTaskDelete(contextMenu.taskId);
@@ -181,15 +204,21 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
     };
 
     const handlePaste = () => {
-        if (clipboardTask) {
-            const pasteX = (contextMenu ? (contextMenu.x - offset.x) / scale : 0) + 20;
-            const pasteY = (contextMenu ? (contextMenu.y - offset.y) / scale : 0) + 20;
+        if (clipboardTask && contextMenu) {
+            // Paste at context menu location mapped to date/y
+            const pasteX = (contextMenu.x - offset.x) / scale;
+            const pasteY = (contextMenu.y - offset.y) / scale;
+
+            const startDate = xToDate(pasteX);
+            const duration = differenceInDays(parseISO(clipboardTask.endDate), parseISO(clipboardTask.startDate));
+            const endDate = format(addDays(parseISO(startDate), duration), 'yyyy-MM-dd');
 
             const newTask = {
                 ...clipboardTask,
                 id: Date.now().toString(),
                 name: `${clipboardTask.name} (Copy)`,
-                x: pasteX,
+                startDate,
+                endDate,
                 y: pasteY,
                 dependencies: []
             };
@@ -200,40 +229,121 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
 
     // --- Rendering Helpers ---
 
+    const renderRuler = () => {
+        if (!containerRef.current) return null;
+
+        const startX = -offset.x / scale;
+        const endX = (-offset.x + containerRef.current.clientWidth) / scale;
+
+        const startDate = addDays(BASE_DATE, Math.floor(startX / PIXELS_PER_DAY));
+        const endDate = addDays(BASE_DATE, Math.ceil(endX / PIXELS_PER_DAY));
+
+        const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+        return (
+            <div
+                className="absolute top-0 left-0 h-12 bg-white border-b border-slate-200 z-30 flex items-end select-none shadow-sm"
+                style={{
+                    width: '100%',
+                    transform: `translateY(0)`
+                }}
+            >
+                <div
+                    className="relative h-full"
+                    style={{
+                        transform: `translateX(${offset.x}px) scaleX(${scale})`,
+                        transformOrigin: 'left bottom',
+                        width: '100000px'
+                    }}
+                >
+                    {days.map(day => {
+                        const x = dateToX(format(day, 'yyyy-MM-dd'));
+                        const isFirstDayOfMonth = day.getDate() === 1;
+                        return (
+                            <div
+                                key={day.toISOString()}
+                                className={`absolute bottom-0 border-l ${isFirstDayOfMonth ? 'border-slate-400 h-full' : 'border-slate-200 h-4'}`}
+                                style={{ left: x, width: PIXELS_PER_DAY }}
+                            >
+                                <div className="pl-1 text-[10px] text-slate-500">
+                                    {day.getDate()}
+                                </div>
+                                {isFirstDayOfMonth && (
+                                    <div className="absolute top-1 left-1 text-xs font-bold text-slate-700 whitespace-nowrap">
+                                        {format(day, 'yyyy年MM月', { locale: zhCN })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     const getConnectorPath = (start: { x: number, y: number }, end: { x: number, y: number }) => {
         const deltaX = end.x - start.x;
-        const controlPointX = Math.abs(deltaX) * 0.5;
+        const controlPointX = Math.max(Math.abs(deltaX) * 0.5, 50);
         return `M ${start.x} ${start.y} C ${start.x + controlPointX} ${start.y}, ${end.x - controlPointX} ${end.y}, ${end.x} ${end.y}`;
+    };
+
+    // --- CRUD ---
+    const handleAddTask = (type: 'task' | 'milestone') => {
+        const container = containerRef.current;
+        const centerX = container ? (-offset.x + container.clientWidth / 2) / scale : 0;
+        const centerY = container ? (-offset.y + container.clientHeight / 2) / scale : 0;
+
+        const startDate = xToDate(centerX);
+        const endDate = xToDate(centerX + (type === 'milestone' ? 0 : 5 * PIXELS_PER_DAY));
+
+        const newTask: Task = {
+            id: Date.now().toString(),
+            name: type === 'task' ? '新任务' : '新里程碑',
+            startDate,
+            endDate,
+            progress: 0,
+            type,
+            color: type === 'task' ? '#3B82F6' : '#8B5CF6',
+            status: 'planning',
+            priority: 'P2',
+            y: centerY,
+            height: DEFAULT_TASK_HEIGHT,
+            dependencies: []
+        };
+        onTaskAdd(newTask);
     };
 
     return (
         <div
             ref={containerRef}
-            className="w-full h-full bg-slate-50 relative overflow-hidden select-none cursor-grab active:cursor-grabbing"
+            className={`w-full h-full bg-slate-50 relative overflow-hidden select-none ${interactionMode === 'drag' ? 'cursor-grabbing' : ''}`}
             onWheel={handleWheel}
             onMouseDown={handleCanvasMouseDown}
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleCanvasMouseUp}
             onContextMenu={(e) => e.preventDefault()}
         >
-            {/* Grid Background */}
-            <div
-                className="absolute inset-0 pointer-events-none opacity-10"
-                style={{
-                    backgroundSize: `${40 * scale}px ${40 * scale}px`,
-                    backgroundImage: `linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)`,
-                    backgroundPosition: `${offset.x}px ${offset.y}px`
-                }}
-            />
+            {/* Top Ruler */}
+            {renderRuler()}
 
             {/* Canvas Content */}
             <div
                 className="absolute transform-gpu origin-top-left"
                 style={{
-                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`
+                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                    top: 48 // Offset by ruler height
                 }}
             >
-                {/* Connections Layer (SVG) */}
+                {/* Grid Lines (Vertical) */}
+                <div className="absolute inset-0 pointer-events-none h-[10000px] w-[100000px]"
+                    style={{
+                        backgroundImage: `linear-gradient(to right, #f1f5f9 1px, transparent 1px)`,
+                        backgroundSize: `${PIXELS_PER_DAY}px 100%`,
+                        left: dateToX(format(BASE_DATE, 'yyyy-MM-dd'))
+                    }}
+                />
+
+                {/* Connections Layer */}
                 <svg className="absolute top-0 left-0 overflow-visible pointer-events-none" style={{ width: 1, height: 1 }}>
                     <defs>
                         <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -245,19 +355,15 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
                             const source = tasks.find(t => t.id === depId);
                             if (!source) return null;
 
-                            const start = {
-                                x: (source.x || 0) + TASK_WIDTH,
-                                y: (source.y || 0) + TASK_HEIGHT / 2
-                            };
-                            const end = {
-                                x: (task.x || 0),
-                                y: (task.y || 0) + TASK_HEIGHT / 2
-                            };
+                            const sourceX = dateToX(source.endDate);
+                            const sourceY = (source.y || 0) + (source.height || DEFAULT_TASK_HEIGHT) / 2;
+                            const targetX = dateToX(task.startDate);
+                            const targetY = (task.y || 0) + (task.height || DEFAULT_TASK_HEIGHT) / 2;
 
                             return (
                                 <path
                                     key={`${source.id}-${task.id}`}
-                                    d={getConnectorPath(start, end)}
+                                    d={getConnectorPath({ x: sourceX, y: sourceY }, { x: targetX, y: targetY })}
                                     fill="none"
                                     stroke="#94a3b8"
                                     strokeWidth="2"
@@ -266,80 +372,110 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
                             );
                         })
                     )}
+                    {/* Active Connection Line */}
+                    {interactionMode === 'connect' && connectingSourceId && (
+                        (() => {
+                            const source = tasks.find(t => t.id === connectingSourceId);
+                            if (!source) return null;
+                            const sourceX = dateToX(source.endDate);
+                            const sourceY = (source.y || 0) + (source.height || DEFAULT_TASK_HEIGHT) / 2;
+                            const targetX = (lastMousePos.x - offset.x) / scale;
+                            const targetY = (lastMousePos.y - offset.y - 48) / scale; // Adjust for ruler
+
+                            return (
+                                <path
+                                    d={`M ${sourceX} ${sourceY} L ${targetX} ${targetY}`}
+                                    fill="none"
+                                    stroke="#3B82F6"
+                                    strokeWidth="2"
+                                    strokeDasharray="5,5"
+                                />
+                            );
+                        })()
+                    )}
                 </svg>
 
                 {/* Tasks Layer */}
-                {tasks.map(task => (
-                    <div
-                        key={task.id}
-                        className={`absolute rounded-xl shadow-sm border transition-shadow group ${task.type === 'milestone' ? 'w-40 h-40 rounded-full flex items-center justify-center text-center' : ''
-                            } ${hoveredTaskId === task.id ? 'z-10 ring-2 ring-blue-400 shadow-xl' : 'z-0'} ${connectingTaskId === task.id ? 'ring-2 ring-green-500' : ''
-                            }`}
-                        style={{
-                            left: task.x || 0,
-                            top: task.y || 0,
-                            width: task.type === 'milestone' ? 160 : TASK_WIDTH,
-                            height: task.type === 'milestone' ? 160 : TASK_HEIGHT,
-                            backgroundColor: 'white',
-                            borderColor: task.color || '#e2e8f0'
-                        }}
-                        onMouseDown={(e) => handleTaskMouseDown(e, task.id)}
-                        onMouseEnter={() => setHoveredTaskId(task.id)}
-                        onMouseLeave={() => setHoveredTaskId(null)}
-                        onContextMenu={(e) => handleContextMenu(e, task.id)}
-                        onDoubleClick={() => setEditingTask(task)}
-                        onClick={() => connectingTaskId && toggleDependency(task.id)}
-                    >
-                        {/* Task Content */}
-                        <div className="p-3 h-full flex flex-col relative overflow-hidden">
+                {tasks.map(task => {
+                    const x = dateToX(task.startDate);
+                    const width = Math.max(MIN_TASK_WIDTH, dateToX(task.endDate) - x);
+                    const height = task.height || DEFAULT_TASK_HEIGHT;
+                    const isSelected = activeTaskId === task.id;
+                    const isConnecting = interactionMode === 'connect';
+                    const isSource = connectingSourceId === task.id;
+
+                    return (
+                        <div
+                            key={task.id}
+                            className={`absolute rounded-lg shadow-sm border bg-white transition-shadow group
+                                ${hoveredTaskId === task.id ? 'z-20 ring-2 ring-blue-400 shadow-xl' : 'z-10'}
+                                ${isConnecting && !isSource ? 'cursor-crosshair hover:ring-green-500 hover:bg-green-50' : ''}
+                                ${isSource ? 'ring-2 ring-blue-500' : ''}
+                            `}
+                            style={{
+                                left: x,
+                                top: task.y || 0,
+                                width,
+                                height,
+                                borderColor: task.color || '#e2e8f0'
+                            }}
+                            onMouseDown={(e) => handleTaskMouseDown(e, task.id, 'drag')}
+                            onMouseEnter={() => setHoveredTaskId(task.id)}
+                            onMouseLeave={() => setHoveredTaskId(null)}
+                            onContextMenu={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id });
+                            }}
+                            onDoubleClick={() => setEditingTask(task)}
+                        >
                             {/* Color Strip */}
-                            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: task.color || '#3B82F6' }} />
+                            <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-lg" style={{ backgroundColor: task.color || '#3B82F6' }} />
 
-                            <div className="pl-3 flex-1 flex flex-col justify-center">
-                                <div className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight mb-1">
-                                    {task.name}
-                                </div>
-                                <div className="text-xs text-slate-500 flex items-center gap-2">
-                                    <span>{task.startDate}</span>
-                                    {task.type !== 'milestone' && (
-                                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${task.priority === 'P0' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
-                                            }`}>
-                                            {task.priority || 'P2'}
-                                        </span>
-                                    )}
+                            {/* Content */}
+                            <div className="pl-3 p-2 h-full flex flex-col overflow-hidden">
+                                <div className="font-bold text-slate-800 text-sm truncate">{task.name}</div>
+                                <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                                    <Calendar size={12} />
+                                    <span>{format(parseISO(task.startDate), 'MM/dd')} - {format(parseISO(task.endDate), 'MM/dd')}</span>
                                 </div>
                             </div>
 
-                            {/* Hover Actions */}
-                            <div className={`absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${hoveredTaskId === task.id ? 'animate-pulse' : ''}`}>
-                                <button
-                                    className="p-1.5 bg-white rounded-full shadow-md border border-slate-200 hover:bg-blue-50 text-blue-600"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setConnectingTaskId(task.id);
-                                    }}
-                                    title="添加依赖连线"
-                                >
-                                    <Link size={14} />
-                                </button>
-                            </div>
-
-                            {/* Hover Details Popup */}
-                            {hoveredTaskId === task.id && !isDraggingCanvas && !draggingTaskId && (
-                                <div className="absolute left-0 top-full mt-2 w-64 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-xl z-50 pointer-events-none">
-                                    <div className="font-bold mb-1 text-sm">{task.name}</div>
-                                    <div className="grid grid-cols-2 gap-2 mb-2">
-                                        <div><span className="opacity-50">开始:</span> {task.startDate}</div>
-                                        <div><span className="opacity-50">结束:</span> {task.endDate}</div>
-                                        <div><span className="opacity-50">进度:</span> {task.progress}%</div>
-                                        <div><span className="opacity-50">状态:</span> {task.status}</div>
+                            {/* Resize Handles */}
+                            {!isConnecting && (
+                                <>
+                                    {/* Width Resize (Right) */}
+                                    <div
+                                        className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-blue-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onMouseDown={(e) => handleTaskMouseDown(e, task.id, 'resize-w')}
+                                    />
+                                    {/* Height Resize (Bottom) */}
+                                    <div
+                                        className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize hover:bg-blue-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onMouseDown={(e) => handleTaskMouseDown(e, task.id, 'resize-h')}
+                                    />
+                                    {/* Corner Resize (Both - optional, for now just visual hint) */}
+                                    <div className="absolute right-0 bottom-0 w-3 h-3 cursor-nwse-resize opacity-0 group-hover:opacity-100">
+                                        <svg viewBox="0 0 10 10" className="fill-slate-400">
+                                            <path d="M 10 0 L 10 10 L 0 10 Z" />
+                                        </svg>
                                     </div>
-                                    {task.description && <div className="text-slate-300 border-t border-slate-700 pt-2 mt-1">{task.description}</div>}
-                                </div>
+                                </>
+                            )}
+
+                            {/* Connection Point */}
+                            {!isConnecting && (
+                                <button
+                                    className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow border border-slate-200 text-slate-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                                    onMouseDown={(e) => startConnection(e, task.id)}
+                                    title="建立依赖"
+                                >
+                                    <Link size={12} />
+                                </button>
                             )}
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Floating Toolbar */}
@@ -348,14 +484,11 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
                     <Plus size={18} /> 新建任务
                 </button>
                 <div className="w-px h-6 bg-slate-200 mx-1" />
-                <button onClick={() => handleAddTask('milestone')} className="p-2 hover:bg-slate-100 rounded-full text-purple-600" title="新建里程碑">
-                    <Flag size={20} />
-                </button>
-                <button onClick={() => setScale(s => Math.min(3, s + 0.1))} className="p-2 hover:bg-slate-100 rounded-full text-slate-600">
+                <button onClick={() => setScale(s => Math.min(2, s + 0.1))} className="p-2 hover:bg-slate-100 rounded-full text-slate-600">
                     <Plus size={20} />
                 </button>
                 <span className="text-xs font-mono text-slate-400 w-12 text-center">{(scale * 100).toFixed(0)}%</span>
-                <button onClick={() => setScale(s => Math.max(0.1, s - 0.1))} className="p-2 hover:bg-slate-100 rounded-full text-slate-600">
+                <button onClick={() => setScale(s => Math.max(0.2, s - 0.1))} className="p-2 hover:bg-slate-100 rounded-full text-slate-600">
                     <Minus size={20} />
                 </button>
                 <button onClick={() => { setOffset({ x: 0, y: 0 }); setScale(1); }} className="p-2 hover:bg-slate-100 rounded-full text-slate-600" title="重置视图">
@@ -423,85 +556,22 @@ const TaskCanvasDiagram: React.FC<TaskCanvasDiagramProps> = ({
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">显示颜色</label>
-                                <div className="flex gap-2">
-                                    {['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1'].map(color => (
-                                        <button
-                                            key={color}
-                                            onClick={() => setEditingTask({ ...editingTask, color })}
-                                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${editingTask.color === color ? 'border-slate-900 scale-110' : 'border-transparent'}`}
-                                            style={{ backgroundColor: color }}
-                                        />
-                                    ))}
-                                </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button onClick={() => setEditingTask(null)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                                <button
+                                    onClick={() => {
+                                        onTaskUpdate(editingTask);
+                                        setEditingTask(null);
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
+                                >
+                                    保存
+                                </button>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">描述</label>
-                                <textarea
-                                    value={editingTask.description || ''}
-                                    onChange={e => setEditingTask({ ...editingTask, description: e.target.value })}
-                                    className="w-full p-2 border rounded-lg"
-                                    rows={3}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">优先级</label>
-                                    <select
-                                        value={editingTask.priority || 'P2'}
-                                        onChange={e => setEditingTask({ ...editingTask, priority: e.target.value as any })}
-                                        className="w-full p-2 border rounded-lg"
-                                    >
-                                        <option value="P0">P0 (最高)</option>
-                                        <option value="P1">P1 (高)</option>
-                                        <option value="P2">P2 (中)</option>
-                                        <option value="P3">P3 (低)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">状态</label>
-                                    <select
-                                        value={editingTask.status || 'planning'}
-                                        onChange={e => setEditingTask({ ...editingTask, status: e.target.value as any })}
-                                        className="w-full p-2 border rounded-lg"
-                                    >
-                                        <option value="planning">规划中</option>
-                                        <option value="active">进行中</option>
-                                        <option value="completed">已完成</option>
-                                        <option value="on-hold">暂停</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-3 mt-6">
-                            <button onClick={() => setEditingTask(null)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
-                            <button
-                                onClick={() => {
-                                    onTaskUpdate(editingTask);
-                                    setEditingTask(null);
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
-                            >
-                                保存
-                            </button>
                         </div>
                     </div>
                 </div>
             )}
-
-            {/* Instructions Overlay */}
-            <div className="absolute top-4 right-4 bg-white/80 backdrop-blur p-4 rounded-lg shadow-sm border border-slate-200 text-xs text-slate-500 pointer-events-none max-w-xs">
-                <p className="font-bold text-slate-700 mb-1">操作指南</p>
-                <ul className="list-disc pl-4 space-y-1">
-                    <li>左键拖动任务块移动</li>
-                    <li>中键或按住 Alt 拖动画布</li>
-                    <li>滚轮缩放画布</li>
-                    <li>双击任务编辑详情</li>
-                    <li>右键任务打开菜单</li>
-                    <li>悬停任务右上角点击链接图标添加依赖</li>
-                </ul>
-            </div>
         </div>
     );
 };
