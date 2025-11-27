@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { ArrowLeft, TrendingUp, Edit2, Plus, Trash2, Check, X, DollarSign } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Edit2, Plus, Check, X, DollarSign } from 'lucide-react';
 // import { useTranslation } from 'react-i18next'; // Unused
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays, addDays } from 'date-fns';
 import CostRegistrationForm from '../components/CostRegistrationForm';
-import type { CostEntry } from '../types';
+import ProfessionalGanttChart from '../components/ProfessionalGanttChart';
+import RiskAssessment from '../components/RiskAssessment';
+import type { CostEntry, Risk } from '../types';
 
 interface Milestone {
     id: string;
@@ -36,7 +38,6 @@ const ProjectDetailEnhanced: React.FC = () => {
     );
     const [newMilestone, setNewMilestone] = useState({ name: '', date: '', description: '' });
     const [showAddMilestone, setShowAddMilestone] = useState(false);
-    const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
 
     // Cost Management State - Initialize from project data
     const [activeTab, setActiveTab] = useState<'resources' | 'costs' | 'risks'>('resources');
@@ -87,30 +88,6 @@ const ProjectDetailEnhanced: React.FC = () => {
                 milestones: updatedMilestones
             });
         }
-    };
-
-    const toggleMilestone = (id: string) => {
-        const updatedMilestones = milestones.map(m =>
-            m.id === id ? { ...m, completed: !m.completed } : m
-        );
-        setMilestones(updatedMilestones);
-
-        // Persist to store
-        updateProject(project.id, {
-            ...project,
-            milestones: updatedMilestones
-        });
-    };
-
-    const deleteMilestone = (id: string) => {
-        const updatedMilestones = milestones.filter(m => m.id !== id);
-        setMilestones(updatedMilestones);
-
-        // Persist to store
-        updateProject(project.id, {
-            ...project,
-            milestones: updatedMilestones
-        });
     };
 
     const updateMilestoneDate = (id: string, newDate: string) => {
@@ -233,38 +210,40 @@ const ProjectDetailEnhanced: React.FC = () => {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900">项目甘特图</h2>
-                        <p className="text-sm text-slate-500 mt-1">拖动里程碑可调整时间</p>
+                        <p className="text-sm text-slate-500 mt-1">拖动任务条调整时间，支持日/周/月视图切换</p>
                     </div>
-                    <button
-                        onClick={() => setShowAddMilestone(!showAddMilestone)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                    >
-                        <Plus size={18} />
-                        添加里程碑
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setShowAddMilestone(!showAddMilestone)}
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                        >
+                            <Plus size={18} />
+                            添加里程碑
+                        </button>
+                    </div>
                 </div>
 
                 {/* Add Milestone Form */}
                 {showAddMilestone && (
-                    <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input
                                 type="text"
                                 placeholder="里程碑名称"
                                 value={newMilestone.name}
                                 onChange={(e) => setNewMilestone({ ...newMilestone, name: e.target.value })}
-                                className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
                             <input
                                 type="date"
                                 value={newMilestone.date}
                                 onChange={(e) => setNewMilestone({ ...newMilestone, date: e.target.value })}
-                                className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleAddMilestone}
-                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
                                 >
                                     <Check size={16} />
                                     添加
@@ -280,87 +259,46 @@ const ProjectDetailEnhanced: React.FC = () => {
                     </div>
                 )}
 
-                {/* Gantt Timeline */}
-                <div className="overflow-x-auto">
-                    <div className="min-w-[800px]">
-                        {/* Timeline Header */}
-                        <div className="flex border-b border-slate-200 pb-2 mb-4">
-                            <div className="w-64 font-semibold text-slate-700">里程碑</div>
-                            <div className="flex-1 flex justify-between text-xs text-slate-500">
-                                {project.startDate && project.endDate && (
-                                    <>
-                                        <span>{format(parseISO(project.startDate), 'yyyy-MM-dd')}</span>
-                                        <span>{format(parseISO(project.endDate), 'yyyy-MM-dd')}</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Milestone Rows */}
-                        <div className="space-y-3">
-                            {milestones.map((milestone) => {
-                                const milestoneDate = parseISO(milestone.date);
-                                const projectStart = parseISO(project.startDate || '');
-                                const totalDays = projectDuration;
-                                const daysFromStart = differenceInDays(milestoneDate, projectStart);
-                                const position = totalDays > 0 ? (daysFromStart / totalDays) * 100 : 0;
-
-                                return (
-                                    <div key={milestone.id} className="flex items-center group">
-                                        <div className="w-64 flex items-center gap-2">
-                                            <button
-                                                onClick={() => toggleMilestone(milestone.id)}
-                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${milestone.completed
-                                                    ? 'bg-green-500 border-green-500'
-                                                    : 'border-slate-300 hover:border-blue-500'
-                                                    }`}
-                                            >
-                                                {milestone.completed && <Check size={14} className="text-white" />}
-                                            </button>
-                                            <span className={`text-sm ${milestone.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                                                {milestone.name}
-                                            </span>
-                                        </div>
-                                        <div className="flex-1 relative h-8 bg-slate-50 rounded">
-                                            <div
-                                                className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full cursor-pointer transition-colors hover:scale-125 ${milestone.completed ? 'bg-green-500' : 'bg-blue-500'
-                                                    }`}
-                                                style={{ left: `${Math.max(0, Math.min(100, position))}%` }}
-                                                title={`${milestone.date} - 点击编辑日期`}
-                                                onClick={() => setEditingMilestoneId(milestone.id)}
-                                            />
-                                            {editingMilestoneId === milestone.id ? (
-                                                <input
-                                                    type="date"
-                                                    value={milestone.date}
-                                                    onChange={(e) => updateMilestoneDate(milestone.id, e.target.value)}
-                                                    onBlur={() => setEditingMilestoneId(null)}
-                                                    autoFocus
-                                                    className="absolute top-full mt-1 px-2 py-1 text-xs border border-blue-500 rounded shadow-lg z-10 bg-white"
-                                                    style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translateX(-50%)' }}
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="absolute top-full mt-1 text-xs text-slate-500 whitespace-nowrap cursor-pointer hover:text-blue-600 hover:font-semibold transition-colors"
-                                                    style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translateX(-50%)' }}
-                                                    onClick={() => setEditingMilestoneId(milestone.id)}
-                                                    title="点击编辑日期"
-                                                >
-                                                    {milestone.date}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <button
-                                            onClick={() => deleteMilestone(milestone.id)}
-                                            className="ml-2 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                {/* Professional Gantt Chart */}
+                <div className="h-[600px]">
+                    <ProfessionalGanttChart
+                        startDate={project.startDate}
+                        endDate={project.endDate}
+                        tasks={[
+                            // Main Project Task
+                            {
+                                id: 'main-project',
+                                name: project.name,
+                                startDate: project.startDate || format(new Date(), 'yyyy-MM-dd'),
+                                endDate: project.endDate || format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+                                progress: progress,
+                                type: 'task',
+                                color: '#3B82F6'
+                            },
+                            // Milestones
+                            ...milestones.map(m => ({
+                                id: m.id,
+                                name: m.name,
+                                startDate: m.date,
+                                endDate: m.date,
+                                progress: m.completed ? 100 : 0,
+                                type: 'milestone' as const,
+                                color: '#8B5CF6'
+                            }))
+                        ]}
+                        onTaskUpdate={(updatedTask) => {
+                            if (updatedTask.type === 'milestone') {
+                                updateMilestoneDate(updatedTask.id, updatedTask.startDate);
+                            } else if (updatedTask.id === 'main-project') {
+                                // Update project dates
+                                updateProject(project.id, {
+                                    ...project,
+                                    startDate: updatedTask.startDate,
+                                    endDate: updatedTask.endDate
+                                });
+                            }
+                        }}
+                    />
                 </div>
             </div>
 
@@ -476,9 +414,16 @@ const ProjectDetailEnhanced: React.FC = () => {
                 )}
 
                 {activeTab === 'risks' && (
-                    <div className="text-center py-12 text-slate-400">
-                        风险评估模块开发中...
-                    </div>
+                    <RiskAssessment
+                        project={project}
+                        risks={project.risks || []}
+                        onRisksChange={(updatedRisks) => {
+                            updateProject(project.id, {
+                                ...project,
+                                risks: updatedRisks
+                            });
+                        }}
+                    />
                 )}
             </div>
 

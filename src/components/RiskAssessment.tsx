@@ -1,34 +1,23 @@
 import React, { useState, useMemo } from 'react';
-import { AlertTriangle, TrendingUp, TrendingDown, Minus, Shield, DollarSign, Clock, Users, X, Plus } from 'lucide-react';
-import type { Project } from '../types';
-
-interface RiskItem {
-    id: string;
-    category: 'schedule' | 'cost' | 'resource' | 'technical' | 'external';
-    title: string;
-    description: string;
-    probability: number; // 1-5
-    impact: number; // 1-5
-    mitigation: string;
-    owner?: string;
-    status: 'identified' | 'mitigating' | 'resolved';
-}
+import { AlertTriangle, TrendingUp, Users, X, Plus, Shield, DollarSign, Clock } from 'lucide-react';
+import type { Project, Risk } from '../types';
 
 interface RiskAssessmentProps {
     project: Project;
-    risks: RiskItem[];
-    onRisksChange: (risks: RiskItem[]) => void;
+    risks: Risk[];
+    onRisksChange: (risks: Risk[]) => void;
     onClose?: () => void;
 }
 
 const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisksChange, onClose }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [isAddingRisk, setIsAddingRisk] = useState(false);
-    const [newRisk, setNewRisk] = useState<Partial<RiskItem>>({
+    const [newRisk, setNewRisk] = useState<Partial<Risk>>({
         category: 'schedule',
         probability: 3,
         impact: 3,
-        status: 'identified'
+        status: 'identified',
+        owner: ''
     });
 
     const categories = [
@@ -41,7 +30,7 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
     ];
 
     // Calculate risk score (probability × impact)
-    const getRiskScore = (risk: RiskItem) => risk.probability * risk.impact;
+    const getRiskScore = (risk: Risk) => risk.probability * risk.impact;
 
     // Get risk level based on score
     const getRiskLevel = (score: number): { label: string; color: string; bgColor: string } => {
@@ -70,7 +59,7 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
 
     // Group risks by level
     const risksByLevel = useMemo(() => {
-        const grouped: { [key: string]: RiskItem[] } = {
+        const grouped: { [key: string]: Risk[] } = {
             '极高': [],
             '高': [],
             '中': [],
@@ -93,15 +82,15 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
             return;
         }
 
-        const risk: RiskItem = {
+        const risk: Risk = {
             id: Date.now().toString(),
-            category: newRisk.category as RiskItem['category'],
-            title: newRisk.title,
-            description: newRisk.description,
+            category: newRisk.category as Risk['category'],
+            title: newRisk.title!,
+            description: newRisk.description!,
             probability: newRisk.probability || 3,
             impact: newRisk.impact || 3,
             mitigation: newRisk.mitigation || '',
-            owner: newRisk.owner,
+            owner: newRisk.owner || '',
             status: 'identified'
         };
 
@@ -119,7 +108,7 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
         onRisksChange(risks.filter(r => r.id !== id));
     };
 
-    const handleUpdateRiskStatus = (id: string, status: RiskItem['status']) => {
+    const handleUpdateRiskStatus = (id: string, status: Risk['status']) => {
         onRisksChange(risks.map(r => r.id === id ? { ...r, status } : r));
     };
 
@@ -167,8 +156,8 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.id)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${selectedCategory === cat.id
-                                    ? `bg-${cat.color}-600 text-white shadow-lg`
-                                    : `bg-${cat.color}-100 text-${cat.color}-700 hover:bg-${cat.color}-200`
+                                ? `bg-${cat.color}-600 text-white shadow-lg`
+                                : `bg-${cat.color}-100 text-${cat.color}-700 hover:bg-${cat.color}-200`
                                 }`}
                         >
                             <Icon size={16} />
@@ -201,7 +190,7 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
                             <label className="block text-sm font-medium text-slate-700 mb-1">风险类别</label>
                             <select
                                 value={newRisk.category}
-                                onChange={(e) => setNewRisk({ ...newRisk, category: e.target.value as RiskItem['category'] })}
+                                onChange={(e) => setNewRisk({ ...newRisk, category: e.target.value as Risk['category'] })}
                                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="schedule">进度风险</option>
@@ -377,7 +366,7 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
 
                                                 <select
                                                     value={risk.status}
-                                                    onChange={(e) => handleUpdateRiskStatus(risk.id, e.target.value as RiskItem['status'])}
+                                                    onChange={(e) => handleUpdateRiskStatus(risk.id, e.target.value as Risk['status'])}
                                                     className="px-3 py-1 rounded-lg border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 >
                                                     <option value="identified">已识别</option>

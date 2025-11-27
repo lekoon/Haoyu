@@ -117,6 +117,19 @@ export interface CostEntry {
     description: string;
 }
 
+// Risk Management
+export interface Risk {
+    id: string;
+    category: 'schedule' | 'cost' | 'resource' | 'technical' | 'external';
+    title: string;
+    description: string;
+    probability: number; // 1-5
+    impact: number; // 1-5
+    mitigation: string;
+    owner: string;
+    status: 'identified' | 'mitigating' | 'resolved';
+}
+
 // Project
 export interface Project {
     id: string;
@@ -149,6 +162,9 @@ export interface Project {
 
     // Milestones
     milestones?: Milestone[];
+
+    // Risks
+    risks?: Risk[];
 
     estimatedCost?: number; // 预估成本（向后兼容）
 }

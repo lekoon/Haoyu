@@ -101,7 +101,7 @@ const Projects: React.FC = () => {
         setEditingId(null);
 
         if (template) {
-            // Initialize from template
+            // One-click creation logic
             const startDate = new Date();
             const endDate = addMonthsDate(startDate, template.defaultDuration);
 
@@ -111,18 +111,33 @@ const Projects: React.FC = () => {
                 resourceId: resourcePool[0]?.id || '', // Default to first resource
             }));
 
-            setFormData({
-                name: `New ${template.name}`,
+            const newProject: Project = {
+                id: Math.random().toString(36).substr(2, 9),
+                name: `${template.name} - ${format(startDate, 'yyyyMMdd')}`,
                 description: template.description,
                 status: 'planning',
                 priority: 'P2',
                 startDate: format(startDate, 'yyyy-MM-dd'),
                 endDate: format(endDate, 'yyyy-MM-dd'),
                 factors: { ...template.defaultFactors },
-                resourceRequirements: mappedResources
-            });
+                resourceRequirements: mappedResources,
+                score: 0, // Will be calculated
+                milestones: [], // Initialize empty milestones
+                costHistory: [],
+                budget: 0,
+                actualCost: 0
+            };
+
+            // Calculate initial score
+            newProject.score = calculateProjectScore(newProject.factors, factorDefinitions);
+
+            addProject(newProject);
+            setIsTemplateSelectorOpen(false);
+
+            // Navigate to detail page for immediate editing
+            navigate(`/projects/${newProject.id}`);
         } else {
-            // Blank project
+            // Blank project - open modal
             setFormData({
                 name: '',
                 description: '',
@@ -133,9 +148,9 @@ const Projects: React.FC = () => {
                 factors: initializeFactors(),
                 resourceRequirements: []
             });
+            setIsTemplateSelectorOpen(false);
+            setIsModalOpen(true);
         }
-        setIsTemplateSelectorOpen(false);
-        setIsModalOpen(true);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
