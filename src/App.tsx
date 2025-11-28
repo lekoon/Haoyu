@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
+import PerformanceMonitor from './components/PerformanceMonitor';
 
 // Eager load critical routes
 import Login from './pages/Login';
@@ -58,6 +59,7 @@ function App() {
     <ErrorBoundary>
       <Router>
         <KeyboardShortcutsHelp />
+        <PerformanceMonitor />
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />

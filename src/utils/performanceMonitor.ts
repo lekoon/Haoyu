@@ -140,89 +140,14 @@ class PerformanceMonitor {
     logReport(): void {
         console.log(this.generateReport());
     }
+
+    /**
+     * Add metric directly (for internal use)
+     */
+    addMetric(metric: PerformanceMetric): void {
+        this.metrics.push(metric);
+    }
 }
 
 // Singleton instance
 export const perfMonitor = new PerformanceMonitor();
-
-/**
- * React component profiler wrapper
- */
-export function withProfiler<P extends object>(
-    Component: React.ComponentType<P>,
-    id: string
-): React.ComponentType<P> {
-    return (props: P) => {
-        const onRender = (
-            id: string,
-            phase: 'mount' | 'update',
-            actualDuration: number,
-            baseDuration: number,
-            startTime: number,
-            commitTime: number
-        ) => {
-            if (actualDuration > 16) {
-                // Slower than 60fps
-                console.warn(
-                    `⚠️ Component ${id} ${phase} took ${actualDuration.toFixed(2)}ms (target: <16ms)`
-                );
-            }
-
-            perfMonitor.metrics.push({
-                name: `${id}:${phase}`,
-                duration: actualDuration,
-                timestamp: Date.now(),
-            });
-        };
-
-        return (
-            <React.Profiler id= { id } onRender = { onRender } >
-                <Component { ...props } />
-                </React.Profiler>
-    );
-    };
-}
-
-/**
- * Hook to measure component render time
- */
-export function useRenderTime(componentName: string): void {
-    if (import.meta.env.DEV) {
-        React.useEffect(() => {
-            const renderTime = performance.now();
-            return () => {
-                const duration = performance.now() - renderTime;
-                if (duration > 16) {
-                    console.warn(
-                        `⚠️ ${componentName} render took ${duration.toFixed(2)}ms (target: <16ms)`
-                    );
-                }
-            };
-        });
-    }
-}
-
-/**
- * Decorator for measuring method execution time
- */
-export function measureTime(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const originalMethod = descriptor.value;
-
-    descriptor.value = async function (...args: any[]) {
-        const name = `${target.constructor.name}.${propertyKey}`;
-        perfMonitor.start(name);
-        try {
-            const result = await originalMethod.apply(this, args);
-            perfMonitor.end(name);
-            return result;
-        } catch (error) {
-            perfMonitor.end(name);
-            throw error;
-        }
-    };
-
-    return descriptor;
-}
-
-// Add React import
-import React from 'react';
