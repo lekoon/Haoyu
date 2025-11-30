@@ -115,8 +115,8 @@ const UnifiedResourcesPage: React.FC = () => {
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${showFilters || utilizationFilter !== 'all'
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                     }`}
                             >
                                 <Filter size={18} />
@@ -203,8 +203,8 @@ const UnifiedResourcesPage: React.FC = () => {
                                             key={option.value}
                                             onClick={() => setUtilizationFilter(option.value)}
                                             className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${utilizationFilter === option.value
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                                                 }`}
                                         >
                                             {option.label}
@@ -225,8 +225,8 @@ const UnifiedResourcesPage: React.FC = () => {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${isActive
-                                            ? 'bg-blue-100 text-blue-700 shadow-sm'
-                                            : 'text-slate-600 hover:bg-slate-100'
+                                        ? 'bg-blue-100 text-blue-700 shadow-sm'
+                                        : 'text-slate-600 hover:bg-slate-100'
                                         }`}
                                 >
                                     <Icon size={18} />
@@ -246,7 +246,7 @@ const UnifiedResourcesPage: React.FC = () => {
                     <ResourceAllocationHeatmap resourceLoads={filteredResourceLoads} buckets={buckets} />
                 )}
 
-                {activeTab === 'gantt' && <ResourceGanttChart />}
+                {activeTab === 'gantt' && <ResourceGanttChart projects={projects} resources={resourcePool} />}
 
                 {activeTab === 'conflicts' && <ResourceConflictDetector />}
 
