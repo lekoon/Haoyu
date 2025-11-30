@@ -1,5 +1,20 @@
 import type { Project, ResourcePoolItem } from '../types';
-import { eachMonthOfInterval, format, parseISO, startOfMonth, endOfMonth, addMonths } from 'date-fns';
+import {
+    eachMonthOfInterval,
+    eachWeekOfInterval,
+    eachQuarterOfInterval,
+    format,
+    parseISO,
+    startOfMonth,
+    endOfMonth,
+    addMonths,
+    startOfWeek,
+    endOfWeek,
+    addWeeks,
+    startOfQuarter,
+    endOfQuarter,
+    addQuarters
+} from 'date-fns';
 
 export type TimeBucket = {
     label: string;
@@ -18,28 +33,68 @@ export type ResourceLoad = {
     }>;
 };
 
-export const generateTimeBuckets = (projects: Project[], months = 12): TimeBucket[] => {
-    let start = startOfMonth(new Date());
-    let end = addMonths(start, months);
+export const generateTimeBuckets = (
+    projects: Project[],
+    count = 12,
+    interval: 'week' | 'month' | 'quarter' = 'month'
+): TimeBucket[] => {
+    const now = new Date();
+    let start: Date;
+    let end: Date;
 
-    // If projects exist, try to fit them in, but ensure at least 'months' duration or cover the project range
+    if (interval === 'week') {
+        start = startOfWeek(now);
+        end = addWeeks(start, count);
+    } else if (interval === 'quarter') {
+        start = startOfQuarter(now);
+        end = addQuarters(start, count);
+    } else {
+        start = startOfMonth(now);
+        end = addMonths(start, count);
+    }
+
+    // If projects exist, extend range if needed, but respect the requested granularity
     if (projects.length > 0) {
         const startDates = projects.map(p => p.startDate ? parseISO(p.startDate).getTime() : Infinity).filter(t => t !== Infinity);
         const endDates = projects.map(p => p.endDate ? parseISO(p.endDate).getTime() : -Infinity).filter(t => t !== -Infinity);
 
         if (startDates.length > 0) {
-            const minDate = startOfMonth(new Date(Math.min(...startDates)));
-            if (minDate < start) start = minDate;
+            const minDate = new Date(Math.min(...startDates));
+            let adjustedMin: Date;
+            if (interval === 'week') adjustedMin = startOfWeek(minDate);
+            else if (interval === 'quarter') adjustedMin = startOfQuarter(minDate);
+            else adjustedMin = startOfMonth(minDate);
+
+            if (adjustedMin < start) start = adjustedMin;
         }
 
         if (endDates.length > 0) {
-            const maxDate = endOfMonth(new Date(Math.max(...endDates)));
-            if (maxDate > end) end = maxDate;
+            const maxDate = new Date(Math.max(...endDates));
+            let adjustedMax: Date;
+            if (interval === 'week') adjustedMax = endOfWeek(maxDate);
+            else if (interval === 'quarter') adjustedMax = endOfQuarter(maxDate);
+            else adjustedMax = endOfMonth(maxDate);
+
+            if (adjustedMax > end) end = adjustedMax;
         }
     }
 
-    return eachMonthOfInterval({ start, end }).map(date => ({
-        label: format(date, 'MMM yyyy'),
+    let dates: Date[];
+    let dateFormat: string;
+
+    if (interval === 'week') {
+        dates = eachWeekOfInterval({ start, end });
+        dateFormat = "'W'w yyyy"; // e.g., W42 2023
+    } else if (interval === 'quarter') {
+        dates = eachQuarterOfInterval({ start, end });
+        dateFormat = "'Q'Q yyyy"; // e.g., Q4 2023
+    } else {
+        dates = eachMonthOfInterval({ start, end });
+        dateFormat = 'MMM yyyy';
+    }
+
+    return dates.slice(0, count).map(date => ({
+        label: format(date, dateFormat),
         date
     }));
 };
@@ -47,14 +102,26 @@ export const generateTimeBuckets = (projects: Project[], months = 12): TimeBucke
 export const calculateResourceLoad = (
     projects: Project[],
     resources: ResourcePoolItem[],
-    buckets: TimeBucket[]
+    buckets: TimeBucket[],
+    interval: 'week' | 'month' | 'quarter' = 'month'
 ): ResourceLoad[] => {
     return resources.map(res => {
         const allocations: ResourceLoad['allocations'] = {};
 
         buckets.forEach(bucket => {
-            const bucketStart = startOfMonth(bucket.date);
-            const bucketEnd = endOfMonth(bucket.date);
+            let bucketStart: Date;
+            let bucketEnd: Date;
+
+            if (interval === 'week') {
+                bucketStart = startOfWeek(bucket.date);
+                bucketEnd = endOfWeek(bucket.date);
+            } else if (interval === 'quarter') {
+                bucketStart = startOfQuarter(bucket.date);
+                bucketEnd = endOfQuarter(bucket.date);
+            } else {
+                bucketStart = startOfMonth(bucket.date);
+                bucketEnd = endOfMonth(bucket.date);
+            }
 
             let activeLoad = 0;
             let planningLoad = 0;

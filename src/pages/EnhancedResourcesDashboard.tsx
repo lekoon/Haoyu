@@ -25,10 +25,10 @@ const EnhancedResourcesDashboard: React.FC = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     // Calculate resource metrics
-    const buckets = useMemo(() => generateTimeBuckets(projects, 12), [projects]);
+    const buckets = useMemo(() => generateTimeBuckets(projects, 12, selectedPeriod), [projects, selectedPeriod]);
     const resourceLoads = useMemo(
-        () => calculateResourceLoad(projects, resourcePool, buckets),
-        [projects, resourcePool, buckets]
+        () => calculateResourceLoad(projects, resourcePool, buckets, selectedPeriod),
+        [projects, resourcePool, buckets, selectedPeriod]
     );
 
     // Overall statistics
