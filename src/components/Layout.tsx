@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, PieChart, Settings, Users, LogOut, Moon, Sun, Bell, Check, Trash2, Brain, FileText, Copy, Upload } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, PieChart, Settings, Users, LogOut, Moon, Sun, Bell, Check, Trash2, Brain, FileText, Copy, Upload, TrendingUp } from 'lucide-react';
 import { checkDeadlines, checkResourceConflicts } from '../utils/notifications';
 import clsx from 'clsx';
 import { useStore } from '../store/useStore';
@@ -40,6 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { label: '首页', path: '/', icon: LayoutDashboard },
         { label: '项目管理', path: '/projects', icon: FolderKanban, activePrefix: '/projects' },
         { label: '资源管理', path: '/resources', icon: Users, activePrefix: '/resources' },
+        { label: '交付效率', path: '/delivery-efficiency', icon: TrendingUp, activePrefix: '/delivery-efficiency' },
         { label: '成本分析', path: '/analysis', icon: PieChart, activePrefix: '/analysis' },
         { label: '决策支持', path: '/ai-decision', icon: Brain, activePrefix: '/ai-decision' },
     ];

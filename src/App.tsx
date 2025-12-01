@@ -24,6 +24,7 @@ const AIDecisionDashboard = lazy(() => import('./pages/AIDecisionDashboard'));
 const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
 const TemplateManager = lazy(() => import('./pages/TemplateManager'));
 const BatchImport = lazy(() => import('./pages/BatchImport'));
+const DeliveryEfficiency = lazy(() => import('./pages/DeliveryEfficiency'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -76,6 +77,9 @@ function App() {
 
           {/* Resource Management */}
           <Route path="/resources" element={<LayoutRoute><Resources /></LayoutRoute>} />
+
+          {/* Delivery Efficiency Dashboard */}
+          <Route path="/delivery-efficiency" element={<LayoutRoute><DeliveryEfficiency /></LayoutRoute>} />
 
           {/* Analysis & Reports */}
           <Route path="/analysis" element={<LayoutRoute><Analysis /></LayoutRoute>} />
