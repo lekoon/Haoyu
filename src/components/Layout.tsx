@@ -40,8 +40,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { label: '首页', path: '/', icon: LayoutDashboard },
         { label: '项目管理', path: '/projects', icon: FolderKanban, activePrefix: '/projects' },
         { label: '资源管理', path: '/resources', icon: Users, activePrefix: '/resources' },
-        { label: '成本分析', path: '/cost', icon: PieChart, activePrefix: '/cost' },
-        { label: '决策支持', path: '/decision', icon: Brain, activePrefix: '/decision' },
+        { label: '成本分析', path: '/analysis', icon: PieChart, activePrefix: '/analysis' },
+        { label: '决策支持', path: '/ai-decision', icon: Brain, activePrefix: '/ai-decision' },
     ];
 
     // Sub Navigation Items based on current category
@@ -60,16 +60,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 // Add more if we split resources page
             ];
         }
-        if (path.startsWith('/cost')) {
+        if (path.startsWith('/analysis')) {
             return [
-                { label: '成本分析', path: '/cost', icon: PieChart },
+                { label: '成本分析', path: '/analysis', icon: PieChart },
             ];
         }
-        if (path.startsWith('/decision')) {
+        if (path.startsWith('/ai-decision') || path.startsWith('/reports')) {
             return [
-                { label: '高管仪表盘', path: '/decision', icon: LayoutDashboard },
-                { label: 'AI 智能决策', path: '/decision/ai', icon: Brain },
-                { label: '高级报表', path: '/decision/reports', icon: FileText },
+                { label: 'AI 智能决策', path: '/ai-decision', icon: Brain },
+                { label: '高级报表', path: '/reports', icon: FileText },
             ];
         }
         return [];
