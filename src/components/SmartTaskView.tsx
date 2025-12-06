@@ -6,6 +6,7 @@ import { zhCN } from 'date-fns/locale';
 import TaskEditModal from './TaskEditModal';
 import TaskBoardView from './TaskBoardView';
 import TaskNetworkDiagram from './TaskNetworkDiagram';
+import InteractiveGanttChart from './InteractiveGanttChart';
 import { exportTasksToCSV, exportGanttToJSON, printGanttChart } from '../utils/exportUtils';
 
 interface SmartTaskViewProps {
@@ -163,110 +164,28 @@ const SmartTaskView: React.FC<SmartTaskViewProps> = ({
 
     // 渲染甘特图视图
     const renderGanttView = () => {
-        const dayWidth = 40;
-        const rowHeight = 44;
-
         return (
-            <div className="overflow-auto h-full">
-                <div className="min-w-max">
-                    {/* 时间轴标题 */}
-                    <div className="sticky top-0 z-10 bg-white border-b border-slate-200 flex">
-                        <div className="w-64 shrink-0 p-3 font-semibold text-slate-700 border-r border-slate-200">
-                            任务名称
-                        </div>
-                        <div className="flex">
-                            {Array.from({ length: timeRange.days }, (_, i) => {
-                                const date = addDays(timeRange.start, i);
-                                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`shrink-0 p-2 text-xs text-center border-r border-slate-100 ${isWeekend ? 'bg-slate-50' : ''
-                                            }`}
-                                        style={{ width: dayWidth }}
-                                    >
-                                        <div className="font-medium">{format(date, 'MM/dd', { locale: zhCN })}</div>
-                                        <div className="text-slate-400">{format(date, 'EEE', { locale: zhCN })}</div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* 任务行 */}
-                    {Object.entries(groupedTasks).map(([groupKey, groupTasks]) => {
-                        const groupInfo = getGroupLabel(groupKey);
-                        const isExpanded = expandedGroups.has(groupKey);
-                        const Icon = groupInfo.icon;
-
-                        return (
-                            <div key={groupKey}>
-                                {/* 组标题 */}
-                                {groupBy !== 'none' && (
-                                    <div
-                                        className="flex items-center gap-2 p-2 bg-slate-50 border-b border-slate-200 cursor-pointer hover:bg-slate-100"
-                                        onClick={() => toggleGroup(groupKey)}
-                                    >
-                                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                        <Icon size={16} />
-                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${groupInfo.color}`}>
-                                            {groupInfo.label}
-                                        </span>
-                                        <span className="text-xs text-slate-500">({groupTasks.length})</span>
-                                    </div>
-                                )}
-
-                                {/* 任务列表 */}
-                                {(isExpanded || groupBy === 'none') && groupTasks.map(task => {
-                                    const startDate = parseISO(task.startDate);
-                                    const endDate = parseISO(task.endDate);
-                                    const startOffset = differenceInDays(startDate, timeRange.start);
-                                    const duration = differenceInDays(endDate, startDate) + 1;
-                                    const left = startOffset * dayWidth;
-                                    const width = duration * dayWidth;
-
-                                    return (
-                                        <div key={task.id} className="flex border-b border-slate-100 hover:bg-slate-50">
-                                            <div className="w-64 shrink-0 p-3 border-r border-slate-200 flex items-center justify-between group">
-                                                <div className="font-medium text-sm text-slate-900 truncate flex-1 cursor-pointer hover:text-blue-600" onClick={() => setEditingTask(task)}>
-                                                    {task.name}
-                                                </div>
-                                                <div className="text-xs text-slate-500 hidden group-hover:block">
-                                                    {format(startDate, 'MM/dd')}
-                                                </div>
-                                            </div>
-                                            <div className="relative flex-1" style={{ height: rowHeight }}>
-                                                <div
-                                                    className="absolute top-2 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                                                    style={{
-                                                        left: `${left}px`,
-                                                        width: `${width}px`,
-                                                        height: '28px',
-                                                        backgroundColor: task.color || '#3B82F6'
-                                                    }}
-                                                    onClick={() => setEditingTask(task)}
-                                                >
-                                                    <div className="px-2 py-1 text-xs text-white font-medium truncate">
-                                                        {task.name}
-                                                    </div>
-                                                    {/* 进度条 */}
-                                                    {task.progress !== undefined && (
-                                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 rounded-b-md overflow-hidden">
-                                                            <div
-                                                                className="h-full bg-white/60"
-                                                                style={{ width: `${task.progress}%` }}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
-                    })}
-                </div>
+            <div className="h-full overflow-hidden">
+                <InteractiveGanttChart
+                    tasks={tasks}
+                    onTaskUpdate={onTaskUpdate}
+                    onTaskDelete={onTaskDelete}
+                    onTaskAdd={(partialTask) => {
+                        const newTask: Task = {
+                            id: Date.now().toString(),
+                            name: '新任务',
+                            status: 'planning',
+                            priority: 'P2',
+                            progress: 0,
+                            startDate: partialTask.startDate || format(new Date(), 'yyyy-MM-dd'),
+                            endDate: partialTask.endDate || format(addDays(new Date(), 2), 'yyyy-MM-dd'),
+                            type: 'task',
+                            dependencies: [],
+                            ...partialTask
+                        };
+                        onTaskAdd(newTask);
+                    }}
+                />
             </div>
         );
     };
