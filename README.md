@@ -1,8 +1,8 @@
-# CTPM Tool - Comprehensive Task & Project Management
+# Visorq - Enterprise Project Portfolio Management System
 
 <div align="center">
 
-![CTPM Tool](https://img.shields.io/badge/CTPM-v1.0.0-blue)
+![Visorq](https://img.shields.io/badge/Visorq-v1.0.0-blue)
 ![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-3178C6?logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-6.0.7-646CFF?logo=vite)
@@ -33,9 +33,9 @@
 
 ## 🎯 项目简介
 
-CTPM Tool 是一个现代化的项目组合管理系统，旨在帮助企业和团队高效管理项目、资源和成本。系统提供了直观的可视化界面、智能的资源分配、实时的冲突检测和全面的成本分析功能。
+Visorq 是一个现代化的企业级项目组合管理系统，旨在帮助企业和团队高效管理项目、资源和成本。系统提供了直观的可视化界面、智能的资源分配、实时的冲突检测和全面的成本分析功能。
 
-### 为什么选择 CTPM Tool？
+### 为什么选择 Visorq？
 
 - ✨ **直观易用**: 拖拽式操作，零学习成本
 - 🚀 **功能完整**: 涵盖项目管理全生命周期
@@ -120,10 +120,10 @@ CTPM Tool 是一个现代化的项目组合管理系统，旨在帮助企业和�
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/CTPMtool.git
+git clone https://github.com/lekoon/Visorq.git
 
 # 进入项目目录
-cd CTPMtool
+cd Visorq
 
 # 安装依赖
 npm install
@@ -158,7 +158,7 @@ npm run preview
 ## 📁 项目结构
 
 ```
-CTPMtool/
+Visorq/
 ├── src/
 │   ├── components/          # 可复用组件
 │   │   ├── resource-viz/   # 资源可视化组件
@@ -258,14 +258,21 @@ CTPMtool/
 
 ## 🚢 部署
 
+### GitHub Pages 部署
+
+```bash
+# 构建并部署
+npm run deploy
+```
+
 ### Docker 部署
 
 ```bash
 # 构建镜像
-docker build -t ctpm-tool .
+docker build -t visorq .
 
 # 运行容器
-docker run -d -p 8080:80 ctpm-tool
+docker run -d -p 8080:80 visorq
 ```
 
 ### Nginx 部署
@@ -280,16 +287,6 @@ server {
         try_files $uri $uri/ /index.html;
     }
 }
-```
-
-### 云平台部署
-
-```bash
-# Vercel
-vercel --prod
-
-# Netlify
-netlify deploy --prod --dir=dist
 ```
 
 详细部署说明请参考 [部署指南](./部署指南.md)。
@@ -386,8 +383,8 @@ chore: 构建/工具链相关
 
 <div align="center">
 
-**[⬆ 回到顶部](#ctpm-tool---comprehensive-task--project-management)**
+**[⬆ 回到顶部](#visorq---enterprise-project-portfolio-management-system)**
 
-Made with ❤️ by Antigravity Team
+Made with ❤️ by Visorq Team
 
 </div>

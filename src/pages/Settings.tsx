@@ -21,7 +21,7 @@ const Settings: React.FC = () => {
 
     // Backup Data
     const handleBackup = () => {
-        const data = localStorage.getItem('ctpm-storage');
+        const data = localStorage.getItem('visorq-storage');
         if (!data) {
             alert('No data to backup');
             return;
@@ -37,7 +37,7 @@ const Settings: React.FC = () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `ctpm-backup-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
+        a.download = `visorq-backup-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
         a.click();
         window.URL.revokeObjectURL(url);
     };
@@ -52,7 +52,7 @@ const Settings: React.FC = () => {
             try {
                 const backup = JSON.parse(e.target?.result as string);
                 if (backup.data && backup.version) {
-                    localStorage.setItem('ctpm-storage', JSON.stringify(backup.data));
+                    localStorage.setItem('visorq-storage', JSON.stringify(backup.data));
                     alert('Data restored successfully! Please refresh the page.');
                     window.location.reload();
                 } else {
@@ -68,7 +68,7 @@ const Settings: React.FC = () => {
     // Clear All Data
     const handleClearData = () => {
         if (showClearConfirm) {
-            localStorage.removeItem('ctpm-storage');
+            localStorage.removeItem('visorq-storage');
             alert('All data cleared! The page will reload.');
             window.location.reload();
         } else {
@@ -82,7 +82,7 @@ const Settings: React.FC = () => {
         projects: projects.length,
         resources: resourcePool.length,
         factors: factorDefinitions.length,
-        storageSize: new Blob([localStorage.getItem('ctpm-storage') || '']).size
+        storageSize: new Blob([localStorage.getItem('visorq-storage') || '']).size
     };
 
     return (

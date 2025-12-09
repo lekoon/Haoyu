@@ -314,7 +314,7 @@ export const useStore = create<StoreState>()(
                 },
             }),
             {
-                name: 'ctpm-storage',
+                name: 'visorq-storage',
                 version: 1, // Add version for future migrations
                 storage: createJSONStorage(() => localStorage),
                 partialize: (state) => ({
@@ -327,7 +327,7 @@ export const useStore = create<StoreState>()(
                 }),
             }
         ),
-        { name: 'CTPM Store' }
+        { name: 'Visorq Store' }
     )
 );
 

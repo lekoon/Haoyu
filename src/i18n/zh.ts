@@ -192,7 +192,7 @@ export const zh = {
         newFactorPlaceholder: '新因子名称（例如：可持续性）',
     },
     login: {
-        title: '登录 CTPM',
+        title: '登录 Visorq',
         username: '用户名',
         password: '密码',
         signIn: '登录',
