@@ -15,7 +15,7 @@ import {
     Activity,
     AlertTriangle,
     TrendingUp,
-    Zap,
+
     Target,
     Clock,
     BarChart3,
@@ -27,7 +27,7 @@ import ThreeDimensionalScatterMatrix from './ThreeDimensionalScatterMatrix';
 import ResourceEfficiencyMatrix from './ResourceEfficiencyMatrix';
 import RealTimeAlertSystem from './RealTimeAlertSystem';
 import SmartOptimizationPanel from './SmartOptimizationPanel';
-import { calculateDeliveryMetrics, type DeliveryMetrics } from '../../utils/deliveryMetrics';
+import { calculateDeliveryMetrics } from '../../utils/deliveryMetrics';
 
 const DeliveryEfficiencyDashboard: React.FC = () => {
     const projects = useProjects();
@@ -155,8 +155,8 @@ const DeliveryEfficiencyDashboard: React.FC = () => {
 
                 {/* 预警项目数 */}
                 <div className={`bg-gradient-to-br ${kpiMetrics.criticalProjects > 0
-                        ? 'from-red-500 to-red-600'
-                        : 'from-slate-500 to-slate-600'
+                    ? 'from-red-500 to-red-600'
+                    : 'from-slate-500 to-slate-600'
                     } rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow`}>
                     <div className="flex items-center justify-between mb-3">
                         <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -177,8 +177,8 @@ const DeliveryEfficiencyDashboard: React.FC = () => {
                     <button
                         onClick={() => setSelectedView('overview')}
                         className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${selectedView === 'overview'
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <BarChart3 className="inline mr-2" size={18} />
@@ -187,8 +187,8 @@ const DeliveryEfficiencyDashboard: React.FC = () => {
                     <button
                         onClick={() => setSelectedView('matrix')}
                         className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${selectedView === 'matrix'
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <Filter className="inline mr-2" size={18} />
@@ -197,8 +197,8 @@ const DeliveryEfficiencyDashboard: React.FC = () => {
                     <button
                         onClick={() => setSelectedView('alerts')}
                         className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${selectedView === 'alerts'
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <AlertTriangle className="inline mr-2" size={18} />
@@ -207,8 +207,8 @@ const DeliveryEfficiencyDashboard: React.FC = () => {
                     <button
                         onClick={() => setSelectedView('optimization')}
                         className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${selectedView === 'optimization'
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <Lightbulb className="inline mr-2" size={18} />

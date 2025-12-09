@@ -1,5 +1,5 @@
 import type { Project, Task, ResourcePoolItem } from '../types';
-import { parseISO, differenceInDays, addDays } from 'date-fns';
+import { parseISO, differenceInDays } from 'date-fns';
 
 export type WarningLevel = 'info' | 'warning' | 'critical';
 export type WarningCategory = 'schedule' | 'cost' | 'resource' | 'quality' | 'team';
@@ -21,7 +21,7 @@ export interface RiskWarning {
 /**
  * 检测进度风险
  */
-const detectScheduleRisks = (project: Project, tasks: Task[]): RiskWarning[] => {
+const detectScheduleRisks = (_project: Project, tasks: Task[]): RiskWarning[] => {
     const warnings: RiskWarning[] = [];
     const now = new Date();
 
@@ -266,7 +266,7 @@ const detectResourceRisks = (
 /**
  * 检测团队风险
  */
-const detectTeamRisks = (project: Project, tasks: Task[]): RiskWarning[] => {
+const detectTeamRisks = (_project: Project, tasks: Task[]): RiskWarning[] => {
     const warnings: RiskWarning[] = [];
 
     // 1. 检测任务分配不均

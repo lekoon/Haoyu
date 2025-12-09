@@ -10,7 +10,7 @@
  */
 
 import type { Project, ResourcePoolItem } from '../types';
-import { parseISO, differenceInDays, differenceInWeeks, differenceInMonths } from 'date-fns';
+import { parseISO, differenceInDays, differenceInWeeks } from 'date-fns';
 
 export interface DeliveryMetrics {
     projectId: string;
@@ -41,7 +41,7 @@ export interface DeliveryMetrics {
 export const calculateDeliveryMetrics = (
     projects: Project[],
     resourcePool: ResourcePoolItem[],
-    timeRange: 'week' | 'month' | 'quarter' = 'month'
+    _timeRange: 'week' | 'month' | 'quarter' = 'month'
 ): DeliveryMetrics[] => {
     return projects
         .filter(p => p.status === 'active' || p.status === 'completed')
@@ -67,7 +67,9 @@ export const calculateDeliveryMetrics = (
 
             // 计算事务颗粒度 (平均任务工作量)
             // 使用资源需求总量作为工作量估算
-            const totalWorkload = project.resourceRequirements.reduce((sum, req) => {
+            // 计算事务颗粒度 (平均任务工作量)
+            // 使用资源需求总量作为工作量估算
+            const totalWorkload = (project.resourceRequirements || []).reduce((sum, req) => {
                 let daysEquivalent = req.duration;
                 if (req.unit === 'month') daysEquivalent = req.duration * 30;
                 if (req.unit === 'year') daysEquivalent = req.duration * 365;
@@ -76,8 +78,8 @@ export const calculateDeliveryMetrics = (
             const granularity = totalTasks > 0 ? totalWorkload / totalTasks : totalWorkload;
 
             // 计算资源利用率
-            const resourceCount = project.resourceRequirements.reduce((sum, req) => sum + req.count, 0);
-            const totalCapacity = project.resourceRequirements.reduce((sum, req) => {
+            const resourceCount = (project.resourceRequirements || []).reduce((sum, req) => sum + req.count, 0);
+            const totalCapacity = (project.resourceRequirements || []).reduce((sum, req) => {
                 const resource = resourcePool.find(r => r.id === req.resourceId);
                 return sum + (resource?.totalQuantity || 0);
             }, 0);
@@ -185,8 +187,8 @@ export const detectResourceBottlenecks = (
     });
 
     return bottlenecks.sort((a, b) => {
-        const severityOrder = { high: 3, medium: 2, low: 1 };
-        return severityOrder[b.severity] - severityOrder[a.severity];
+        const severityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+        return (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0);
     });
 };
 
@@ -195,7 +197,7 @@ export const detectResourceBottlenecks = (
  */
 export const generateOptimizationSuggestions = (
     metrics: DeliveryMetrics[],
-    resourcePool: ResourcePoolItem[]
+    _resourcePool: ResourcePoolItem[]
 ): {
     type: 'resource' | 'process' | 'priority';
     title: string;
@@ -263,7 +265,7 @@ export const generateOptimizationSuggestions = (
     }
 
     return suggestions.sort((a, b) => {
-        const impactOrder = { high: 3, medium: 2, low: 1 };
-        return impactOrder[b.impact] - impactOrder[a.impact];
+        const impactOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+        return (impactOrder[b.impact] || 0) - (impactOrder[a.impact] || 0);
     });
 };

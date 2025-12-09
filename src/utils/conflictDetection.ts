@@ -37,7 +37,7 @@ export const detectResourceConflicts = (
                 if (!overlaps) return;
 
                 // 查找该资源的需求
-                const requirement = project.resourceRequirements.find(req => req.resourceId === resource.id);
+                const requirement = (project.resourceRequirements || []).find(req => req.resourceId === resource.id);
                 if (!requirement) return;
 
                 // 计算该资源在该月的分配量
@@ -129,7 +129,7 @@ export const getResourceAvailability = (
             const projectEnd = parseISO(project.endDate);
 
             if (isWithinInterval(monthDate, { start: projectStart, end: projectEnd })) {
-                const requirement = project.resourceRequirements.find(req => req.resourceId === resourceId);
+                const requirement = (project.resourceRequirements || []).find(req => req.resourceId === resourceId);
                 if (requirement) {
                     let durationInMonths = requirement.duration;
                     if (requirement.unit === 'day') durationInMonths = requirement.duration / 30;

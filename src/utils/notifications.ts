@@ -41,7 +41,7 @@ export const checkResourceConflicts = (projects: Project[], resourcePool: Resour
     projects.forEach(project => {
         if (project.status !== 'active') return;
 
-        project.resourceRequirements.forEach(req => {
+        (project.resourceRequirements || []).forEach(req => {
             totalDemand[req.resourceId] = (totalDemand[req.resourceId] || 0) + req.count;
         });
     });

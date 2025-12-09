@@ -131,6 +131,7 @@ export interface Risk {
 }
 
 // Task for Canvas-based Task Diagram
+// Task for Canvas-based Task Diagram
 export interface Task {
     id: string;
     name: string;
@@ -152,6 +153,9 @@ export interface Task {
 
     // Dependencies
     dependencies?: string[]; // Array of task IDs this task depends on
+
+    // Assignment
+    assignee?: string; // Resource ID
 }
 
 // Project
@@ -163,17 +167,21 @@ export interface Project {
     priority: 'P0' | 'P1' | 'P2' | 'P3';
     startDate: string;
     endDate: string;
+    manager?: string;
+    department?: string;
 
     // Dynamic Factors: key is FactorDefinition.id, value is 0-10 score
     factors: Record<string, number>;
 
-    score: number;
+    score?: number;
     rank?: number;
 
-    resourceRequirements: ResourceRequirement[];
+    resourceRequirements?: ResourceRequirement[]; // Planned Resources
 
     // Cost tracking
     budget?: number; // 预算
+    budgetUsed?: number;
+    totalBudget?: number;
     actualCost?: number; // 实际成本
     costBreakdown?: {
         labor: number; // 人力成本
@@ -183,6 +191,12 @@ export interface Project {
         other: number; // 其他
     };
     costHistory?: CostEntry[];
+
+    // Metrics
+    progress?: number;
+    resourceUtilization?: number;
+    healthScore?: number;
+    riskScore?: number;
 
     // Milestones
     milestones?: Milestone[];

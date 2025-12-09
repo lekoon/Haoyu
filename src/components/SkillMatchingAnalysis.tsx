@@ -19,10 +19,10 @@ const SkillMatchingAnalysis: React.FC = () => {
     // 选中项目的资源推荐
     const selectedProject = projects.find(p => p.id === selectedProjectId);
     const recommendations = useMemo(() => {
-        if (!selectedProject || !selectedProject.resourceRequirements.length) return [];
+        if (!selectedProject || !selectedProject.resourceRequirements?.length) return [];
 
         const allRecommendations: any[] = [];
-        selectedProject.resourceRequirements.forEach(req => {
+        (selectedProject.resourceRequirements || []).forEach(req => {
             if (req.requiredSkills && req.requiredSkills.length > 0) {
                 const recs = recommendResources(req, resourcePool, minMatchScore);
                 allRecommendations.push({

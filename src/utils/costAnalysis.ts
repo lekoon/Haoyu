@@ -46,7 +46,7 @@ export const calculateProjectCost = (
     project: Project,
     resources: ResourcePoolItem[]
 ): CostBreakdown => {
-    const resourceCosts = project.resourceRequirements.map(req => {
+    const resourceCosts = (project.resourceRequirements || []).map(req => {
         const resource = resources.find(r => r.id === req.resourceId);
         if (!resource) {
             return {
@@ -268,7 +268,7 @@ export const generateCostOptimizationSuggestions = (
     const inefficientProjects = projects
         .map(p => {
             const cost = portfolioCost.projectCosts.find(pc => pc.projectId === p.id)?.totalCost || 0;
-            return { ...p, cost, efficiency: p.score / (cost || 1) };
+            return { ...p, cost, efficiency: (p.score || 0) / (cost || 1) };
         })
         .filter(p => p.cost > 0)
         .sort((a, b) => a.efficiency - b.efficiency)
@@ -276,7 +276,7 @@ export const generateCostOptimizationSuggestions = (
 
     if (inefficientProjects.length > 0 && inefficientProjects[0].efficiency < 0.01) {
         suggestions.push(
-            `Project "${inefficientProjects[0].name}" has low ROI (score ${inefficientProjects[0].score.toFixed(1)} vs cost $${inefficientProjects[0].cost.toLocaleString()}). Review justification.`
+            `Project "${inefficientProjects[0].name}" has low ROI (score ${(inefficientProjects[0].score || 0).toFixed(1)} vs cost $${inefficientProjects[0].cost.toLocaleString()}). Review justification.`
         );
     }
 

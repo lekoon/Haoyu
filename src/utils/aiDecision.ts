@@ -57,26 +57,27 @@ export const analyzePriorityRecommendations = (
         let confidence = 70;
 
         // 基于评分分析
-        if (project.score >= 8.5) {
+        const score = project.score || 0;
+        if (score >= 8.5) {
             recommendedPriority = 'P0';
-            reasons.push(`高评分项目 (${project.score.toFixed(1)})，建议最高优先级`);
+            reasons.push(`高评分项目 (${score.toFixed(1)})，建议最高优先级`);
             confidence = 90;
-        } else if (project.score >= 7.0) {
+        } else if (score >= 7.0) {
             recommendedPriority = 'P1';
-            reasons.push(`良好评分 (${project.score.toFixed(1)})，建议高优先级`);
+            reasons.push(`良好评分 (${score.toFixed(1)})，建议高优先级`);
             confidence = 85;
-        } else if (project.score >= 5.0) {
+        } else if (score >= 5.0) {
             recommendedPriority = 'P2';
-            reasons.push(`中等评分 (${project.score.toFixed(1)})，建议中等优先级`);
+            reasons.push(`中等评分 (${score.toFixed(1)})，建议中等优先级`);
             confidence = 75;
         } else {
             recommendedPriority = 'P3';
-            reasons.push(`较低评分 (${project.score.toFixed(1)})，建议低优先级`);
+            reasons.push(`较低评分 (${score.toFixed(1)})，建议低优先级`);
             confidence = 80;
         }
 
         // 基于资源需求分析
-        const totalResources = project.resourceRequirements.reduce((sum, req) => sum + req.count, 0);
+        const totalResources = (project.resourceRequirements || []).reduce((sum, req) => sum + req.count, 0);
         if (totalResources > 10) {
             reasons.push('需要大量资源投入，需要优先保障');
             if (recommendedPriority === 'P2' || recommendedPriority === 'P3') {
@@ -142,7 +143,7 @@ export const generateResourceOptimizations = (
     resources.forEach(resource => {
         let totalAllocated = 0;
         projects.forEach(project => {
-            project.resourceRequirements.forEach(req => {
+            (project.resourceRequirements || []).forEach(req => {
                 if (req.resourceId === resource.id) {
                     totalAllocated += req.count;
                 }
@@ -158,7 +159,7 @@ export const generateResourceOptimizations = (
 
         if (utilization > 1.2) {
             const affectedProjects = projects
-                .filter(p => p.resourceRequirements.some(req => req.resourceId === resourceId))
+                .filter(p => (p.resourceRequirements || []).some(req => req.resourceId === resourceId))
                 .map(p => p.name);
 
             optimizations.push({
@@ -197,7 +198,7 @@ export const generateResourceOptimizations = (
     // 技能缺口分析
     const skillGaps = new Map<string, number>();
     projects.forEach(project => {
-        project.resourceRequirements.forEach(req => {
+        (project.resourceRequirements || []).forEach(req => {
             if (req.requiredSkills) {
                 req.requiredSkills.forEach(skill => {
                     skillGaps.set(skill, (skillGaps.get(skill) || 0) + 1);
@@ -244,7 +245,7 @@ export const predictProjectRisks = (
 
     projects.forEach(project => {
         // 资源风险
-        const totalRequired = project.resourceRequirements.reduce((sum, req) => sum + req.count, 0);
+        const totalRequired = (project.resourceRequirements || []).reduce((sum, req) => sum + req.count, 0);
         if (totalRequired > 15) {
             risks.push({
                 projectId: project.id,
@@ -305,14 +306,14 @@ export const predictProjectRisks = (
         }
 
         // 质量风险
-        if (project.score < 6.0 && project.status === 'active') {
+        if ((project.score || 0) < 6.0 && project.status === 'active') {
             risks.push({
                 projectId: project.id,
                 projectName: project.name,
                 riskType: 'quality',
                 severity: 'medium',
                 probability: 70,
-                description: `项目评分较低 (${project.score.toFixed(1)})，可能影响交付质量`,
+                description: `项目评分较低 (${(project.score || 0).toFixed(1)})，可能影响交付质量`,
                 mitigation: [
                     '加强质量管理流程',
                     '增加测试和审查环节',
@@ -324,7 +325,7 @@ export const predictProjectRisks = (
     });
 
     return risks.sort((a, b) => {
-        const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
         return severityOrder[a.severity] - severityOrder[b.severity];
     });
 };
@@ -356,7 +357,7 @@ export const generateDecisionSummary = (
     resources.forEach(resource => {
         let allocated = 0;
         projects.forEach(project => {
-            project.resourceRequirements.forEach(req => {
+            (project.resourceRequirements || []).forEach(req => {
                 if (req.resourceId === resource.id) {
                     allocated += req.count;
                 }

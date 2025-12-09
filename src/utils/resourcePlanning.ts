@@ -148,7 +148,7 @@ export const calculateResourceLoad = (
                 // Check if project overlaps with this bucket
                 const pStart = parseISO(p.startDate);
 
-                const req = p.resourceRequirements.find(r => r.resourceId === res.id);
+                const req = (p.resourceRequirements || []).find(r => r.resourceId === res.id);
                 if (req) {
                     // Calculate resource specific end date
                     let durationInMonths = req.duration;

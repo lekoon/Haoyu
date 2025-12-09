@@ -8,8 +8,8 @@ import {
     MousePointer2,
     Hand,
     Square,
-    Circle,
-    Type,
+
+
     StickyNote,
     Plus,
     Minus,
@@ -18,7 +18,6 @@ import {
     Undo2,
     Redo2,
     Download,
-    Settings,
 } from 'lucide-react';
 
 interface CanvasToolbarProps {
@@ -72,8 +71,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
                                 key={tool.id}
                                 onClick={() => onToolChange(tool.id)}
                                 className={`p-2.5 rounded-lg transition-all ${isActive
-                                        ? 'bg-blue-100 text-blue-600 shadow-sm'
-                                        : 'text-slate-600 hover:bg-slate-100'
+                                    ? 'bg-blue-100 text-blue-600 shadow-sm'
+                                    : 'text-slate-600 hover:bg-slate-100'
                                     }`}
                                 title={tool.label}
                             >
@@ -89,8 +88,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
                         onClick={onUndo}
                         disabled={!canUndo}
                         className={`p-2.5 rounded-lg transition-all ${canUndo
-                                ? 'text-slate-600 hover:bg-slate-100'
-                                : 'text-slate-300 cursor-not-allowed'
+                            ? 'text-slate-600 hover:bg-slate-100'
+                            : 'text-slate-300 cursor-not-allowed'
                             }`}
                         title="撤销 (Ctrl+Z)"
                     >
@@ -100,8 +99,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
                         onClick={onRedo}
                         disabled={!canRedo}
                         className={`p-2.5 rounded-lg transition-all ${canRedo
-                                ? 'text-slate-600 hover:bg-slate-100'
-                                : 'text-slate-300 cursor-not-allowed'
+                            ? 'text-slate-600 hover:bg-slate-100'
+                            : 'text-slate-300 cursor-not-allowed'
                             }`}
                         title="重做 (Ctrl+Y)"
                     >
@@ -139,8 +138,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
                     <button
                         onClick={onToggleGrid}
                         className={`p-2.5 rounded-lg transition-all ${showGrid
-                                ? 'bg-blue-100 text-blue-600'
-                                : 'text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                         title="切换网格 (G)"
                     >

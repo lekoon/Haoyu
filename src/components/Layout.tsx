@@ -185,6 +185,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         {isDark ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
 
+                    <button
+                        onClick={() => navigate('/settings')}
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                        title="系统设置"
+                    >
+                        <Settings size={20} />
+                    </button>
+
                     <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
                     <div className="flex items-center gap-3 pl-2">

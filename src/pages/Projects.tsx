@@ -278,12 +278,12 @@ const Projects: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 font-bold text-blue-600">
-                                        {project.score.toFixed(2)}
+                                        {(project.score || 0).toFixed(2)}
                                     </td>
                                     <td className="p-4 text-sm text-slate-500">
                                         <div className="flex items-center gap-1" title="Total Headcount Required">
                                             <Users size={14} />
-                                            {project.resourceRequirements.reduce((sum, req) => sum + req.count, 0)} people
+                                            {(project.resourceRequirements || []).reduce((sum, req) => sum + req.count, 0)} people
                                         </div>
                                     </td>
                                     <td className="p-4 text-right">

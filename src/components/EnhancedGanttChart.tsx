@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { format, differenceInDays, addDays, startOfYear, endOfYear, eachMonthOfInterval, parseISO } from 'date-fns';
-import { GripVertical, Plus, Trash2, Edit2, Flag } from 'lucide-react';
+import { format, differenceInDays, addDays, eachMonthOfInterval, parseISO } from 'date-fns';
+import { GripVertical, Plus, Flag } from 'lucide-react';
 
 interface Task {
     id: string;
@@ -238,7 +238,7 @@ const EnhancedGanttChart: React.FC<EnhancedGanttChartProps> = ({
                     {/* Chart Area */}
                     <div ref={chartRef} className="relative min-h-[600px] bg-slate-50 rounded-xl p-4 border-2 border-slate-200">
                         {/* Grid Lines */}
-                        {months.map((month, idx) => {
+                        {months.map((month) => {
                             const monthStart = month;
                             const daysFromStart = differenceInDays(monthStart, startDate);
                             const left = (daysFromStart / totalDays) * 100;

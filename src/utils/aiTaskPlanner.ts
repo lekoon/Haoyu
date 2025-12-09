@@ -420,7 +420,7 @@ export const estimateTaskEffort = (
  */
 export const optimizeTaskSchedule = (
     tasks: Task[],
-    resourceConstraints?: {
+    _resourceConstraints?: {
         maxParallelTasks: number;
         workingDaysPerWeek: number;
     }

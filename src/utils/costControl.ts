@@ -24,7 +24,7 @@ export interface EVMMetrics {
  */
 export const calculateEVM = (project: Project, tasks: Task[]): EVMMetrics => {
     const now = new Date();
-    const bac = project.totalBudget;
+    const bac = project.totalBudget || 0;
     const ac = project.actualCost || project.budgetUsed || 0;
 
     let pv = 0;

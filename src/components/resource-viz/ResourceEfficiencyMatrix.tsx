@@ -13,7 +13,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Project, ResourcePoolItem } from '../../types';
 import type { DeliveryMetrics } from '../../utils/deliveryMetrics';
-import { Filter, ArrowDownRight, Info, ChevronRight, ChevronDown } from 'lucide-react';
+import { ArrowDownRight, Info, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface ResourceEfficiencyMatrixProps {
     projects: Project[];
@@ -58,7 +58,7 @@ const ResourceEfficiencyMatrix: React.FC<ResourceEfficiencyMatrixProps> = ({
                     let used = 0;
                     let total = 0;
 
-                    project.resourceRequirements.forEach(req => {
+                    (project.resourceRequirements || []).forEach(req => {
                         const resource = resourcePool.find(r => r.id === req.resourceId);
                         if (resource) {
                             let resourceType = '其他资源';
@@ -135,8 +135,8 @@ const ResourceEfficiencyMatrix: React.FC<ResourceEfficiencyMatrixProps> = ({
                             key={type}
                             onClick={() => setSelectedResourceType(type === selectedResourceType ? 'all' : type)}
                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedResourceType === type
-                                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                    : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
                                 }`}
                         >
                             {type}
@@ -182,8 +182,8 @@ const ResourceEfficiencyMatrix: React.FC<ResourceEfficiencyMatrixProps> = ({
                                                     <div className="font-medium text-slate-900">{row.name}</div>
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <span className={`text-xs px-2 py-0.5 rounded-full ${row.efficiencyScore < 2 ? 'bg-red-100 text-red-700' :
-                                                                row.efficiencyScore < 5 ? 'bg-yellow-100 text-yellow-700' :
-                                                                    'bg-green-100 text-green-700'
+                                                            row.efficiencyScore < 5 ? 'bg-yellow-100 text-yellow-700' :
+                                                                'bg-green-100 text-green-700'
                                                             }`}>
                                                             效率: {row.efficiencyScore.toFixed(1)}
                                                         </span>

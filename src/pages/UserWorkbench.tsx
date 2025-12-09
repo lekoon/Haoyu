@@ -5,7 +5,7 @@ import { format, addWeeks, startOfWeek, eachDayOfInterval, endOfWeek } from 'dat
 import { useTranslation } from 'react-i18next';
 
 const UserWorkbench: React.FC = () => {
-    const { user, projects, resourcePool } = useStore();
+    const { user, projects } = useStore();
     const { t } = useTranslation();
 
     // 模拟当前用户作为团队成员
@@ -180,8 +180,8 @@ const UserWorkbench: React.FC = () => {
                                         <td className="p-3">
                                             <div className="flex items-center gap-2">
                                                 <span className={`px-2 py-1 rounded text-xs font-bold ${project?.priority === 'P0' ? 'bg-red-100 text-red-700' :
-                                                        project?.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
-                                                            'bg-blue-100 text-blue-700'
+                                                    project?.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-blue-100 text-blue-700'
                                                     }`}>
                                                     {project?.priority || 'P2'}
                                                 </span>
@@ -205,7 +205,7 @@ const UserWorkbench: React.FC = () => {
                             })}
                             <tr className="bg-slate-50 font-bold">
                                 <td className="p-3">{t('workbench.total')}</td>
-                                {weekDays.map((day, idx) => {
+                                {weekDays.map((_day, idx) => {
                                     const dayTotal = currentMember.assignments.reduce((sum, a) => sum + a.hours / 5, 0);
                                     const isOverDay = dayTotal > 8;
                                     return (

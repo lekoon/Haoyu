@@ -98,7 +98,7 @@ const BatchImport: React.FC = () => {
 
                     // 构建因子对象
                     const factors: Record<string, number> = {};
-                    factorDefinitions.forEach((factor, idx) => {
+                    factorDefinitions.forEach((factor, _) => {
                         const factorIdx = headers.findIndex(h => h === factor.name);
                         if (factorIdx !== -1 && row[factorIdx]) {
                             const value = parseInt(row[factorIdx]);
@@ -196,8 +196,8 @@ const BatchImport: React.FC = () => {
             {/* Upload Area */}
             <div
                 className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${dragOver
-                        ? 'border-blue-400 bg-blue-50'
-                        : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/50'
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/50'
                     }`}
                 onDragOver={(e) => {
                     e.preventDefault();
@@ -233,8 +233,8 @@ const BatchImport: React.FC = () => {
             {/* Import Result */}
             {result && (
                 <div className={`rounded-2xl p-6 border-2 ${result.failed === 0
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-orange-50 border-orange-200'
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-orange-50 border-orange-200'
                     }`}>
                     <div className="flex items-start gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${result.failed === 0 ? 'bg-green-100' : 'bg-orange-100'

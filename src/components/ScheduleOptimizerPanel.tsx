@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Calendar, Sliders, ArrowRight, CheckCircle, AlertTriangle, RefreshCw, BarChart2 } from 'lucide-react';
 import type { Project, Task, ResourcePoolItem } from '../types';
 import { optimizeSchedule } from '../utils/scheduleOptimizer';
@@ -56,8 +56,8 @@ const ScheduleOptimizerPanel: React.FC<ScheduleOptimizerPanelProps> = ({
                     <button
                         onClick={() => setStrategy('smoothing')}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${strategy === 'smoothing'
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-slate-200 hover:border-blue-200'
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-slate-200 hover:border-blue-200'
                             }`}
                     >
                         <div className="flex items-center justify-between mb-2">
@@ -72,8 +72,8 @@ const ScheduleOptimizerPanel: React.FC<ScheduleOptimizerPanelProps> = ({
                     <button
                         onClick={() => setStrategy('leveling')}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${strategy === 'leveling'
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-slate-200 hover:border-purple-200'
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-slate-200 hover:border-purple-200'
                             }`}
                     >
                         <div className="flex items-center justify-between mb-2">
@@ -138,8 +138,8 @@ const ScheduleOptimizerPanel: React.FC<ScheduleOptimizerPanelProps> = ({
                                     {result.metrics.newDuration} 天
                                 </span>
                                 <span className={`text-xs mb-1 ${result.metrics.newDuration > result.metrics.originalDuration
-                                        ? 'text-red-600'
-                                        : 'text-green-600'
+                                    ? 'text-red-600'
+                                    : 'text-green-600'
                                     }`}>
                                     ({result.metrics.newDuration - result.metrics.originalDuration > 0 ? '+' : ''}
                                     {result.metrics.newDuration - result.metrics.originalDuration} 天)

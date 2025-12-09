@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, useResourcePool } from '../store/useStore';
-import { ArrowLeft, Edit2, Check, DollarSign, Layout, Users, AlertTriangle, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Edit2, Check, DollarSign, Layout, Users, AlertTriangle, BarChart3, Target } from 'lucide-react';
 import SmartTaskView from '../components/SmartTaskView';
 import ProjectResourceDetail from '../components/ProjectResourceDetail';
 import RiskAssessment from '../components/RiskAssessment';
 import CostRegistrationForm from '../components/CostRegistrationForm';
-import ProjectHealthDashboard from '../components/ProjectHealthDashboard';
+import ProjectScoringPanel from '../components/ProjectScoringPanel';
+import EnhancedHealthVisualization from '../components/EnhancedHealthVisualization';
 import CostControlPanel from '../components/CostControlPanel';
+import { calculateProjectHealth } from '../utils/projectHealth';
 import type { CostEntry, Task } from '../types';
 
 const ProjectDetailEnhanced: React.FC = () => {
@@ -20,7 +22,7 @@ const ProjectDetailEnhanced: React.FC = () => {
 
     // Initialize state
     const [isEditing, setIsEditing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'diagram' | 'resources' | 'costs' | 'risks' | 'analytics'>('diagram');
+    const [activeTab, setActiveTab] = useState<'diagram' | 'resources' | 'costs' | 'risks' | 'analytics' | 'strategy'>('diagram');
     const [isCostFormOpen, setIsCostFormOpen] = useState(false);
 
     if (!project) {
@@ -36,6 +38,18 @@ const ProjectDetailEnhanced: React.FC = () => {
 
     const projectCosts = project.costHistory || [];
     const projectBudget = project.budget || 1000000;
+
+    // Calculate health score for header display
+    const healthMetrics = useMemo(() => {
+        return calculateProjectHealth(project, project.tasks || [], projects);
+    }, [project, projects]);
+
+    const getHealthColor = (score: number) => {
+        if (score >= 80) return 'text-green-600 bg-green-50 border-green-200';
+        if (score >= 60) return 'text-blue-600 bg-blue-50 border-blue-200';
+        if (score >= 40) return 'text-orange-600 bg-orange-50 border-orange-200';
+        return 'text-red-600 bg-red-50 border-red-200';
+    };
 
     // Unified Task Management
     const handleTaskUpdate = (updatedTask: Task) => {
@@ -104,6 +118,16 @@ const ProjectDetailEnhanced: React.FC = () => {
                                 <option value="completed">已完成</option>
                                 <option value="on-hold">暂停</option>
                             </select>
+                            <select
+                                value={project.priority}
+                                onChange={(e) => updateProject(project.id, { ...project, priority: e.target.value as any })}
+                                className="text-sm bg-slate-50 border rounded px-2 py-1"
+                            >
+                                <option value="P0">P0 - 紧急</option>
+                                <option value="P1">P1 - 高</option>
+                                <option value="P2">P2 - 中</option>
+                                <option value="P3">P3 - 低</option>
+                            </select>
                         </div>
                     ) : (
                         <div className="flex items-center gap-3">
@@ -114,6 +138,19 @@ const ProjectDetailEnhanced: React.FC = () => {
                                 }`}>
                                 {project.status}
                             </span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${project.priority === 'P0' ? 'bg-red-100 text-red-700' :
+                                    project.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
+                                        project.priority === 'P2' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-slate-100 text-slate-600'
+                                }`}>
+                                {project.priority}
+                            </span>
+
+                            {/* Integated Health Score Badge */}
+                            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-bold ${getHealthColor(healthMetrics.overall)}`}>
+                                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                <span>{healthMetrics.overall} 分</span>
+                            </div>
                         </div>
                     )}
 
@@ -156,6 +193,12 @@ const ProjectDetailEnhanced: React.FC = () => {
                         className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'analytics' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <BarChart3 size={16} /> 高级分析
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('strategy')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'strategy' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Target size={16} /> 战略评分
                     </button>
                 </div>
             </div>
@@ -228,8 +271,8 @@ const ProjectDetailEnhanced: React.FC = () => {
                 {/* 高级分析视图 */}
                 {activeTab === 'analytics' && (
                     <div className="h-full overflow-auto p-6 max-w-7xl mx-auto space-y-6">
-                        {/* 项目健康度仪表板 */}
-                        <ProjectHealthDashboard
+                        {/* 项目健康度仪表板 - Enhanced Version */}
+                        <EnhancedHealthVisualization
                             project={project}
                             tasks={project.tasks || []}
                             allProjects={projects}
@@ -239,6 +282,16 @@ const ProjectDetailEnhanced: React.FC = () => {
                         <CostControlPanel
                             project={project}
                             tasks={project.tasks || []}
+                        />
+                    </div>
+                )}
+
+                {/* 战略评分视图 */}
+                {activeTab === 'strategy' && (
+                    <div className="h-full overflow-hidden max-w-7xl mx-auto">
+                        <ProjectScoringPanel
+                            project={project}
+                            onUpdate={(updates) => updateProject(project.id, { ...project, ...updates })}
                         />
                     </div>
                 )}

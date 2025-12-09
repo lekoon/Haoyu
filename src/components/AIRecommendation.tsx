@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Brain, TrendingUp, Users, AlertCircle, CheckCircle, X } from 'lucide-react';
-import type { Project, ResourcePoolItem, TeamMember } from '../types';
+import type { Project, ResourcePoolItem } from '../types';
 
 interface AIRecommendationProps {
     projects: Project[];
@@ -48,7 +48,7 @@ const AIRecommendation: React.FC<AIRecommendationProps> = ({ projects, resources
         // 2. Project Priority vs Resource Allocation Mismatch
         const highPriorityProjects = projects.filter(p => p.priority === 'P0' || p.priority === 'P1');
         highPriorityProjects.forEach(project => {
-            const resourceCount = project.resourceRequirements.reduce((sum, req) => sum + req.count, 0);
+            const resourceCount = (project.resourceRequirements || []).reduce((sum, req) => sum + req.count, 0);
             if (resourceCount < 3) {
                 recs.push({
                     type: 'priority',
@@ -107,7 +107,7 @@ const AIRecommendation: React.FC<AIRecommendationProps> = ({ projects, resources
         // 6. Skill Matching Recommendations
         const skillGaps: { [key: string]: number } = {};
         projects.forEach(project => {
-            project.resourceRequirements.forEach(req => {
+            (project.resourceRequirements || []).forEach(req => {
                 req.requiredSkills?.forEach(skill => {
                     skillGaps[skill] = (skillGaps[skill] || 0) + 1;
                 });
@@ -191,8 +191,8 @@ const AIRecommendation: React.FC<AIRecommendationProps> = ({ projects, resources
                                     key={tab.id}
                                     onClick={() => setSelectedType(tab.id as any)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${selectedType === tab.id
-                                            ? 'bg-white text-purple-600 shadow-lg'
-                                            : 'bg-white/20 text-white hover:bg-white/30'
+                                        ? 'bg-white text-purple-600 shadow-lg'
+                                        : 'bg-white/20 text-white hover:bg-white/30'
                                         }`}
                                 >
                                     <Icon size={16} />

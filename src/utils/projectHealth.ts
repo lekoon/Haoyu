@@ -1,4 +1,4 @@
-import type { Project, Task, ResourceRequirement } from '../types';
+import type { Project, Task } from '../types';
 import { differenceInDays, parseISO } from 'date-fns';
 
 export interface ProjectHealthMetrics {
@@ -47,7 +47,7 @@ export interface ProjectHealthMetrics {
 /**
  * 计算进度绩效指标（SPI）
  */
-const calculateSPI = (project: Project, tasks: Task[]): number => {
+const calculateSPI = (_project: Project, tasks: Task[]): number => {
     if (!tasks.length) return 1.0;
 
     const now = new Date();
@@ -90,6 +90,13 @@ const calculateCPI = (project: Project): number => {
 
     if (plannedCost === 0) return 1.0;
     return plannedCost / actualCost;
+};
+
+/**
+ * 评估进度健康度
+ */
+const getStatus = (score: number): 'excellent' | 'good' | 'warning' | 'critical' => {
+    return score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'warning' : 'critical';
 };
 
 /**
@@ -138,7 +145,7 @@ const evaluateScheduleHealth = (project: Project, tasks: Task[]) => {
         issues.push(`${upcomingMilestones.length} 个里程碑即将到期`);
     }
 
-    const status = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'warning' : 'critical';
+    const status = getStatus(score);
 
     return {
         score: Math.max(0, Math.min(100, score)),
@@ -188,7 +195,7 @@ const evaluateCostHealth = (project: Project) => {
         }
     }
 
-    const status = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'warning' : 'critical';
+    const status = getStatus(score);
 
     return {
         score: Math.max(0, Math.min(100, score)),
@@ -201,7 +208,7 @@ const evaluateCostHealth = (project: Project) => {
 /**
  * 评估资源健康度
  */
-const evaluateResourceHealth = (project: Project, allProjects: Project[]) => {
+const evaluateResourceHealth = (project: Project, _allProjects: Project[]) => {
     const issues: string[] = [];
     let score = 100;
     let conflicts = 0;
@@ -240,7 +247,7 @@ const evaluateResourceHealth = (project: Project, allProjects: Project[]) => {
         issues.push(`${unmatchedSkills.length} 个资源需求未匹配合适技能`);
     }
 
-    const status = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'warning' : 'critical';
+    const status = getStatus(score);
 
     return {
         score: Math.max(0, Math.min(100, score)),
@@ -259,7 +266,7 @@ const evaluateRiskHealth = (project: Project) => {
     const risks = project.risks || [];
     let score = 100;
 
-    const criticalRisks = risks.filter(r => r.impact === 'critical' || r.impact === 'high');
+    const criticalRisks = risks.filter(r => r.impact === 5 || (typeof r.impact === 'string' && (r.impact === 'critical' || r.impact === 'high')));
     const total = risks.length;
 
     if (total === 0) {
@@ -285,13 +292,13 @@ const evaluateRiskHealth = (project: Project) => {
     }
 
     // 检查未处理的风险
-    const unmitigatedRisks = risks.filter(r => !r.mitigationPlan || r.mitigationPlan.trim() === '');
+    const unmitigatedRisks = risks.filter(r => !r.mitigation || r.mitigation.trim() === '');
     if (unmitigatedRisks.length > 0) {
         score -= unmitigatedRisks.length * 3;
         issues.push(`${unmitigatedRisks.length} 个风险缺少应对措施`);
     }
 
-    const status = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'warning' : 'critical';
+    const status = getStatus(score);
 
     return {
         score: Math.max(0, Math.min(100, score)),
@@ -305,12 +312,12 @@ const evaluateRiskHealth = (project: Project) => {
 /**
  * 评估质量健康度
  */
-const evaluateQualityHealth = (project: Project, tasks: Task[]) => {
+const evaluateQualityHealth = (_project: Project, tasks: Task[]) => {
     const issues: string[] = [];
     let score = 100;
 
     // 简化的质量评估（实际应该有缺陷跟踪系统）
-    const completedTasks = tasks.filter(t => (t.progress || 0) === 100);
+
     const totalTasks = tasks.length;
 
     if (totalTasks === 0) {
@@ -339,7 +346,7 @@ const evaluateQualityHealth = (project: Project, tasks: Task[]) => {
     // 检查测试覆盖（如果有相关数据）
     // 这里简化处理
 
-    const status = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'warning' : 'critical';
+    const status = getStatus(score);
 
     return {
         score: Math.max(0, Math.min(100, score)),
@@ -352,7 +359,7 @@ const evaluateQualityHealth = (project: Project, tasks: Task[]) => {
 /**
  * 评估团队健康度
  */
-const evaluateTeamHealth = (project: Project, tasks: Task[]) => {
+const evaluateTeamHealth = (_project: Project, tasks: Task[]) => {
     const issues: string[] = [];
     let score = 100;
 
@@ -393,7 +400,7 @@ const evaluateTeamHealth = (project: Project, tasks: Task[]) => {
         }
     }
 
-    const status = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'warning' : 'critical';
+    const status = getStatus(score);
 
     return {
         score: Math.max(0, Math.min(100, score)),

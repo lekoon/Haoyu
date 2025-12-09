@@ -143,7 +143,7 @@ export interface SkillGapAnalysis {
 }
 
 export const analyzeSkillGaps = (
-    projects: { id: string; name: string; resourceRequirements: ResourceRequirement[] }[],
+    projects: { id: string; name: string; resourceRequirements?: ResourceRequirement[] }[],
     resources: ResourcePoolItem[]
 ): SkillGapAnalysis => {
     const skillGapMap = new Map<string, { occurrences: number; projects: string[] }>();
@@ -153,7 +153,7 @@ export const analyzeSkillGaps = (
     let unmatched = 0;
 
     projects.forEach(project => {
-        project.resourceRequirements.forEach(req => {
+        (project.resourceRequirements || []).forEach(req => {
             if (!req.requiredSkills || req.requiredSkills.length === 0) return;
 
             totalRequirements++;

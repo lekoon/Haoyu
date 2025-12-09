@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Activity, Filter, User, FileText, DollarSign, AlertTriangle, CheckCircle, Edit, Trash, MessageCircle, UserPlus } from 'lucide-react';
+import { Activity, User, FileText, DollarSign, AlertTriangle, CheckCircle, Edit, Trash, MessageCircle, UserPlus } from 'lucide-react';
 import type { ActivityLog } from '../types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';

@@ -20,7 +20,7 @@ const ProjectDetail: React.FC = () => {
         const dataMap = new Map<string, { name: string; value: number; color: string }>();
         const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
-        project.resourceRequirements.forEach((req, idx) => {
+        (project.resourceRequirements || []).forEach((req, idx) => {
             const resource = resourcePool.find(r => r.id === req.resourceId);
             if (resource) {
                 const hours = req.count * req.duration * (req.unit === 'month' ? 160 : req.unit === 'day' ? 8 : 1920);
@@ -49,7 +49,7 @@ const ProjectDetail: React.FC = () => {
     const weeklyAllocations = useMemo(() => {
         if (!project) return [];
 
-        return project.resourceRequirements.map(req => {
+        return (project.resourceRequirements || []).map(req => {
             const resource = resourcePool.find(r => r.id === req.resourceId);
             return {
                 employee: resource?.name || 'Unknown',
@@ -116,7 +116,7 @@ const ProjectDetail: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 <TrendingUp size={16} />
-                                <span>{t('projectDetail.score')}: {project.score.toFixed(1)}</span>
+                                <span>{t('projectDetail.score')}: {(project.score || 0).toFixed(1)}</span>
                             </div>
                         </div>
                     </div>

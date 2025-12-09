@@ -2,7 +2,7 @@
  * Performance utilities for React components
  */
 
-import { useEffect, useRef, DependencyList, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, type DependencyList } from 'react';
 
 /**
  * Debounce hook - delays execution until after wait time
@@ -11,7 +11,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
     callback: T,
     delay: number
 ): (...args: Parameters<T>) => void {
-    const timeoutRef = useRef<NodeJS.Timeout>();
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
         return () => {
@@ -42,7 +42,7 @@ export function useThrottle<T extends (...args: any[]) => any>(
     delay: number
 ): (...args: Parameters<T>) => void {
     const lastRun = useRef(Date.now());
-    const timeoutRef = useRef<NodeJS.Timeout>();
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
         return () => {
@@ -81,7 +81,7 @@ export function useThrottle<T extends (...args: any[]) => any>(
  * Previous value hook - returns previous value of a variable
  */
 export function usePrevious<T>(value: T): T | undefined {
-    const ref = useRef<T>();
+    const ref = useRef<T | undefined>(undefined);
 
     useEffect(() => {
         ref.current = value;
@@ -242,6 +242,3 @@ export function useWindowSize() {
 
     return size;
 }
-
-// Add missing React import
-import React from 'react';

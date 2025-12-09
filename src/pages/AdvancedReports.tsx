@@ -44,7 +44,7 @@ const AdvancedReports: React.FC = () => {
         return resourcePool.map(resource => {
             let allocated = 0;
             projects.forEach(project => {
-                project.resourceRequirements.forEach(req => {
+                (project.resourceRequirements || []).forEach(req => {
                     if (req.resourceId === resource.id) {
                         allocated += req.count;
                     }
@@ -69,7 +69,8 @@ const AdvancedReports: React.FC = () => {
             { name: '9-10', min: 9, max: 10, count: 0 }
         ];
         projects.forEach(p => {
-            const range = ranges.find(r => p.score >= r.min && p.score < r.max);
+            const score = p.score || 0;
+            const range = ranges.find(r => score >= r.min && score < r.max);
             if (range) range.count++;
         });
         return ranges;
@@ -86,7 +87,7 @@ const AdvancedReports: React.FC = () => {
 
     // 雷达图数据 - 项目健康度
     const healthRadarData = useMemo(() => {
-        const avgScore = projects.reduce((sum, p) => sum + p.score, 0) / projects.length || 0;
+        const avgScore = projects.reduce((sum, p) => sum + (p.score || 0), 0) / projects.length || 0;
         const activeRate = (projects.filter(p => p.status === 'active').length / projects.length) * 100 || 0;
         const avgUtilization = resourceUtilizationData.reduce((sum, r) => sum + r.utilization, 0) / resourceUtilizationData.length || 0;
         const onTimeRate = 80; // 模拟数据
@@ -318,7 +319,7 @@ const AdvancedReports: React.FC = () => {
                     <div className="text-center p-4 bg-purple-50 rounded-xl">
                         <p className="text-sm text-purple-600 mb-1">{t('reports.avgScore')}</p>
                         <p className="text-3xl font-bold text-purple-700">
-                            {(projects.reduce((sum, p) => sum + p.score, 0) / projects.length || 0).toFixed(1)}
+                            {(projects.reduce((sum, p) => sum + (p.score || 0), 0) / projects.length || 0).toFixed(1)}
                         </p>
                     </div>
                     <div className="text-center p-4 bg-orange-50 rounded-xl">

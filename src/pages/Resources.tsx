@@ -189,7 +189,7 @@ const Resources: React.FC = () => {
         const p0Projects = projects.filter(p => p.priority === 'P0');
         const p0SatisfactionRate = p0Projects.length > 0 ? 85 : 100;
         const totalManDays = projects.reduce((sum, p) =>
-            sum + p.resourceRequirements.reduce((s, r) => s + r.count * r.duration, 0), 0
+            sum + (p.resourceRequirements || []).reduce((s, r) => s + r.count * r.duration, 0), 0
         );
         return { totalProjects, overloadedCount, p0SatisfactionRate, totalManDays };
     }, [projects]);

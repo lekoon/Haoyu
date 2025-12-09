@@ -6,7 +6,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    LineChart,
     Line,
     XAxis,
     YAxis,
@@ -21,7 +20,7 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
 import type { Project, Task } from '../types';
-import { calculateEVM, generateCostTrendData } from '../utils/costControl';
+import { calculateEVM, generateCostTrend } from '../utils/costControl';
 import { format } from 'date-fns';
 
 interface Props {
@@ -40,7 +39,7 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
 
     // 生成趋势数据
     const trendData = useMemo(() => {
-        const data = generateCostTrendData(project, tasks);
+        const data = generateCostTrend(evmData);
 
         // 根据时间范围过滤
         if (timeRange === '3m') {
@@ -60,8 +59,8 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
         const latest = trendData[trendData.length - 1];
         const previous = trendData[trendData.length - 2];
 
-        const acChange = latest.AC - previous.AC;
-        const evChange = latest.EV - previous.EV;
+        const acChange = (latest.ac || 0) - (previous.ac || 0);
+        const evChange = (latest.ev || 0) - (previous.ev || 0);
 
         return {
             acChange,
@@ -111,20 +110,20 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
-                    className={`rounded-xl p-5 ${evmData.CPI >= 1
-                            ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
-                            : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200'
+                    className={`rounded-xl p-5 ${evmData.cpi >= 1
+                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
+                        : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200'
                         } border`}
                 >
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-slate-700">成本绩效指数</span>
-                        <DollarSign size={20} className={evmData.CPI >= 1 ? 'text-green-600' : 'text-red-600'} />
+                        <DollarSign size={20} className={evmData.cpi >= 1 ? 'text-green-600' : 'text-red-600'} />
                     </div>
-                    <div className="text-3xl font-bold mb-1" style={{ color: evmData.CPI >= 1 ? '#059669' : '#DC2626' }}>
-                        {evmData.CPI.toFixed(2)}
+                    <div className="text-3xl font-bold mb-1" style={{ color: evmData.cpi >= 1 ? '#059669' : '#DC2626' }}>
+                        {evmData.cpi.toFixed(2)}
                     </div>
                     <p className="text-xs text-slate-600">
-                        {evmData.CPI >= 1 ? '成本控制良好' : '成本超支'}
+                        {evmData.cpi >= 1 ? '成本控制良好' : '成本超支'}
                     </p>
                 </motion.div>
 
@@ -133,20 +132,20 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1, duration: 0.4 }}
-                    className={`rounded-xl p-5 ${evmData.SPI >= 1
-                            ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
-                            : 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200'
+                    className={`rounded-xl p-5 ${evmData.spi >= 1
+                        ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+                        : 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200'
                         } border`}
                 >
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-slate-700">进度绩效指数</span>
-                        <Calendar size={20} className={evmData.SPI >= 1 ? 'text-blue-600' : 'text-orange-600'} />
+                        <Calendar size={20} className={evmData.spi >= 1 ? 'text-blue-600' : 'text-orange-600'} />
                     </div>
-                    <div className="text-3xl font-bold mb-1" style={{ color: evmData.SPI >= 1 ? '#2563EB' : '#EA580C' }}>
-                        {evmData.SPI.toFixed(2)}
+                    <div className="text-3xl font-bold mb-1" style={{ color: evmData.spi >= 1 ? '#2563EB' : '#EA580C' }}>
+                        {evmData.spi.toFixed(2)}
                     </div>
                     <p className="text-xs text-slate-600">
-                        {evmData.SPI >= 1 ? '进度正常' : '进度延迟'}
+                        {evmData.spi >= 1 ? '进度正常' : '进度延迟'}
                     </p>
                 </motion.div>
 
@@ -162,7 +161,7 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                         <TrendingUp size={20} className="text-purple-600" />
                     </div>
                     <div className="text-3xl font-bold text-purple-600 mb-1">
-                        ${evmData.EAC.toLocaleString()}
+                        ${evmData.eac.toLocaleString()}
                     </div>
                     <p className="text-xs text-slate-600">
                         预计总成本
@@ -174,24 +173,24 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3, duration: 0.4 }}
-                    className={`rounded-xl p-5 ${evmData.VAC >= 0
-                            ? 'bg-gradient-to-br from-green-50 to-teal-50 border-green-200'
-                            : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200'
+                    className={`rounded-xl p-5 ${evmData.vac >= 0
+                        ? 'bg-gradient-to-br from-green-50 to-teal-50 border-green-200'
+                        : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200'
                         } border`}
                 >
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-slate-700">完工偏差</span>
-                        {evmData.VAC >= 0 ? (
+                        {evmData.vac >= 0 ? (
                             <TrendingUp size={20} className="text-green-600" />
                         ) : (
                             <TrendingDown size={20} className="text-red-600" />
                         )}
                     </div>
-                    <div className={`text-3xl font-bold mb-1 ${evmData.VAC >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${Math.abs(evmData.VAC).toLocaleString()}
+                    <div className={`text-3xl font-bold mb-1 ${evmData.vac >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${Math.abs(evmData.vac).toLocaleString()}
                     </div>
                     <p className="text-xs text-slate-600">
-                        {evmData.VAC >= 0 ? '预算节余' : '预算超支'}
+                        {evmData.vac >= 0 ? '预算节余' : '预算超支'}
                     </p>
                 </motion.div>
             </div>
@@ -213,8 +212,8 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                                     key={range}
                                     onClick={() => setTimeRange(range)}
                                     className={`px-3 py-1 rounded text-sm font-medium transition-colors ${timeRange === range
-                                            ? 'bg-white text-blue-600 shadow-sm'
-                                            : 'text-slate-600 hover:text-slate-900'
+                                        ? 'bg-white text-blue-600 shadow-sm'
+                                        : 'text-slate-600 hover:text-slate-900'
                                         }`}
                                 >
                                     {range === 'all' ? '全部' : range.toUpperCase()}
@@ -275,7 +274,7 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                         {/* 计划价值 */}
                         <Area
                             type="monotone"
-                            dataKey="PV"
+                            dataKey="pv"
                             stroke="#8B5CF6"
                             fill="url(#pvGradient)"
                             strokeWidth={2}
@@ -286,7 +285,7 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                         {/* 挣值 */}
                         <Area
                             type="monotone"
-                            dataKey="EV"
+                            dataKey="ev"
                             stroke="#3B82F6"
                             fill="url(#evGradient)"
                             strokeWidth={2}
@@ -297,7 +296,7 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
                         {/* 实际成本 */}
                         <Line
                             type="monotone"
-                            dataKey="AC"
+                            dataKey="ac"
                             stroke="#EF4444"
                             strokeWidth={3}
                             dot={{ fill: '#EF4444', r: 4 }}
@@ -321,7 +320,7 @@ const EnhancedCostTrendVisualization: React.FC<Props> = ({ project, tasks }) => 
 
                         {/* 预算基准线 */}
                         <ReferenceLine
-                            y={evmData.BAC}
+                            y={evmData.bac}
                             stroke="#10B981"
                             strokeDasharray="3 3"
                             label={{ value: '预算基准', fill: '#10B981', fontSize: 12 }}

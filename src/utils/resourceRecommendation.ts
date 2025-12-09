@@ -1,4 +1,4 @@
-import type { ResourcePoolItem, ResourceRequirement, Project, Skill } from '../types';
+import type { ResourcePoolItem, ResourceRequirement, Project } from '../types';
 import { calculateSkillMatchScore } from './resourcePlanning';
 
 export interface ResourceRecommendation {
@@ -43,7 +43,7 @@ const calculateAvailability = (
  */
 const calculateCostEfficiency = (
     resource: ResourcePoolItem,
-    requirement: ResourceRequirement
+    _requirement: ResourceRequirement
 ): number => {
     const hourlyRate = resource.hourlyRate || resource.costPerUnit || 0;
 

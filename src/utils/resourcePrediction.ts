@@ -1,5 +1,5 @@
 import type { Project, ResourcePoolItem } from '../types';
-import { parseISO, addMonths, format, differenceInMonths } from 'date-fns';
+import { parseISO, addMonths, format } from 'date-fns';
 
 export interface ResourceLoadPrediction {
     resourceId: string;

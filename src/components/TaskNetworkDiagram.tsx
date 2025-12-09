@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ZoomIn, ZoomOut, Maximize, Move } from 'lucide-react';
+import { differenceInDays, parseISO } from 'date-fns';
 import type { Task } from '../types';
 import { calculateCriticalPath } from '../utils/taskDependency';
 
@@ -93,7 +94,7 @@ const TaskNetworkDiagram: React.FC<TaskNetworkDiagramProps> = ({ tasks }) => {
             // 简单的垂直排列，可以优化为居中对齐
             levelNodes.sort((a, b) => a.task.startDate.localeCompare(b.task.startDate));
 
-            const levelHeight = levelNodes.length * VERTICAL_SPACING;
+
             const startY = 50; // 顶部边距
 
             levelNodes.forEach((node, index) => {
@@ -271,8 +272,8 @@ const TaskNetworkDiagram: React.FC<TaskNetworkDiagramProps> = ({ tasks }) => {
                         <div
                             key={node.id}
                             className={`absolute rounded-lg border-2 shadow-sm p-3 flex flex-col justify-between transition-colors hover:shadow-md pointer-events-auto ${node.isCritical
-                                    ? 'bg-red-50 border-red-500'
-                                    : 'bg-white border-slate-300 hover:border-blue-400'
+                                ? 'bg-red-50 border-red-500'
+                                : 'bg-white border-slate-300 hover:border-blue-400'
                                 }`}
                             style={{
                                 left: node.x,
@@ -286,7 +287,7 @@ const TaskNetworkDiagram: React.FC<TaskNetworkDiagramProps> = ({ tasks }) => {
                             </div>
                             <div className="flex justify-between text-xs text-slate-500">
                                 <span>{node.task.startDate}</span>
-                                <span>{node.task.estimatedDays}天</span>
+                                <span>{differenceInDays(parseISO(node.task.endDate), parseISO(node.task.startDate))}天</span>
                             </div>
                             {node.isCritical && (
                                 <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white" title="关键路径"></div>

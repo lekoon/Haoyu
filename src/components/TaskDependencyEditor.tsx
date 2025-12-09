@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { GitBranch, AlertCircle, Trash2, Plus, CheckCircle } from 'lucide-react';
+import { GitBranch, AlertCircle, Trash2, Plus } from 'lucide-react';
 import type { Task } from '../types';
 import { detectCircularDependency, calculateCriticalPath } from '../utils/taskDependency';
 
@@ -93,8 +93,8 @@ const TaskDependencyEditor: React.FC<TaskDependencyEditorProps> = ({
                                     key={task.id}
                                     onClick={() => setSelectedTaskId(task.id)}
                                     className={`w-full text-left p-3 rounded-lg transition-colors ${selectedTaskId === task.id
-                                            ? 'bg-blue-50 border-2 border-blue-500'
-                                            : 'hover:bg-slate-50 border-2 border-transparent'
+                                        ? 'bg-blue-50 border-2 border-blue-500'
+                                        : 'hover:bg-slate-50 border-2 border-transparent'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between mb-1">

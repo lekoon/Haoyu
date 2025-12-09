@@ -3,7 +3,7 @@
  * 智能仪表板构建器 - 拖拽式自定义布局
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, Reorder } from 'framer-motion';
 import {
     LayoutGrid,
@@ -181,8 +181,8 @@ const SmartDashboardBuilder: React.FC<Props> = ({ onSave, onExport }) => {
                         <button
                             onClick={() => setEditMode(!editMode)}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${editMode
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                 }`}
                         >
                             {editMode ? '完成编辑' : '编辑布局'}
@@ -258,8 +258,8 @@ const SmartDashboardBuilder: React.FC<Props> = ({ onSave, onExport }) => {
                                 <motion.div
                                     layout
                                     className={`bg-white rounded-xl shadow-sm border-2 transition-all h-full min-h-[200px] ${selectedWidget === widget.id
-                                            ? 'border-blue-500'
-                                            : 'border-slate-200 hover:border-slate-300'
+                                        ? 'border-blue-500'
+                                        : 'border-slate-200 hover:border-slate-300'
                                         }`}
                                     onClick={() => setSelectedWidget(widget.id)}
                                 >
@@ -376,8 +376,8 @@ const SmartDashboardBuilder: React.FC<Props> = ({ onSave, onExport }) => {
                                                     key={size}
                                                     onClick={() => updateSize(selectedWidget, size)}
                                                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${widget.size === size
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                         }`}
                                                 >
                                                     {size === 'small' && '小'}

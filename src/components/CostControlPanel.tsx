@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Target, Activity, ArrowRight } from 'lucide-react';
+import { DollarSign, TrendingUp, AlertTriangle, Target, Activity } from 'lucide-react';
 import type { Project, Task } from '../types';
 import { calculateEVM, generateCostTrend } from '../utils/costControl';
 
@@ -134,8 +134,8 @@ const CostControlPanel: React.FC<CostControlPanelProps> = ({ project, tasks }) =
                                     {/* 柱子 */}
                                     <div
                                         className={`w-full max-w-[40px] rounded-t transition-all ${d.type === 'history' ? 'bg-slate-300' :
-                                                d.type === 'current' ? 'bg-blue-600' :
-                                                    'bg-blue-100 border-t-2 border-dashed border-blue-400'
+                                            d.type === 'current' ? 'bg-blue-600' :
+                                                'bg-blue-100 border-t-2 border-dashed border-blue-400'
                                             }`}
                                         style={{ height: `${height}%` }}
                                     ></div>

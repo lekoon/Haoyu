@@ -10,7 +10,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import type { DeliveryMetrics } from '../../utils/deliveryMetrics';
 
@@ -21,7 +21,7 @@ interface ThreeDimensionalScatterMatrixProps {
 
 const ThreeDimensionalScatterMatrix: React.FC<ThreeDimensionalScatterMatrixProps> = ({
     metrics,
-    timeRange
+    timeRange: _timeRange
 }) => {
     // 准备散点图数据
     const scatterData = useMemo(() => {
@@ -90,8 +90,8 @@ const ThreeDimensionalScatterMatrix: React.FC<ThreeDimensionalScatterMatrixProps
                         <div className="flex justify-between gap-4">
                             <span className="text-slate-600">资源利用率:</span>
                             <span className={`font-medium ${data.utilization > 90 ? 'text-red-600' :
-                                    data.utilization > 80 ? 'text-orange-600' :
-                                        data.utilization >= 70 ? 'text-green-600' : 'text-blue-600'
+                                data.utilization > 80 ? 'text-orange-600' :
+                                    data.utilization >= 70 ? 'text-green-600' : 'text-blue-600'
                                 }`}>
                                 {data.utilization.toFixed(1)}%
                             </span>

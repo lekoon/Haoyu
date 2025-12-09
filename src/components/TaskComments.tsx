@@ -26,7 +26,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({
     onUpdateComment
 }) => {
     const [newComment, setNewComment] = useState('');
-    const [replyingTo, setReplyingTo] = useState<string | null>(null);
+    const [_, setReplyingTo] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
 

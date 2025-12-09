@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Bell, Check, Trash2, Filter, MessageCircle, UserPlus, Calendar, AlertCircle, Info, X } from 'lucide-react';
+import { Bell, Check, Trash2, MessageCircle, UserPlus, Calendar, AlertCircle, Info } from 'lucide-react';
 import type { NotificationItem } from '../types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -164,8 +164,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     <button
                         onClick={() => setFilter('all')}
                         className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${filter === 'all'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         全部 ({notifications.length})
@@ -173,8 +173,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     <button
                         onClick={() => setFilter('unread')}
                         className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${filter === 'unread'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         未读 ({unreadCount})

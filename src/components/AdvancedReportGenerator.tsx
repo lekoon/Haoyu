@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FileText, Download, Eye, X, Plus, Trash2, BarChart3, PieChart, TrendingUp } from 'lucide-react';
+import { FileText, Download, X, BarChart3, PieChart } from 'lucide-react';
 import type { Project, ResourcePoolItem } from '../types';
 import { format } from 'date-fns';
 
@@ -31,9 +31,9 @@ interface AdvancedReportGeneratorProps {
     onClose: () => void;
 }
 
-const AdvancedReportGenerator: React.FC<AdvancedReportGeneratorProps> = ({ projects, resources, onClose }) => {
+const AdvancedReportGenerator: React.FC<AdvancedReportGeneratorProps> = ({ projects, resources: _resources, onClose }) => {
     const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
-    const [customFields, setCustomFields] = useState<string[]>([]);
+
     const [filters, setFilters] = useState<ReportTemplate['filters']>({});
     const [reportName, setReportName] = useState('');
 
@@ -103,7 +103,7 @@ const AdvancedReportGenerator: React.FC<AdvancedReportGeneratorProps> = ({ proje
     const getFieldValue = (project: Project, fieldId: string): any => {
         switch (fieldId) {
             case 'resourceCount':
-                return project.resourceRequirements.reduce((sum, req) => sum + req.count, 0);
+                return (project.resourceRequirements || []).reduce((sum, req) => sum + req.count, 0);
             case 'milestoneCount':
                 return project.milestones?.length || 0;
             case 'progress':
@@ -277,8 +277,8 @@ const AdvancedReportGenerator: React.FC<AdvancedReportGeneratorProps> = ({ proje
                                         key={template.id}
                                         onClick={() => setSelectedTemplate(template)}
                                         className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedTemplate?.id === template.id
-                                                ? 'border-indigo-500 bg-indigo-50 shadow-lg'
-                                                : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'
+                                            ? 'border-indigo-500 bg-indigo-50 shadow-lg'
+                                            : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'
                                             }`}
                                     >
                                         <h4 className="font-bold text-slate-900 mb-1">{template.name}</h4>

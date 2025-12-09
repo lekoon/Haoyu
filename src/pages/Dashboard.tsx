@@ -14,11 +14,11 @@ const Dashboard: React.FC = () => {
     const activeProjects = projects.filter(p => p.status === 'active').length;
     const completedProjects = projects.filter(p => p.status === 'completed').length;
     const avgScore = projects.length > 0
-        ? (projects.reduce((acc, p) => acc + p.score, 0) / projects.length).toFixed(1)
+        ? (projects.reduce((acc, p) => acc + (p.score || 0), 0) / projects.length).toFixed(1)
         : '0';
 
     // Advanced Analytics
-    const highPriorityProjects = projects.filter(p => p.score > 8).length;
+    const highPriorityProjects = projects.filter(p => (p.score || 0) > 8).length;
     const atRiskProjects = projects.filter(p => {
         if (!p.endDate || p.status === 'completed') return false;
         const daysUntilEnd = differenceInDays(parseISO(p.endDate), new Date());
@@ -29,7 +29,7 @@ const Dashboard: React.FC = () => {
     const totalResourceCapacity = resourcePool.reduce((sum, r) => sum + r.totalQuantity, 0);
     const allocatedResources = projects
         .filter(p => p.status === 'active')
-        .reduce((sum, p) => sum + p.resourceRequirements.reduce((s, r) => s + r.count, 0), 0);
+        .reduce((sum, p) => sum + (p.resourceRequirements || []).reduce((s, r) => s + r.count, 0), 0);
     const resourceUtilization = totalResourceCapacity > 0
         ? ((allocatedResources / totalResourceCapacity) * 100).toFixed(1)
         : '0';
@@ -37,18 +37,18 @@ const Dashboard: React.FC = () => {
     // Portfolio Health Score (0-100)
     const portfolioHealth = (() => {
         if (projects.length === 0) return '0';
-        const avgProjectScore = projects.reduce((sum, p) => sum + p.score, 0) / projects.length;
+        const avgProjectScore = projects.reduce((sum, p) => sum + (p.score || 0), 0) / projects.length;
         const completionRate = totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0;
         const resourceEfficiency = parseFloat(resourceUtilization);
         return ((avgProjectScore * 10 + completionRate + resourceEfficiency) / 3).toFixed(0);
     })();
 
-    const topProjects = [...projects].sort((a, b) => b.score - a.score).slice(0, 5);
+    const topProjects = [...projects].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 5);
 
     // Chart Data
     const scoreDistribution = projects.map(p => ({
         name: p.name.length > 10 ? p.name.substring(0, 10) + '...' : p.name,
-        score: parseFloat(p.score.toFixed(1)),
+        score: parseFloat((p.score || 0).toFixed(1)),
         full: p
     }));
 
@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
         const allocated = projects
             .filter(p => p.status === 'active')
             .reduce((sum, p) => {
-                const req = p.resourceRequirements.find(r => r.resourceId === resource.id);
+                const req = (p.resourceRequirements || []).find(r => r.resourceId === resource.id);
                 return sum + (req ? req.count : 0);
             }, 0);
         return {
@@ -84,10 +84,10 @@ const Dashboard: React.FC = () => {
             p.rank,
             p.name,
             p.status,
-            p.score.toFixed(2),
+            (p.score || 0).toFixed(2),
             p.startDate || 'N/A',
             p.endDate || 'N/A',
-            p.resourceRequirements.reduce((sum, r) => sum + r.count, 0)
+            (p.resourceRequirements || []).reduce((sum, r) => sum + r.count, 0)
         ]);
 
         const csvContent = [
@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
                             <div className="flex items-center gap-4">
                                 <div className="text-right">
                                     <p className="text-sm text-slate-500">{t('projects.score')}</p>
-                                    <p className="text-xl font-bold text-blue-600">{p.score.toFixed(2)}</p>
+                                    <p className="text-xl font-bold text-blue-600">{(p.score || 0).toFixed(2)}</p>
                                 </div>
                                 <span className={`px-3 py-1 rounded-lg text-xs font-bold ${p.status === 'active' ? 'bg-green-100 text-green-700' :
                                     p.status === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'

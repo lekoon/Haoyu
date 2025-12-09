@@ -71,8 +71,8 @@ const KanbanBoard: React.FC<{ onEditProject: (project: Project) => void }> = ({ 
                     <div
                         key={col.id}
                         className={`min-w-[320px] rounded-2xl p-4 transition-all duration-200 ${isDragOver
-                                ? `bg-blue-50 border-2 ${col.borderColor} shadow-lg scale-105`
-                                : 'bg-slate-100/50 border-2 border-transparent'
+                            ? `bg-blue-50 border-2 ${col.borderColor} shadow-lg scale-105`
+                            : 'bg-slate-100/50 border-2 border-transparent'
                             }`}
                         onDragOver={(e) => handleDragOver(e, col.id)}
                         onDragLeave={handleDragLeave}
@@ -111,13 +111,13 @@ const KanbanBoard: React.FC<{ onEditProject: (project: Project) => void }> = ({ 
                                                 </h3>
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-xs font-bold px-2 py-0.5 rounded ${project.priority === 'P0' ? 'bg-red-100 text-red-700' :
-                                                            project.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
-                                                                'bg-blue-100 text-blue-700'
+                                                        project.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
+                                                            'bg-blue-100 text-blue-700'
                                                         }`}>
                                                         {project.priority || 'P2'}
                                                     </span>
                                                     <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded">
-                                                        {project.score.toFixed(1)}
+                                                        {(project.score || 0).toFixed(1)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -129,7 +129,7 @@ const KanbanBoard: React.FC<{ onEditProject: (project: Project) => void }> = ({ 
                                             <div className="flex items-center justify-between text-xs">
                                                 <div className="flex items-center gap-1 text-slate-400">
                                                     <Users size={12} />
-                                                    <span>{project.resourceRequirements.reduce((sum, req) => sum + req.count, 0)}</span>
+                                                    <span>{(project.resourceRequirements || []).reduce((sum, req) => sum + req.count, 0)}</span>
                                                 </div>
                                                 <span className="text-slate-400">
                                                     Rank #{project.rank}

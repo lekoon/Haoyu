@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Users, TrendingUp, DollarSign, Award, AlertCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, DollarSign, Award, AlertCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ResourceRequirement, ResourcePoolItem, Project } from '../types';
-import { recommendResources, type ResourceRecommendation } from '../utils/resourceRecommendation';
+import { recommendResources } from '../utils/resourceRecommendation';
 
 interface ResourceRecommendationPanelProps {
     requirement: ResourceRequirement;
@@ -64,8 +64,8 @@ const ResourceRecommendationPanel: React.FC<ResourceRecommendationPanelProps> = 
                     <button
                         onClick={() => setPriorityMode('skills')}
                         className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${priorityMode === 'skills'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <Award size={14} className="inline mr-1" />
@@ -74,8 +74,8 @@ const ResourceRecommendationPanel: React.FC<ResourceRecommendationPanelProps> = 
                     <button
                         onClick={() => setPriorityMode('availability')}
                         className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${priorityMode === 'availability'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <Users size={14} className="inline mr-1" />
@@ -84,8 +84,8 @@ const ResourceRecommendationPanel: React.FC<ResourceRecommendationPanelProps> = 
                     <button
                         onClick={() => setPriorityMode('cost')}
                         className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${priorityMode === 'cost'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <DollarSign size={14} className="inline mr-1" />
@@ -111,9 +111,9 @@ const ResourceRecommendationPanel: React.FC<ResourceRecommendationPanelProps> = 
                             <div className="flex items-start gap-3">
                                 {/* 排名徽章 */}
                                 <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                                        index === 1 ? 'bg-slate-200 text-slate-700' :
-                                            index === 2 ? 'bg-orange-100 text-orange-700' :
-                                                'bg-slate-100 text-slate-600'
+                                    index === 1 ? 'bg-slate-200 text-slate-700' :
+                                        index === 2 ? 'bg-orange-100 text-orange-700' :
+                                            'bg-slate-100 text-slate-600'
                                     }`}>
                                     {index + 1}
                                 </div>
@@ -147,7 +147,7 @@ const ResourceRecommendationPanel: React.FC<ResourceRecommendationPanelProps> = 
                                         <div className="text-center p-2 bg-slate-50 rounded">
                                             <div className="text-xs text-slate-500 mb-1">技能匹配</div>
                                             <div className={`text-sm font-semibold ${rec.matchRate >= 80 ? 'text-green-600' :
-                                                    rec.matchRate >= 50 ? 'text-yellow-600' : 'text-red-600'
+                                                rec.matchRate >= 50 ? 'text-yellow-600' : 'text-red-600'
                                                 }`}>
                                                 {rec.matchRate.toFixed(0)}%
                                             </div>
@@ -155,7 +155,7 @@ const ResourceRecommendationPanel: React.FC<ResourceRecommendationPanelProps> = 
                                         <div className="text-center p-2 bg-slate-50 rounded">
                                             <div className="text-xs text-slate-500 mb-1">可用性</div>
                                             <div className={`text-sm font-semibold ${rec.availability >= 80 ? 'text-green-600' :
-                                                    rec.availability >= 50 ? 'text-yellow-600' : 'text-red-600'
+                                                rec.availability >= 50 ? 'text-yellow-600' : 'text-red-600'
                                                 }`}>
                                                 {rec.availability.toFixed(0)}%
                                             </div>
@@ -163,7 +163,7 @@ const ResourceRecommendationPanel: React.FC<ResourceRecommendationPanelProps> = 
                                         <div className="text-center p-2 bg-slate-50 rounded">
                                             <div className="text-xs text-slate-500 mb-1">成本效率</div>
                                             <div className={`text-sm font-semibold ${rec.costEfficiency >= 80 ? 'text-green-600' :
-                                                    rec.costEfficiency >= 50 ? 'text-yellow-600' : 'text-red-600'
+                                                rec.costEfficiency >= 50 ? 'text-yellow-600' : 'text-red-600'
                                                 }`}>
                                                 {rec.costEfficiency.toFixed(0)}%
                                             </div>

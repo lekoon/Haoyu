@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, List, LayoutGrid, Zap, ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock, Download, Printer, Network } from 'lucide-react';
 import type { Task } from '../types';
-import { format, parseISO, differenceInDays, addDays } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import { format, parseISO, addDays } from 'date-fns';
+
 import TaskEditModal from './TaskEditModal';
 import TaskBoardView from './TaskBoardView';
 import TaskNetworkDiagram from './TaskNetworkDiagram';
@@ -71,23 +71,7 @@ const SmartTaskView: React.FC<SmartTaskViewProps> = ({
     }, [tasks, groupBy]);
 
     // 计算甘特图时间范围
-    const timeRange = useMemo(() => {
-        if (tasks.length === 0) {
-            const today = new Date();
-            return {
-                start: today,
-                end: addDays(today, 30),
-                days: 30
-            };
-        }
 
-        const dates = tasks.flatMap(t => [parseISO(t.startDate), parseISO(t.endDate)]);
-        const start = new Date(Math.min(...dates.map(d => d.getTime())));
-        const end = new Date(Math.max(...dates.map(d => d.getTime())));
-        const days = differenceInDays(end, start) + 1;
-
-        return { start, end, days };
-    }, [tasks]);
 
     // 切换组展开/折叠
     const toggleGroup = (groupKey: string) => {
@@ -170,6 +154,7 @@ const SmartTaskView: React.FC<SmartTaskViewProps> = ({
                     tasks={tasks}
                     onTaskUpdate={onTaskUpdate}
                     onTaskDelete={onTaskDelete}
+                    onEditTask={setEditingTask}
                     onTaskAdd={(partialTask) => {
                         const newTask: Task = {
                             id: Date.now().toString(),
@@ -288,7 +273,7 @@ const SmartTaskView: React.FC<SmartTaskViewProps> = ({
                                     }`}
                             >
                                 <Calendar size={16} className="inline mr-1" />
-                                甘特图
+                                时间总览
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}

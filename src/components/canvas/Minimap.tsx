@@ -21,7 +21,7 @@ interface MinimapProps {
 const Minimap: React.FC<MinimapProps> = memo(({
     tasks,
     viewportBounds,
-    scale,
+    scale: _scale,
     onViewportChange,
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);

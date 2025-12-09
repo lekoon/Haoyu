@@ -30,7 +30,7 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
     project,
     tasks,
     allProjects,
-    showComparison = false,
+    showComparison: _showComparison = false,
 }) => {
     // 计算健康度数据
     const healthData = useMemo(() => {
@@ -39,32 +39,32 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
         return [
             {
                 dimension: '进度',
-                value: health.dimensions.schedule,
+                value: health.schedule.score,
                 fullMark: 100,
             },
             {
                 dimension: '成本',
-                value: health.dimensions.cost,
+                value: health.cost.score,
                 fullMark: 100,
             },
             {
                 dimension: '资源',
-                value: health.dimensions.resources,
+                value: health.resources.score,
                 fullMark: 100,
             },
             {
                 dimension: '风险',
-                value: health.dimensions.risks,
+                value: health.risks.score,
                 fullMark: 100,
             },
             {
                 dimension: '质量',
-                value: health.dimensions.quality,
+                value: health.quality.score,
                 fullMark: 100,
             },
             {
                 dimension: '团队',
-                value: health.dimensions.team,
+                value: health.team.score,
                 fullMark: 100,
             },
         ];
@@ -82,7 +82,7 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
         return { label: '危险', color: 'text-red-600', bg: 'bg-red-100', icon: TrendingDown };
     };
 
-    const healthLevel = getHealthLevel(overallHealth.overallScore);
+    const healthLevel = getHealthLevel(overallHealth.overall);
     const HealthIcon = healthLevel.icon;
 
     // 自定义 Tooltip
@@ -119,7 +119,7 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
                                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
                                 className="text-5xl font-bold text-blue-600"
                             >
-                                {overallHealth.overallScore}
+                                {overallHealth.overall}
                             </motion.div>
                             <div>
                                 <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full ${healthLevel.bg} ${healthLevel.color} text-sm font-semibold`}>
@@ -127,8 +127,8 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
                                     {healthLevel.label}
                                 </div>
                                 <p className="text-xs text-slate-600 mt-1">
-                                    {overallHealth.spi > 0 && `SPI: ${overallHealth.spi.toFixed(2)}`}
-                                    {overallHealth.cpi > 0 && ` | CPI: ${overallHealth.cpi.toFixed(2)}`}
+                                    {overallHealth.schedule?.spi > 0 && `SPI: ${overallHealth.schedule.spi.toFixed(2)}`}
+                                    {overallHealth.cost?.cpi > 0 && ` | CPI: ${overallHealth.cost.cpi.toFixed(2)}`}
                                 </p>
                             </div>
                         </div>
@@ -155,7 +155,7 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
                                 strokeLinecap="round"
                                 initial={{ strokeDasharray: '0 352' }}
                                 animate={{
-                                    strokeDasharray: `${(overallHealth.overallScore / 100) * 352} 352`
+                                    strokeDasharray: `${(overallHealth.overall / 100) * 352} 352`
                                 }}
                                 transition={{ duration: 1, ease: 'easeOut' }}
                             />
@@ -168,7 +168,7 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span className="text-2xl font-bold text-slate-700">
-                                {overallHealth.overallScore}%
+                                {overallHealth.overall}%
                             </span>
                         </div>
                     </div>
@@ -252,12 +252,12 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
                                     animate={{ width: `${item.value}%` }}
                                     transition={{ delay: 0.5 + index * 0.1, duration: 0.8, ease: 'easeOut' }}
                                     className={`h-full rounded-full ${item.value >= 80
-                                            ? 'bg-gradient-to-r from-green-400 to-green-600'
-                                            : item.value >= 60
-                                                ? 'bg-gradient-to-r from-blue-400 to-blue-600'
-                                                : item.value >= 40
-                                                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
-                                                    : 'bg-gradient-to-r from-red-400 to-red-600'
+                                        ? 'bg-gradient-to-r from-green-400 to-green-600'
+                                        : item.value >= 60
+                                            ? 'bg-gradient-to-r from-blue-400 to-blue-600'
+                                            : item.value >= 40
+                                                ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
+                                                : 'bg-gradient-to-r from-red-400 to-red-600'
                                         }`}
                                 />
                             </div>
@@ -267,33 +267,48 @@ const EnhancedHealthVisualization: React.FC<Props> = ({
             </div>
 
             {/* 改进建议 */}
-            {overallHealth.suggestions.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1, duration: 0.5 }}
-                    className="bg-amber-50 rounded-xl p-6 border border-amber-200"
-                >
-                    <h4 className="text-lg font-semibold text-amber-900 mb-4 flex items-center gap-2">
-                        <AlertCircle size={20} />
-                        改进建议
-                    </h4>
-                    <ul className="space-y-2">
-                        {overallHealth.suggestions.map((suggestion, index) => (
-                            <motion.li
-                                key={index}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 1.1 + index * 0.1, duration: 0.3 }}
-                                className="flex items-start gap-2 text-amber-800"
-                            >
-                                <span className="text-amber-600 mt-1">•</span>
-                                <span>{suggestion}</span>
-                            </motion.li>
-                        ))}
-                    </ul>
-                </motion.div>
-            )}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1, duration: 0.5 }}
+                className="bg-amber-50 rounded-xl p-6 border border-amber-200"
+            >
+                <h4 className="text-lg font-semibold text-amber-900 mb-4 flex items-center gap-2">
+                    <AlertCircle size={20} />
+                    改进建议
+                </h4>
+                {(() => {
+                    const allIssues = [
+                        ...overallHealth.schedule.issues,
+                        ...overallHealth.cost.issues,
+                        ...overallHealth.resources.issues,
+                        ...overallHealth.risks.issues,
+                        ...overallHealth.quality.issues,
+                        ...overallHealth.team.issues
+                    ];
+
+                    if (allIssues.length === 0) {
+                        return <p className="text-amber-800 text-sm">当前项目健康状况良好，暂无改进建议。</p>;
+                    }
+
+                    return (
+                        <ul className="space-y-2">
+                            {allIssues.slice(0, 5).map((suggestion, index) => (
+                                <motion.li
+                                    key={index}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 1.1 + index * 0.1, duration: 0.3 }}
+                                    className="flex items-start gap-2 text-amber-800"
+                                >
+                                    <span className="text-amber-600 mt-1">•</span>
+                                    <span>{suggestion}</span>
+                                </motion.li>
+                            ))}
+                        </ul>
+                    );
+                })()}
+            </motion.div>
         </div>
     );
 };

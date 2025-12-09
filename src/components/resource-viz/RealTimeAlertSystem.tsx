@@ -89,7 +89,7 @@ const RealTimeAlertSystem: React.FC<RealTimeAlertSystemProps> = ({
             });
         });
 
-        return list.sort((a, b) => (a.level === 'critical' ? -1 : 1));
+        return list.sort((a, _b) => (a.level === 'critical' ? -1 : 1));
     }, [metrics, resourcePool]);
 
     const getAlertStyle = (level: string) => {

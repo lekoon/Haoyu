@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, AlertCircle, Info, Shield, Calendar, DollarSign, Users, Award, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Project, Task, ResourcePoolItem } from '../types';
-import { generateRiskWarnings, getRiskSummary, type RiskWarning, type WarningCategory, type WarningLevel } from '../utils/riskWarning';
+import { generateRiskWarnings, getRiskSummary, type WarningCategory, type WarningLevel } from '../utils/riskWarning';
 
 interface RiskWarningPanelProps {
     project: Project;

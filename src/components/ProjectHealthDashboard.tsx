@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { Activity, TrendingUp, TrendingDown, Minus, AlertTriangle, DollarSign, Users, Award, Shield, Target } from 'lucide-react';
+import { Activity, AlertTriangle, DollarSign, Users, Award, Shield, Target } from 'lucide-react';
 import type { Project, Task } from '../types';
-import { calculateProjectHealth, type ProjectHealthMetrics } from '../utils/projectHealth';
+import { calculateProjectHealth } from '../utils/projectHealth';
 
 interface ProjectHealthDashboardProps {
     project: Project;
@@ -215,7 +215,7 @@ const ProjectHealthDashboard: React.FC<ProjectHealthDashboardProps> = ({
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm text-slate-600">进度绩效指标 (SPI)</span>
                                 <span className={`text-lg font-bold ${health.schedule.spi >= 0.95 ? 'text-green-600' :
-                                        health.schedule.spi >= 0.85 ? 'text-yellow-600' : 'text-red-600'
+                                    health.schedule.spi >= 0.85 ? 'text-yellow-600' : 'text-red-600'
                                     }`}>
                                     {health.schedule.spi.toFixed(2)}
                                 </span>
@@ -230,7 +230,7 @@ const ProjectHealthDashboard: React.FC<ProjectHealthDashboardProps> = ({
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm text-slate-600">成本绩效指标 (CPI)</span>
                                 <span className={`text-lg font-bold ${health.cost.cpi >= 0.95 ? 'text-green-600' :
-                                        health.cost.cpi >= 0.85 ? 'text-yellow-600' : 'text-red-600'
+                                    health.cost.cpi >= 0.85 ? 'text-yellow-600' : 'text-red-600'
                                     }`}>
                                     {health.cost.cpi.toFixed(2)}
                                 </span>

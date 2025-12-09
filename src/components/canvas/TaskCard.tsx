@@ -6,7 +6,7 @@
 import React, { memo } from 'react';
 import { Calendar, Link } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import type { Task } from '../types';
+import type { Task } from '../../types';
 
 interface TaskCardProps {
     task: Task;
@@ -33,7 +33,7 @@ const TaskCard: React.FC<TaskCardProps> = memo(({
     width,
     height,
     isHovered,
-    isSelected,
+    isSelected: _isSelected,
     isConnecting,
     isSource,
     onMouseDown,

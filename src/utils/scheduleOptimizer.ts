@@ -20,33 +20,13 @@ interface OptimizationResult {
     };
 }
 
-/**
- * 检查特定日期的资源使用情况
- */
-const checkResourceUsage = (
-    date: Date,
-    tasks: Task[],
-    resourceId: string
-): number => {
-    let usage = 0;
-    const dateStr = format(date, 'yyyy-MM-dd');
 
-    tasks.forEach(task => {
-        // 简化的资源分配检查：假设 assignee 就是 resourceId
-        // 实际项目中可能需要更复杂的 ResourceRequirement 匹配
-        if (task.assignee === resourceId && task.startDate <= dateStr && task.endDate >= dateStr) {
-            usage += 1; // 假设每个任务占用1个单位资源
-        }
-    });
-
-    return usage;
-};
 
 /**
  * 智能调度优化器
  */
 export const optimizeSchedule = (
-    project: Project,
+    _project: Project,
     tasks: Task[],
     resourcePool: ResourcePoolItem[],
     strategy: 'smoothing' | 'leveling' = 'smoothing'
@@ -111,9 +91,9 @@ export const optimizeSchedule = (
                     if (aIsCritical !== bIsCritical) return aIsCritical ? 1 : -1; // 非关键排前面
 
                     // 优先级比较 (P0 > P1 > P2)
-                    const priorityScore = { P0: 3, P1: 2, P2: 1 };
-                    const pA = priorityScore[a.priority] || 0;
-                    const pB = priorityScore[b.priority] || 0;
+                    const priorityScore: Record<string, number> = { P0: 3, P1: 2, P2: 1, P3: 0 };
+                    const pA = a.priority ? (priorityScore[a.priority] || 0) : 0;
+                    const pB = b.priority ? (priorityScore[b.priority] || 0) : 0;
                     if (pA !== pB) return pA - pB; // 低优先级排前面
 
                     return 0;
@@ -125,7 +105,7 @@ export const optimizeSchedule = (
                     if (resolvedCount >= overload) break;
 
                     const slack = initialCriticalPath.slack[task.id] || 0;
-                    const isCritical = initialCriticalPath.criticalPath.includes(task.id);
+                    // const isCritical = initialCriticalPath.criticalPath.includes(task.id);
 
                     // 资源平滑：只利用浮动时间，不推迟项目结束
                     if (strategy === 'smoothing') {

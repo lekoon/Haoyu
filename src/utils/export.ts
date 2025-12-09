@@ -17,10 +17,10 @@ export const exportProjectsToCSV = (projects: Project[]) => {
         p.id,
         `"${p.name.replace(/"/g, '""')}"`, // Escape quotes
         p.status,
-        p.score.toFixed(2),
+        (p.score || 0).toFixed(2),
         p.startDate || '',
         p.endDate || '',
-        p.resourceRequirements.length
+        (p.resourceRequirements || []).length
     ]);
 
     // Combine headers and rows

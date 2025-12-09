@@ -244,7 +244,7 @@ const CostAnalysis: React.FC<CostAnalysisProps> = ({ totalBudget }) => {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {resourceCostData.map((entry, index) => (
+                                    {resourceCostData.map((_entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>

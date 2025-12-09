@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ZoomIn, ZoomOut, Plus, Trash2, Edit2, Undo2, Redo2, Download
+    ZoomIn, ZoomOut, Trash2, Edit2, Undo2, Redo2, Download
 } from 'lucide-react';
 import {
     format, addDays, differenceInDays, startOfWeek,
@@ -17,9 +17,12 @@ interface InteractiveGanttChartProps {
     onTaskAdd: (task: Partial<Task>) => void;
     onDependencyAdd?: (sourceId: string, targetId: string) => void;
     onDependencyDelete?: (sourceId: string, targetId: string) => void;
+    onEditTask?: (task: Task) => void;
 }
 
-const CELL_WIDTH = 50; // Base width of a day column
+type ViewMode = 'Day' | 'Week' | 'Month';
+
+
 const ROW_HEIGHT = 48; // Height of a task row
 const HEADER_HEIGHT = 40;
 
@@ -27,11 +30,13 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     tasks,
     onTaskUpdate,
     onTaskDelete,
-    onTaskAdd,
+    onTaskAdd: _onTaskAdd,
     onDependencyAdd,
-    onDependencyDelete
+    onDependencyDelete,
+    onEditTask,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [viewMode, setViewMode] = useState<ViewMode>('Day');
     const [zoomLevel, setZoomLevel] = useState(1);
     const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -71,8 +76,15 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
         };
     }, [tasks]);
 
-    // Handle Zoom
-    const currentCellWidth = CELL_WIDTH * zoomLevel;
+    // Handle Zoom & View Mode
+    const getBaseWidth = () => {
+        switch (viewMode) {
+            case 'Week': return 20;
+            case 'Month': return 8;
+            default: return 50;
+        }
+    };
+    const currentCellWidth = getBaseWidth() * zoomLevel;
 
 
 
@@ -290,6 +302,19 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
             {/* Toolbar */}
             <div className="h-12 bg-white border-b flex items-center px-4 justify-between z-20">
                 <div className="flex items-center gap-2">
+                    {/* View Mode Switcher */}
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg mr-2">
+                        {(['Day', 'Week', 'Month'] as const).map(mode => (
+                            <button
+                                key={mode}
+                                onClick={() => setViewMode(mode)}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === mode ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                {mode === 'Day' ? '日' : mode === 'Week' ? '周' : '月'}
+                            </button>
+                        ))}
+                    </div>
+
                     <button
                         onClick={() => setZoomLevel(z => Math.max(0.25, z - 0.25))}
                         className="p-1.5 hover:bg-slate-100 rounded text-slate-600"
@@ -337,12 +362,6 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                     >
                         <Download size={18} />
                     </button>
-                    <button className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100"
-                        onClick={() => onTaskAdd({ startDate: format(new Date(), 'yyyy-MM-dd'), endDate: format(addDays(new Date(), 2), 'yyyy-MM-dd') })}
-                    >
-                        <Plus size={16} />
-                        新增任务
-                    </button>
                 </div>
             </div>
 
@@ -384,12 +403,19 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                             {format(date, 'yyyy年MM月')}
                                         </span>
                                     )}
-                                    <span className={`font-medium ${isToday ? 'text-blue-600 font-bold' : 'text-slate-500'}`}>
-                                        {format(date, 'd')}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400">
-                                        {format(date, 'EEE', { locale: zhCN })}
-                                    </span>
+
+                                    {/* Only show day number if space permits */}
+                                    {currentCellWidth > 15 && (
+                                        <span className={`font-medium ${isToday ? 'text-blue-600 font-bold' : 'text-slate-500'}`}>
+                                            {format(date, 'd')}
+                                        </span>
+                                    )}
+                                    {/* Only show week day if lots of space */}
+                                    {currentCellWidth > 30 && (
+                                        <span className="text-[10px] text-slate-400">
+                                            {format(date, 'EEE', { locale: zhCN })}
+                                        </span>
+                                    )}
                                 </div>
                             );
                         })}
@@ -435,15 +461,19 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                 return (
                                     <motion.div
                                         key={task.id}
-                                        className={`absolute group w-6 h-6 rotate-45 border shadow-sm z-10 
-                                            ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1 bg-amber-200 border-amber-400' : 'bg-amber-300 border-amber-500 hover:shadow-md'}
+                                        className={`absolute group z-10 flex items-center justify-center
+                                            ${isSelected ? 'drop-shadow-md scale-110' : 'hover:drop-shadow-sm'}
                                         `}
                                         style={{
                                             left: x + currentCellWidth / 2 - 12, // Center in cell
-                                            top: top + 6, // Adjust vertical
+                                            top: top,
                                             cursor: 'move'
                                         }}
                                         onMouseDown={(e) => handleTaskDragStart(e, task, 'move')}
+                                        onDoubleClick={(e) => {
+                                            e.stopPropagation();
+                                            onEditTask?.(task);
+                                        }}
                                         onContextMenu={(e) => {
                                             e.stopPropagation();
                                             e.preventDefault();
@@ -453,13 +483,16 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                             }
                                         }}
                                     >
+                                        {/* Star Icon for Milestone */}
+                                        <div className="text-2xl select-none filter drop-shadow-sm leading-none">⭐️</div>
+
                                         {/* Link Points for Milestone */}
                                         <div
-                                            className="absolute top-0 right-0 w-2 h-2 -translate-y-1/2 translate-x-1/2 bg-white border border-slate-400 rounded-full opacity-0 group-hover:opacity-100 cursor-crosshair -rotate-45"
+                                            className="absolute top-1/2 right-0 w-2 h-2 -translate-y-1/2 translate-x-1/2 bg-white border border-slate-400 rounded-full opacity-0 group-hover:opacity-100 cursor-crosshair"
                                             onMouseDown={(e) => startLinking(e, task.id)}
                                             onMouseUp={(e) => finishLinking(e, task.id)}
                                         />
-                                        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap -rotate-45 font-medium text-slate-700 pointer-events-none">
+                                        <div className="absolute top-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold text-slate-800 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 pointer-events-none">
                                             {task.name}
                                         </div>
                                     </motion.div>
@@ -469,17 +502,22 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                             return (
                                 <motion.div
                                     key={task.id}
-                                    className={`absolute group h-8 rounded-lg shadow-sm border border-transparent 
-                                        ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1 z-10' : 'hover:shadow-md z-1'}
-                                        ${task.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}
+                                    className={`absolute group h-8 rounded-lg shadow-sm border border-black/10
+                                        ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1 z-20' : 'hover:shadow-md z-10'}
                                     `}
                                     style={{
                                         left: x,
                                         width: width,
                                         top: top,
-                                        cursor: 'move'
+                                        cursor: 'move',
+                                        backgroundColor: task.color || '#3b82f6',
+                                        color: '#fff'
                                     }}
                                     onMouseDown={(e) => handleTaskDragStart(e, task, 'move')}
+                                    onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditTask?.(task);
+                                    }}
                                     onContextMenu={(e) => {
                                         e.stopPropagation();
                                         e.preventDefault();
@@ -491,15 +529,24 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                 >
                                     {/* Progress Bar */}
                                     <div
-                                        className="absolute top-0 left-0 bottom-0 bg-blue-500/20 rounded-l-lg"
+                                        className="absolute top-0 left-0 bottom-0 bg-black/20 rounded-l-lg"
                                         style={{ width: `${task.progress || 0}%` }}
                                     />
 
                                     {/* Content */}
-                                    <div className="relative px-2 h-full flex items-center justify-between text-xs overflow-hidden">
-                                        <span className="font-medium truncate">{task.name}</span>
+                                    <div className="relative px-2 h-full flex items-center justify-between text-xs overflow-hidden z-10 text-white font-medium text-shadow-sm">
+                                        <div className="flex items-center gap-1.5 overflow-hidden">
+                                            {task.priority && (
+                                                <span className={`px-1 py-0.5 rounded text-[10px] leading-none font-bold uppercase ${task.priority === 'P0' ? 'bg-red-600 text-white' :
+                                                    'bg-black/20 text-white/90'
+                                                    }`}>
+                                                    {task.priority}
+                                                </span>
+                                            )}
+                                            <span className="truncate filter drop-shadow-md">{task.name}</span>
+                                        </div>
                                         {task.progress !== undefined && (
-                                            <span className="opacity-70">{task.progress}%</span>
+                                            <span className="opacity-90 text-[10px]">{task.progress}%</span>
                                         )}
                                     </div>
 
@@ -608,7 +655,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                             <button
                                 className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                 onClick={() => {
-                                    /* Edit logic */
+                                    onEditTask?.(tasks.find(t => t.id === contextMenu.taskId)!);
                                     setContextMenu(null);
                                 }}
                             >
@@ -633,7 +680,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                 <span>按住鼠标左键拖动画布 • 滚轮缩放 • 右键菜单</span>
                 <span>{tasks.length} 个任务</span>
             </div>
-        </div>
+        </div >
     );
 };
 

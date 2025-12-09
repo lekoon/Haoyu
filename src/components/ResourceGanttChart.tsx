@@ -30,9 +30,9 @@ const ResourceGanttChart: React.FC<ResourceGanttChartProps> = ({
     const resourceProjects = useMemo(() => {
         return resources.map(resource => {
             const resourceProjs = projects.filter(p =>
-                p.resourceRequirements.some(req => req.resourceId === resource.id)
+                (p.resourceRequirements || []).some(req => req.resourceId === resource.id)
             ).map(project => {
-                const req = project.resourceRequirements.find(r => r.resourceId === resource.id);
+                const req = (project.resourceRequirements || []).find(r => r.resourceId === resource.id);
                 return {
                     ...project,
                     resourceCount: req?.count || 0,
