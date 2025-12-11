@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { Plus, Trash2, Download, Upload, AlertTriangle, Database, Shield, Cloud, RefreshCw, CheckCircle, Link as LinkIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { syncFeishuData, FeishuConfig } from '../services/feishuService';
+import { syncFeishuData, type FeishuConfig } from '../services/feishuService';
 
 const Settings: React.FC = () => {
     const {

@@ -96,16 +96,37 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
 
     // Mouse Event Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
-        // If clicking on background, start pan
-        if ((e.target as HTMLElement).classList.contains('gantt-bg')) {
+        // Only start pan if accessing the container directly (or non-interactive elements)
+        // Task elements stop propagation, so this should only trigger on background
+        if (e.button === 0) { // Left click only
             setIsDragging(true);
             setDragStart({ x: e.clientX - scrollPos.x, y: e.clientY - scrollPos.y });
 
             // Clear selection if not modified
             if (!e.shiftKey && !e.ctrlKey) {
+                // We verify if we clicked on a task by checking if event default was prevented? 
+                // No, drag starts on tasks stop propagation. So we are safe here.
                 setSelectedTasks(new Set());
             }
             setContextMenu(null);
+        }
+    };
+
+    const handleWheel = (e: React.WheelEvent) => {
+        // Prevent default browser zooming if ctrl is pressed
+        if (e.ctrlKey || e.metaKey) {
+            // e.preventDefault(); // React synthetic events can't always prevent default passive listeners
+            const delta = e.deltaY > 0 ? -0.05 : 0.05;
+            setZoomLevel(z => Math.max(0.1, Math.min(3, z + delta)));
+        } else {
+            // Regular scrolling / Panning
+            // Adjust scroll speed
+            const speedX = 1;
+            const speedY = 1;
+            setScrollPos(prev => ({
+                x: prev.x - e.deltaX * speedX,
+                y: prev.y - e.deltaY * speedY
+            }));
         }
     };
 
@@ -307,7 +328,23 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                         {(['Day', 'Week', 'Month'] as const).map(mode => (
                             <button
                                 key={mode}
-                                onClick={() => setViewMode(mode)}
+                                onClick={() => {
+                                    // Try to preserve center position
+                                    const containerWidth = containerRef.current?.clientWidth || 800;
+                                    const centerX = -scrollPos.x + containerWidth / 2;
+                                    const daysFromStart = centerX / currentCellWidth;
+
+                                    setViewMode(mode);
+
+                                    // Calculate new width immediately
+                                    const newBase = mode === 'Week' ? 20 : mode === 'Month' ? 8 : 50;
+                                    const newWidth = newBase * zoomLevel;
+
+                                    const newCenterX = daysFromStart * newWidth;
+                                    const newScrollX = -(newCenterX - containerWidth / 2);
+
+                                    setScrollPos(prev => ({ ...prev, x: newScrollX }));
+                                }}
                                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === mode ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 {mode === 'Day' ? '日' : mode === 'Week' ? '周' : '月'}
@@ -373,6 +410,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onWheel={handleWheel} // Added wheel handler
                 onContextMenu={(e) => e.preventDefault()}
             >
                 <div
