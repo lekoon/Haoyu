@@ -29,12 +29,14 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        # 使用 npm install 而不是 npm ci，以避免 lockfile 不一致导致的问题
+        run: npm install
 
       - name: Build
-        run: npm run build
+        # 显式设置 NODE_ENV
         env:
           NODE_ENV: production
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
