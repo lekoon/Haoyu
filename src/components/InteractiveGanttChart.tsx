@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ZoomIn, ZoomOut, Undo2, Redo2, Download,
+    ZoomIn, ZoomOut, Undo2, Redo2, Download, Grid3x3,
 } from 'lucide-react';
 import {
     format, addDays, differenceInDays, startOfWeek,
@@ -39,6 +39,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+    const [showGridLines, setShowGridLines] = useState(true);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string } | null>(null);
 
     // Interaction states
@@ -339,6 +340,17 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                     <button onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))} className="p-1.5 hover:bg-slate-100 rounded text-slate-600">
                         <ZoomIn size={18} />
                     </button>
+                    <div className="w-px h-6 bg-slate-200 mx-1" />
+                    <button
+                        onClick={() => setShowGridLines(!showGridLines)}
+                        className={`p-1.5 rounded transition-colors ${showGridLines
+                                ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                        title={showGridLines ? '隐藏网格线' : '显示网格线'}
+                    >
+                        <Grid3x3 size={18} />
+                    </button>
                 </div>
                 {/* Actions */}
                 <div className="flex items-center gap-2">
@@ -371,24 +383,53 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                 >
                     {/* Grid Background */}
                     <div className="absolute top-0 bottom-0 left-0 right-0 flex pointer-events-none z-0">
-                        {currentCellWidth > 2 && Array.from({ length: totalDays }).map((_, i) => {
+                        {/* Weekend highlighting */}
+                        {Array.from({ length: totalDays }).map((_, i) => {
                             const date = addDays(startDate, i);
                             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                            // Simplify grid at low zoom
-                            if (currentCellWidth < 10 && !isWeekend && i % 7 !== 0) return null;
+
+                            if (!isWeekend) return null;
 
                             return (
                                 <div
-                                    key={i}
-                                    className={`flex-shrink-0 border-r h-full ${isWeekend ? 'bg-slate-100/30' : ''}`}
-                                    style={{ width: currentCellWidth }}
+                                    key={`weekend-${i}`}
+                                    className="absolute top-0 bottom-0 bg-slate-100/20"
+                                    style={{
+                                        left: i * currentCellWidth,
+                                        width: currentCellWidth
+                                    }}
                                 />
                             );
                         })}
 
+                        {/* Grid Lines - subtle vertical lines */}
+                        {showGridLines && currentCellWidth > 5 && Array.from({ length: totalDays }).map((_, i) => {
+                            // Only show grid lines at reasonable intervals
+                            const date = addDays(startDate, i);
+                            const isMonthStart = date.getDate() === 1;
+                            const isWeekStart = date.getDay() === 1; // Monday
+
+                            // Show monthly lines always, weekly lines when zoomed in
+                            if (isMonthStart || (currentCellWidth > 20 && isWeekStart)) {
+                                return (
+                                    <div
+                                        key={`grid-${i}`}
+                                        className="absolute top-0 bottom-0"
+                                        style={{
+                                            left: i * currentCellWidth,
+                                            borderLeft: isMonthStart
+                                                ? '1px solid rgba(148, 163, 184, 0.3)'
+                                                : '1px dashed rgba(203, 213, 225, 0.3)'
+                                        }}
+                                    />
+                                );
+                            }
+                            return null;
+                        })}
+
                         {/* Current Time Line */}
                         <div
-                            className="absolute top-0 bottom-0 border-l-2 border-red-500 z-0 pointer-events-none"
+                            className="absolute top-0 bottom-0 border-l-2 border-red-500 z-10 pointer-events-none"
                             style={{ left: getXFromDate(new Date()) }}
                         >
                             <div className="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-red-500" />
