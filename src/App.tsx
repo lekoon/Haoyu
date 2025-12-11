@@ -24,6 +24,7 @@ const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
 const TemplateManager = lazy(() => import('./pages/TemplateManager'));
 const BatchImport = lazy(() => import('./pages/BatchImport'));
 const DeliveryEfficiency = lazy(() => import('./pages/DeliveryEfficiency'));
+const RiskManagement = lazy(() => import('./pages/RiskManagement'));
 
 import SkeletonLoader from './components/SkeletonLoader';
 
@@ -73,6 +74,7 @@ function App() {
           {/* Project Management */}
           <Route path="/projects" element={<LayoutRoute><Projects /></LayoutRoute>} />
           <Route path="/projects/:projectId" element={<LayoutRoute><ProjectDetailEnhanced /></LayoutRoute>} />
+          <Route path="/projects/:projectId/risks" element={<LayoutRoute><RiskManagement /></LayoutRoute>} />
           <Route path="/projects/templates" element={<LayoutRoute><TemplateManager /></LayoutRoute>} />
           <Route path="/projects/import" element={<LayoutRoute><BatchImport /></LayoutRoute>} />
 

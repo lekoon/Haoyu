@@ -117,17 +117,74 @@ export interface CostEntry {
     description: string;
 }
 
-// Risk Management
+// Risk Management - Enhanced
+export type RiskCategory = 'schedule' | 'cost' | 'resource' | 'technical' | 'external' | 'quality' | 'scope';
+export type RiskStatus = 'identified' | 'analyzing' | 'mitigating' | 'monitoring' | 'resolved' | 'accepted';
+export type RiskPriority = 'critical' | 'high' | 'medium' | 'low';
+
+export interface RiskMitigationAction {
+    id: string;
+    description: string;
+    owner: string;
+    dueDate: string;
+    status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
+    completedDate?: string;
+    notes?: string;
+}
+
+export interface RiskHistoryEntry {
+    id: string;
+    date: string;
+    userId: string;
+    userName: string;
+    action: 'created' | 'updated' | 'status_changed' | 'probability_changed' | 'impact_changed' | 'mitigation_added' | 'resolved';
+    description: string;
+    oldValue?: any;
+    newValue?: any;
+}
+
 export interface Risk {
     id: string;
-    category: 'schedule' | 'cost' | 'resource' | 'technical' | 'external';
+    projectId: string;
+    category: RiskCategory;
     title: string;
     description: string;
-    probability: number; // 1-5
-    impact: number; // 1-5
-    mitigation: string;
-    owner: string;
-    status: 'identified' | 'mitigating' | 'resolved';
+
+    // Risk Assessment (1-5 scale)
+    probability: number; // 1=Very Low, 2=Low, 3=Medium, 4=High, 5=Very High
+    impact: number; // 1=Negligible, 2=Minor, 3=Moderate, 4=Major, 5=Severe
+
+    // Calculated fields
+    riskScore: number; // probability × impact (1-25)
+    priority: RiskPriority; // Auto-calculated based on riskScore
+
+    // Management
+    owner: string; // User ID responsible for this risk
+    ownerName?: string;
+    status: RiskStatus;
+
+    // Mitigation
+    mitigationStrategy: string; // Overall strategy description
+    mitigationActions: RiskMitigationAction[];
+    contingencyPlan?: string; // Backup plan if mitigation fails
+
+    // Tracking
+    identifiedDate: string;
+    lastReviewDate?: string;
+    nextReviewDate?: string;
+    resolvedDate?: string;
+
+    // Cost impact
+    estimatedCostImpact?: number; // Potential cost if risk occurs
+    mitigationCost?: number; // Cost to mitigate the risk
+
+    // History
+    history: RiskHistoryEntry[];
+
+    // Tags and metadata
+    tags?: string[];
+    relatedTaskIds?: string[]; // Tasks affected by this risk
+    relatedMilestoneIds?: string[]; // Milestones affected by this risk
 }
 
 // Task for Canvas-based Task Diagram
@@ -294,4 +351,173 @@ export interface NotificationItem {
     createdAt: string;
     projectId?: string;
     taskId?: string;
+}
+
+// ========== Extended Data Models ==========
+
+// Project Dependencies
+export interface ProjectDependency {
+    id: string;
+    sourceProjectId: string;
+    targetProjectId: string;
+    type: 'finish-to-start' | 'start-to-start' | 'finish-to-finish' | 'start-to-finish';
+    lag?: number; // Days of lag/lead time
+    description?: string;
+    createdAt: string;
+    createdBy: string;
+}
+
+// Change Log for Audit Trail
+export interface ChangeLogEntry {
+    id: string;
+    entityType: 'project' | 'task' | 'resource' | 'risk' | 'milestone';
+    entityId: string;
+    entityName: string;
+    action: 'created' | 'updated' | 'deleted' | 'status_changed';
+    userId: string;
+    userName: string;
+    timestamp: string;
+    changes: {
+        field: string;
+        oldValue: any;
+        newValue: any;
+    }[];
+    metadata?: Record<string, any>;
+}
+
+// Data Export Configuration
+export interface ExportConfig {
+    id: string;
+    name: string;
+    type: 'csv' | 'excel' | 'pdf' | 'json';
+    entityType: 'projects' | 'tasks' | 'resources' | 'risks' | 'reports';
+    fields: string[]; // Fields to include in export
+    filters?: Record<string, any>; // Filters to apply
+    format?: {
+        includeHeaders?: boolean;
+        dateFormat?: string;
+        numberFormat?: string;
+        pageSize?: 'A4' | 'Letter' | 'A3';
+        orientation?: 'portrait' | 'landscape';
+    };
+    schedule?: {
+        enabled: boolean;
+        frequency: 'daily' | 'weekly' | 'monthly';
+        time?: string; // HH:mm format
+        recipients?: string[]; // Email addresses
+    };
+    createdAt: string;
+    createdBy: string;
+    lastRunAt?: string;
+}
+
+// Performance Metrics
+export interface PerformanceMetrics {
+    timestamp: string;
+    metrics: {
+        pageLoadTime: number; // ms
+        apiResponseTime: number; // ms
+        renderTime: number; // ms
+        memoryUsage?: number; // MB
+        activeUsers?: number;
+    };
+    page: string;
+    userId?: string;
+}
+
+// Data Validation Rules
+export interface ValidationRule {
+    id: string;
+    field: string;
+    entityType: 'project' | 'task' | 'resource' | 'risk';
+    rule: 'required' | 'min' | 'max' | 'pattern' | 'custom';
+    value?: any;
+    message: string;
+    enabled: boolean;
+}
+
+// Custom Fields for extensibility
+export interface CustomField {
+    id: string;
+    name: string;
+    label: string;
+    type: 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'boolean' | 'textarea';
+    entityType: 'project' | 'task' | 'resource' | 'risk';
+    options?: string[]; // For select/multiselect
+    required: boolean;
+    defaultValue?: any;
+    validation?: {
+        min?: number;
+        max?: number;
+        pattern?: string;
+    };
+    order: number;
+    enabled: boolean;
+}
+
+// Batch Operation
+export interface BatchOperation {
+    id: string;
+    type: 'update' | 'delete' | 'export' | 'import';
+    entityType: 'projects' | 'tasks' | 'resources' | 'risks';
+    entityIds: string[];
+    operation: Record<string, any>;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress?: number; // 0-100
+    startedAt?: string;
+    completedAt?: string;
+    userId: string;
+    userName: string;
+    results?: {
+        success: number;
+        failed: number;
+        errors?: string[];
+    };
+}
+
+// Data Backup
+export interface DataBackup {
+    id: string;
+    name: string;
+    type: 'full' | 'incremental';
+    size: number; // bytes
+    createdAt: string;
+    createdBy: string;
+    status: 'completed' | 'failed' | 'in-progress';
+    downloadUrl?: string;
+    expiresAt?: string;
+    metadata?: {
+        projectCount?: number;
+        taskCount?: number;
+        resourceCount?: number;
+        riskCount?: number;
+    };
+}
+
+// Integration Configuration
+export interface IntegrationConfig {
+    id: string;
+    name: string;
+    type: 'webhook' | 'api' | 'oauth' | 'custom';
+    provider?: string; // e.g., 'jira', 'slack', 'github'
+    enabled: boolean;
+    config: {
+        url?: string;
+        apiKey?: string;
+        secret?: string;
+        headers?: Record<string, string>;
+        events?: string[]; // Events to trigger integration
+    };
+    createdAt: string;
+    lastSyncAt?: string;
+    status: 'active' | 'inactive' | 'error';
+}
+
+// Cache Configuration for Performance
+export interface CacheConfig {
+    key: string;
+    ttl: number; // Time to live in seconds
+    data: any;
+    createdAt: string;
+    expiresAt: string;
 }

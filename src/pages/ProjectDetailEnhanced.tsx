@@ -139,9 +139,9 @@ const ProjectDetailEnhanced: React.FC = () => {
                                 {project.status}
                             </span>
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${project.priority === 'P0' ? 'bg-red-100 text-red-700' :
-                                    project.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
-                                        project.priority === 'P2' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-slate-100 text-slate-600'
+                                project.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
+                                    project.priority === 'P2' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-slate-100 text-slate-600'
                                 }`}>
                                 {project.priority}
                             </span>
@@ -177,10 +177,15 @@ const ProjectDetailEnhanced: React.FC = () => {
                         <Users size={16} /> 资源
                     </button>
                     <button
-                        onClick={() => setActiveTab('risks')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'risks' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => navigate(`/projects/${project.id}/risks`)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all relative ${activeTab === 'risks' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <AlertTriangle size={16} /> 风险
+                        {project.risks && project.risks.length > 0 && (
+                            <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                                {project.risks.filter(r => r.status !== 'resolved' && r.status !== 'accepted').length}
+                            </span>
+                        )}
                     </button>
                     <button
                         onClick={() => setActiveTab('costs')}
