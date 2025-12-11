@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, PieChart, Settings, Users, LogOut, Moon, Sun, Bell, Check, Trash2, Brain, FileText, Copy, Upload, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, PieChart, Settings, Users, LogOut, Moon, Sun, Bell, Check, Trash2, Brain, FileText, Copy, Upload, TrendingUp, Search } from 'lucide-react';
 import { checkDeadlines, checkResourceConflicts } from '../utils/notifications';
 import clsx from 'clsx';
 import { useStore } from '../store/useStore';
 import { useDarkMode } from '../hooks/useDarkMode';
 import NotificationToast from './NotificationToast';
+import GlobalSearch from './GlobalSearch';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -15,8 +16,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const { logout, user, projects, resourcePool, alerts, addAlert, markAlertRead, clearAlerts } = useStore();
     const { isDark, toggleDarkMode } = useDarkMode();
+
+    // Global Search Shortcut (Cmd/Ctrl + K)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setIsSearchOpen(true);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     // Check for notifications
     useEffect(() => {
@@ -80,6 +94,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-300">
 
+            <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
             {/* Top Navigation Bar */}
             <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 shadow-sm z-20 shrink-0">
                 <div className="flex items-center gap-8">
@@ -118,6 +134,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    {/* Search Trigger Button */}
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-sm transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600"
+                    >
+                        <Search size={16} />
+                        <span className="hidden lg:inline">Search...</span>
+                        <div className="flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-600 text-xs font-mono">
+                            <span className="text-[10px]">⌘</span>K
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                    >
+                        <Search size={20} />
+                    </button>
+
                     {/* Notification Bell */}
                     <div className="relative">
                         <button
