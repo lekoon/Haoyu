@@ -1,19 +1,32 @@
 import React from 'react';
-import { Network } from 'lucide-react';
+import { Network, Download } from 'lucide-react';
+import { useProjects } from '../store/useStore';
 import CrossProjectDependencyMap from '../components/CrossProjectDependencyMap';
+import { exportDependenciesToCSV } from '../utils/pmoExportUtils';
 
 const DependencyAnalysis: React.FC = () => {
+    const projects = useProjects();
+
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                    <Network className="text-purple-600 dark:text-purple-400" size={32} />
-                    跨项目依赖分析
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">
-                    Cross-Project Dependency Analysis - 识别项目间的关联和连锁风险
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
+                        <Network className="text-purple-600 dark:text-purple-400" size={32} />
+                        跨项目依赖分析
+                    </h1>
+                    <p className="text-slate-600 dark:text-slate-400 mt-1">
+                        Cross-Project Dependency Analysis - 识别项目间的关联和连锁风险
+                    </p>
+                </div>
+                <button
+                    onClick={() => exportDependenciesToCSV(projects)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                    <Download size={16} />
+                    导出依赖分析
+                </button>
             </div>
 
             {/* Dependency Map */}

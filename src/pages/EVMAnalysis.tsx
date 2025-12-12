@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useProjects } from '../store/useStore';
-import { Activity, TrendingUp, AlertCircle } from 'lucide-react';
+import { Activity, TrendingUp, AlertCircle, Download, FileText } from 'lucide-react';
 import EVMCharts from '../components/EVMCharts';
-import type { Project } from '../types';
+import { exportEVMToCSV, exportEVMToPDF } from '../utils/pmoExportUtils';
 
 const EVMAnalysis: React.FC = () => {
     const projects = useProjects();
@@ -41,6 +41,24 @@ const EVMAnalysis: React.FC = () => {
                         Earned Value Management - 项目财务绩效可视化
                     </p>
                 </div>
+                {selectedProject && (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => exportEVMToCSV(selectedProject)}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <Download size={16} />
+                            导出 CSV
+                        </button>
+                        <button
+                            onClick={() => exportEVMToPDF(selectedProject)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <FileText size={16} />
+                            导出 PDF
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Project Selector */}
