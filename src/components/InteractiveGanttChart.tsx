@@ -7,13 +7,17 @@ import {
     format, addDays, differenceInDays, startOfWeek,
     parseISO, startOfMonth
 } from 'date-fns';
-import type { Task } from '../types';
+import type { Task, Milestone } from '../types';
 
 interface InteractiveGanttChartProps {
     tasks: Task[];
+    milestones?: Milestone[];
     onTaskUpdate: (task: Task) => void;
     onTaskDelete: (taskId: string) => void;
     onTaskAdd: (task: Partial<Task>) => void;
+    onMilestoneAdd?: (milestone: Milestone) => void;
+    onMilestoneUpdate?: (milestone: Milestone) => void;
+    onMilestoneDelete?: (milestoneId: string) => void;
     onDependencyAdd?: (sourceId: string, targetId: string) => void;
     onDependencyDelete?: (sourceId: string, targetId: string) => void;
     onEditTask?: (task: Task) => void;
@@ -25,9 +29,13 @@ const ROW_HEIGHT = 48; // Height of a task row
 
 const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     tasks,
+    milestones = [],
     onTaskUpdate,
     onTaskDelete,
     onTaskAdd: _onTaskAdd,
+    onMilestoneAdd,
+    onMilestoneUpdate,
+    onMilestoneDelete,
     onDependencyAdd,
     onDependencyDelete,
     onEditTask,
@@ -41,6 +49,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
     const [showGridLines, setShowGridLines] = useState(true);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string } | null>(null);
+    const [showMilestoneForm, setShowMilestoneForm] = useState(false);
 
     // Interaction states
     const [draggingTask, setDraggingTask] = useState<{ id: string, type: 'move' | 'resize-l' | 'resize-r', startX: number, status?: string } | null>(null);
@@ -344,8 +353,8 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                     <button
                         onClick={() => setShowGridLines(!showGridLines)}
                         className={`p-1.5 rounded transition-colors ${showGridLines
-                                ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                                : 'text-slate-600 hover:bg-slate-100'
+                            ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                         title={showGridLines ? '隐藏网格线' : '显示网格线'}
                     >
@@ -505,8 +514,17 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                         setSelectedTasks(new Set([task.id]));
                                     }}
                                 >
-                                    <div className="px-2 text-xs text-white font-medium truncate w-full drop-shadow-md pointer-events-none">
-                                        {task.name}
+                                    <div className="px-2 text-xs text-white font-medium truncate w-full drop-shadow-md pointer-events-none flex items-center gap-1">
+                                        {/* Priority Badge */}
+                                        {task.priority && (
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${task.priority === 'high' ? 'bg-red-500/90' :
+                                                task.priority === 'medium' ? 'bg-orange-500/90' :
+                                                    'bg-blue-500/90'
+                                                }`}>
+                                                {task.priority === 'high' ? 'H' : task.priority === 'medium' ? 'M' : 'L'}
+                                            </span>
+                                        )}
+                                        <span className="truncate">{task.name}</span>
                                     </div>
                                     {/* Left Handle */}
                                     <div
@@ -532,6 +550,33 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                     >
                                         <div className="w-3 h-3 bg-white border border-slate-400 rounded-full shadow-sm" />
                                     </div>
+                                </motion.div>
+                            );
+                        })}
+
+                        {/* Milestones */}
+                        {milestones.map((milestone) => {
+                            const x = getXFromDate(milestone.date);
+
+                            return (
+                                <motion.div
+                                    key={milestone.id}
+                                    className="absolute group cursor-pointer z-30"
+                                    style={{ left: x - 12, top: 10 }}
+                                    whileHover={{ scale: 1.2 }}
+                                    title={`${milestone.name}\n${milestone.date}`}
+                                >
+                                    <div className="relative">
+                                        <div className="text-2xl">⭐</div>
+                                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-1 bg-amber-500 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+                                            {milestone.name}
+                                        </div>
+                                    </div>
+                                    {/* Vertical line */}
+                                    <div
+                                        className="absolute top-6 left-1/2 transform -translate-x-1/2 w-0.5 bg-amber-400/50 pointer-events-none"
+                                        style={{ height: `${tasks.length * ROW_HEIGHT + 20}px` }}
+                                    />
                                 </motion.div>
                             );
                         })}
