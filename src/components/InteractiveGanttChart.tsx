@@ -496,7 +496,44 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                             const width = Math.max(currentCellWidth, differenceInDays(parseISO(task.endDate), parseISO(task.startDate)) * currentCellWidth + currentCellWidth);
                             const top = index * ROW_HEIGHT + 20;
                             const isSelected = selectedTasks.has(task.id);
+                            const isMilestone = task.type === 'milestone';
 
+                            // 里程碑特殊渲染
+                            if (isMilestone) {
+                                return (
+                                    <motion.div
+                                        key={task.id}
+                                        className={`absolute group cursor-pointer z-30 ${isSelected ? 'ring-2 ring-blue-500 rounded-full' : ''}`}
+                                        style={{ left: x - 16, top: top - 4 }}
+                                        whileHover={{ scale: 1.1 }}
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedTasks(new Set([task.id]));
+                                        }}
+                                        onDoubleClick={(e) => { e.stopPropagation(); onEditTask?.(task); }}
+                                    >
+                                        <div className="relative">
+                                            {/* 五角星 */}
+                                            <div className="text-4xl" style={{ color: task.color || '#fbbf24' }}>⭐</div>
+                                            {/* 里程碑信息提示 */}
+                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-amber-500 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">
+                                                <div className="font-bold">{task.name}</div>
+                                                <div className="text-[10px] mt-1">{format(parseISO(task.startDate), 'yyyy-MM-dd')}</div>
+                                                {task.description && (
+                                                    <div className="text-[10px] mt-1 max-w-xs">{task.description}</div>
+                                                )}
+                                            </div>
+                                            {/* 垂直参考线 */}
+                                            <div
+                                                className="absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 bg-amber-400/50 pointer-events-none"
+                                                style={{ height: `${(tasks.length - index) * ROW_HEIGHT}px` }}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                );
+                            }
+
+                            // 普通任务渲染
                             return (
                                 <motion.div
                                     key={task.id}
@@ -517,11 +554,12 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                     <div className="px-2 text-xs text-white font-medium truncate w-full drop-shadow-md pointer-events-none flex items-center gap-1">
                                         {/* Priority Badge */}
                                         {task.priority && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${task.priority === 'high' ? 'bg-red-500/90' :
-                                                task.priority === 'medium' ? 'bg-orange-500/90' :
-                                                    'bg-blue-500/90'
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${task.priority === 'P0' ? 'bg-red-600/90' :
+                                                task.priority === 'P1' ? 'bg-orange-500/90' :
+                                                    task.priority === 'P2' ? 'bg-blue-500/90' :
+                                                        'bg-slate-500/90'
                                                 }`}>
-                                                {task.priority === 'high' ? 'H' : task.priority === 'medium' ? 'M' : 'L'}
+                                                {task.priority}
                                             </span>
                                         )}
                                         <span className="truncate">{task.name}</span>
