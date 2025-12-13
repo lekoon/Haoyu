@@ -7,6 +7,7 @@ import { format, differenceInMonths, parseISO, startOfMonth, endOfMonth, addMont
 import TemplateSelector from '../components/TemplateSelector';
 import KanbanBoard from '../components/KanbanBoard';
 import { useNavigate } from 'react-router-dom';
+import { PageContainer, PageHeader, Card, Button, Badge } from '../components/ui';
 
 const Projects: React.FC = () => {
     const { projects, addProject, deleteProject, updateProject, factorDefinitions, resourcePool } = useStore();
@@ -206,42 +207,41 @@ const Projects: React.FC = () => {
     // ];
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-3xl font-bold text-slate-900">Projects</h1>
-                    <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                        >
-                            <LayoutList size={20} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('kanban')}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                        >
-                            <Kanban size={20} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('gantt')}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'gantt' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                        >
-                            <Calendar size={20} />
-                        </button>
+        <PageContainer>
+            <PageHeader
+                title="Projects"
+                description="Manage and track all your projects"
+                actions={
+                    <div className="flex items-center gap-4">
+                        <div className="flex bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                            >
+                                <LayoutList size={20} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('kanban')}
+                                className={`p-2 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                            >
+                                <Kanban size={20} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('gantt')}
+                                className={`p-2 rounded-md transition-colors ${viewMode === 'gantt' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                            >
+                                <Calendar size={20} />
+                            </button>
+                        </div>
+                        <Button onClick={() => handleOpenModal()} variant="primary" icon={Plus}>
+                            New Project
+                        </Button>
                     </div>
-                </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
-                >
-                    <Plus size={20} />
-                    New Project
-                </button>
-            </div>
+                }
+            />
 
             {viewMode === 'list' ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <Card padding="none">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 border-b border-slate-100">
                             <tr>
@@ -271,11 +271,12 @@ const Projects: React.FC = () => {
                                         <div className="text-sm text-slate-500 truncate max-w-xs">{project.description}</div>
                                     </td>
                                     <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-medium ${project.status === 'active' ? 'bg-green-100 text-green-700' :
-                                            project.status === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-                                            }`}>
+                                        <Badge
+                                            variant={project.status === 'active' ? 'success' : project.status === 'planning' ? 'primary' : 'neutral'}
+                                            size="sm"
+                                        >
                                             {project.status.toUpperCase()}
-                                        </span>
+                                        </Badge>
                                     </td>
                                     <td className="p-4 font-bold text-blue-600">
                                         {(project.score || 0).toFixed(2)}
@@ -300,13 +301,13 @@ const Projects: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
-                </div>
+                </Card>
             ) : viewMode === 'kanban' ? (
                 <div className="overflow-x-auto pb-6">
                     <KanbanBoard onEditProject={handleOpenModal} />
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-6">
+                <Card>
                     <div className="overflow-x-auto">
                         <div className="min-w-[1200px] pb-4">
                             {/* Timeline Header */}
@@ -380,7 +381,7 @@ const Projects: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </Card>
             )
             }
 
@@ -576,7 +577,7 @@ const Projects: React.FC = () => {
                     onClose={() => setIsTemplateSelectorOpen(false)}
                 />
             )}
-        </div>
+        </PageContainer>
     );
 };
 
