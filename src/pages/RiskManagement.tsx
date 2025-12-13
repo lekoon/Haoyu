@@ -35,6 +35,7 @@ import CrossProjectRiskAnalysis from '../components/CrossProjectRiskAnalysis';
 import type { RiskTemplate } from '../utils/riskTemplates';
 import { createRiskFromTemplate, RISK_TEMPLATES } from '../utils/riskTemplates';
 import { createRisk as createRiskUtil } from '../utils/riskManagement';
+import { PageContainer, PageHeader, StatCard, Card, Button, Badge } from '../components/ui';
 
 const RiskManagement: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
