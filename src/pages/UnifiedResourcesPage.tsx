@@ -28,6 +28,7 @@ import { generateTimeBuckets, calculateResourceLoad } from '../utils/resourcePla
 import { exportResourcesToCSV, exportResourcePoolToCSV, exportToJSON } from '../utils/resourceExport';
 import AddResourceModal from '../components/AddResourceModal';
 import AIDecisionDashboard from './AIDecisionDashboard';
+import { PageContainer, PageHeader, Button, Badge } from '../components/ui';
 
 type ViewTab = 'dashboard' | 'heatmap' | 'gantt' | 'conflicts' | 'costs' | 'skills' | 'decision';
 
@@ -104,57 +105,50 @@ const UnifiedResourcesPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <PageContainer>
             {/* Header with Tabs */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
-                <div className="px-6 py-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900">资源管理</h1>
-                            <p className="text-sm text-slate-600 mt-1">全方位资源监控与分析</p>
-                        </div>
-
-                        {/* Action Buttons */}
+            <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 -mx-6 -mt-6 px-6 pt-6">
+                <PageHeader
+                    title="资源管理"
+                    description="全方位资源监控与分析"
+                    actions={
                         <div className="flex items-center gap-3">
                             {/* Filter Button */}
-                            <button
+                            <Button
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setShowFilters(!showFilters);
                                 }}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${showFilters || utilizationFilter !== 'all'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                    }`}
+                                variant={showFilters || utilizationFilter !== 'all' ? 'primary' : 'secondary'}
+                                icon={Filter}
                             >
-                                <Filter size={18} />
-                                <span>筛选</span>
+                                筛选
                                 {utilizationFilter !== 'all' && (
-                                    <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">1</span>
+                                    <Badge variant="danger" size="sm" rounded="full" className="ml-2">1</Badge>
                                 )}
-                            </button>
+                            </Button>
 
                             {/* Export Button */}
                             <div className="relative">
-                                <button
+                                <Button
                                     onClick={() => setShowExportMenu(!showExportMenu)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                                    variant="secondary"
+                                    icon={Download}
                                 >
-                                    <Download size={18} />
-                                    <span>导出</span>
-                                </button>
+                                    导出
+                                </Button>
 
                                 {showExportMenu && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-slate-200 py-2 z-50">
+                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50">
                                         <button
                                             onClick={() => handleExport('csv')}
-                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
+                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                         >
                                             导出为 CSV
                                         </button>
                                         <button
                                             onClick={() => handleExport('json')}
-                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
+                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                         >
                                             导出为 JSON
                                         </button>
@@ -163,7 +157,7 @@ const UnifiedResourcesPage: React.FC = () => {
                                                 window.print();
                                                 setShowExportMenu(false);
                                             }}
-                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
+                                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                         >
                                             打印报表
                                         </button>
@@ -172,88 +166,88 @@ const UnifiedResourcesPage: React.FC = () => {
                             </div>
 
                             {/* Add Resource Button */}
-                            <button
+                            <Button
                                 onClick={() => setShowAddModal(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                                variant="primary"
+                                icon={Plus}
                             >
-                                <Plus size={18} />
-                                <span>添加资源</span>
+                                添加资源
+                            </Button>
+                        </div>
+                    }
+                />
+
+                {/* Filter Panel */}
+                {showFilters && (
+                    <div className="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-medium text-slate-900">筛选条件</h3>
+                            <button
+                                onClick={() => {
+                                    setUtilizationFilter('all');
+                                    setShowFilters(false);
+                                }}
+                                className="text-sm text-slate-600 hover:text-slate-900"
+                            >
+                                <X size={16} />
                             </button>
                         </div>
-                    </div>
 
-                    {/* Filter Panel */}
-                    {showFilters && (
-                        <div className="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="font-medium text-slate-900">筛选条件</h3>
-                                <button
-                                    onClick={() => {
-                                        setUtilizationFilter('all');
-                                        setShowFilters(false);
-                                    }}
-                                    className="text-sm text-slate-600 hover:text-slate-900"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    利用率范围
-                                </label>
-                                <div className="flex gap-2">
-                                    {[
-                                        { value: 'all' as const, label: '全部' },
-                                        { value: 'low' as const, label: '低负载 (<50%)' },
-                                        { value: 'normal' as const, label: '正常 (50-80%)' },
-                                        { value: 'high' as const, label: '高负载 (80-100%)' },
-                                        { value: 'over' as const, label: '超额 (>100%)' },
-                                    ].map((option) => (
-                                        <button
-                                            key={option.value}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setUtilizationFilter(option.value);
-                                            }}
-                                            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${utilizationFilter === option.value
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                                                }`}
-                                        >
-                                            {option.label}
-                                        </button>
-                                    ))}
-                                </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                利用率范围
+                            </label>
+                            <div className="flex gap-2">
+                                {[
+                                    { value: 'all' as const, label: '全部' },
+                                    { value: 'low' as const, label: '低负载 (<50%)' },
+                                    { value: 'normal' as const, label: '正常 (50-80%)' },
+                                    { value: 'high' as const, label: '高负载 (80-100%)' },
+                                    { value: 'over' as const, label: '超额 (>100%)' },
+                                ].map((option) => (
+                                    <button
+                                        key={option.value}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setUtilizationFilter(option.value);
+                                        }}
+                                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${utilizationFilter === option.value
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                                            }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
-                    )}
-
-                    {/* Tabs */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                        {tabs.map((tab) => {
-                            const Icon = tab.icon;
-                            const isActive = activeTab === tab.id;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${isActive
-                                        ? 'bg-blue-100 text-blue-700 shadow-sm'
-                                        : 'text-slate-600 hover:bg-slate-100'
-                                        }`}
-                                >
-                                    <Icon size={18} />
-                                    <span>{tab.label}</span>
-                                </button>
-                            );
-                        })}
                     </div>
+                )}
+
+                {/* Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${isActive
+                                    ? 'bg-blue-100 text-blue-700 shadow-sm'
+                                    : 'text-slate-600 hover:bg-slate-100'
+                                    }`}
+                            >
+                                <Icon size={18} />
+                                <span>{tab.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="mt-6">
                 {activeTab === 'dashboard' && <EnhancedResourcesDashboard />}
 
                 {activeTab === 'heatmap' && (
@@ -272,21 +266,23 @@ const UnifiedResourcesPage: React.FC = () => {
             </div>
 
             {/* Click outside to close menus */}
-            {(showExportMenu || showFilters) && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => {
-                        setShowExportMenu(false);
-                    }}
-                />
-            )}
+            {
+                (showExportMenu || showFilters) && (
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => {
+                            setShowExportMenu(false);
+                        }}
+                    />
+                )
+            }
 
             {/* Add Resource Modal */}
             <AddResourceModal
                 isOpen={showAddModal}
                 onClose={() => setShowAddModal(false)}
             />
-        </div>
+        </PageContainer >
     );
 };
 
