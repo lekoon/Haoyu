@@ -14,6 +14,7 @@ import StageGateWorkflow from '../components/StageGateWorkflow';
 import { calculateProjectHealth } from '../utils/projectHealth';
 import { DEFAULT_STAGE_GATES, getNextStage } from '../utils/stageGateManagement';
 import type { CostEntry, Task, ProjectWithStageGate, StageGate, ProjectStage } from '../types';
+import { Badge, Button } from '../components/ui';
 
 const ProjectDetailEnhanced: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
@@ -134,20 +135,19 @@ const ProjectDetailEnhanced: React.FC = () => {
                         </div>
                     ) : (
                         <div className="flex items-center gap-3">
-                            <h1 className="font-bold text-lg text-slate-800">{project.name}</h1>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${project.status === 'active' ? 'bg-green-100 text-green-700' :
-                                project.status === 'planning' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-slate-100 text-slate-600'
-                                }`}>
+                            <h1 className="font-bold text-lg text-slate-800 dark:text-slate-100">{project.name}</h1>
+                            <Badge
+                                variant={project.status === 'active' ? 'success' : project.status === 'planning' ? 'primary' : 'neutral'}
+                                size="sm"
+                            >
                                 {project.status}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${project.priority === 'P0' ? 'bg-red-100 text-red-700' :
-                                project.priority === 'P1' ? 'bg-orange-100 text-orange-700' :
-                                    project.priority === 'P2' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-slate-100 text-slate-600'
-                                }`}>
+                            </Badge>
+                            <Badge
+                                variant={project.priority === 'P0' ? 'danger' : project.priority === 'P1' ? 'warning' : 'primary'}
+                                size="sm"
+                            >
                                 {project.priority}
-                            </span>
+                            </Badge>
 
                             {/* Integated Health Score Badge */}
                             <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-bold ${getHealthColor(healthMetrics.overall)}`}>
@@ -252,13 +252,13 @@ const ProjectDetailEnhanced: React.FC = () => {
                                 <h3 className="text-lg font-bold text-slate-900">成本概览</h3>
                                 <p className="text-sm text-slate-500">预算: ${projectBudget.toLocaleString()} | 实际: ${projectCosts.reduce((sum, c) => sum + c.amount, 0).toLocaleString()}</p>
                             </div>
-                            <button
+                            <Button
                                 onClick={() => setIsCostFormOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                variant="primary"
+                                icon={DollarSign}
                             >
-                                <DollarSign size={18} />
                                 登记成本
-                            </button>
+                            </Button>
                         </div>
 
                         {/* Cost List */}
