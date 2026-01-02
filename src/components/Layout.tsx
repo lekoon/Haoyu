@@ -228,10 +228,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                                         alerts.map(alert => (
                                             <div
                                                 key={alert.id}
-                                                className={`p - 4 border - b border - slate - 50 dark: border - slate - 700 hover: bg - slate - 50 dark: hover: bg - slate - 700 / 50 transition - colors ${alert.read ? 'opacity-60' : 'bg-blue-50/30 dark:bg-blue-900/10'} `}
+                                                className={`p-4 border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${alert.read ? 'opacity-60' : 'bg-blue-50/30 dark:bg-blue-900/10'}`}
                                             >
                                                 <div className="flex gap-3">
-                                                    <div className={`mt - 1 w - 2 h - 2 rounded - full shrink - 0 ${alert.type === 'error' ? 'bg-red-500' : alert.type === 'warning' ? 'bg-orange-500' : 'bg-blue-500'} `} />
+                                                    <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${alert.type === 'error' ? 'bg-red-500' : alert.type === 'warning' ? 'bg-orange-500' : 'bg-blue-500'}`} />
                                                     <div className="flex-1">
                                                         <p className="text-sm text-slate-800 dark:text-slate-200 mb-1">{alert.message}</p>
                                                         <div className="flex justify-between items-center">

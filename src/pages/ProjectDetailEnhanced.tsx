@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, useResourcePool } from '../store/useStore';
-import { ArrowLeft, Edit2, Check, DollarSign, Layout, Users, AlertTriangle, BarChart3, Target, GitBranch, GitMerge } from 'lucide-react';
+import { usePMOStore } from '../store/usePMOStore';
+import { ArrowLeft, Edit2, Check, DollarSign, Layout, Users, AlertTriangle, BarChart3, Target, GitBranch, GitMerge, TrendingUp } from 'lucide-react';
 import SmartTaskView from '../components/SmartTaskView';
 import ProjectResourceDetail from '../components/ProjectResourceDetail';
 import RiskAssessment from '../components/RiskAssessment';
@@ -11,6 +12,8 @@ import EnhancedHealthVisualization from '../components/EnhancedHealthVisualizati
 import CostControlPanel from '../components/CostControlPanel';
 import BaselineHistory from '../components/BaselineHistory';
 import StageGateWorkflow from '../components/StageGateWorkflow';
+import ScopeCreepMonitor from '../components/ScopeCreepMonitor';
+import ChangeImpactAssessment from '../components/ChangeImpactAssessment';
 import { calculateProjectHealth } from '../utils/projectHealth';
 import { DEFAULT_STAGE_GATES, getNextStage } from '../utils/stageGateManagement';
 import type { CostEntry, Task, ProjectWithStageGate, StageGate, ProjectStage } from '../types';
@@ -21,13 +24,15 @@ const ProjectDetailEnhanced: React.FC = () => {
     const navigate = useNavigate();
     const { projects, updateProject } = useStore();
     const resourcePool = useResourcePool();
+    const { addChangeRequest, getChangeRequestsByProject } = usePMOStore();
 
     const project = projects.find(p => p.id === projectId);
 
     // Initialize state
     const [isEditing, setIsEditing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'diagram' | 'resources' | 'costs' | 'risks' | 'analytics' | 'strategy' | 'baseline' | 'stagegate'>('diagram');
+    const [activeTab, setActiveTab] = useState<'diagram' | 'resources' | 'costs' | 'risks' | 'analytics' | 'strategy' | 'baseline' | 'stagegate' | 'scope'>('diagram');
     const [isCostFormOpen, setIsCostFormOpen] = useState(false);
+    const [showChangeAssessment, setShowChangeAssessment] = useState(false);
 
     if (!project) {
         return (
@@ -220,6 +225,12 @@ const ProjectDetailEnhanced: React.FC = () => {
                     >
                         <GitMerge size={16} /> 阶段门径
                     </button>
+                    <button
+                        onClick={() => setActiveTab('scope')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'scope' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <TrendingUp size={16} /> 范围管理
+                    </button>
                 </div>
             </div>
 
@@ -384,7 +395,102 @@ const ProjectDetailEnhanced: React.FC = () => {
                         />
                     </div>
                 )}
+
+                {/* 范围管理视图 */}
+                {activeTab === 'scope' && (
+                    <div className="h-full overflow-auto p-6 max-w-7xl mx-auto space-y-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                                    范围管理与变更控制
+                                </h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                    监控范围蔓延，管理变更请求，防止项目失控
+                                </p>
+                            </div>
+                            <Button
+                                onClick={() => setShowChangeAssessment(true)}
+                                variant="primary"
+                                icon={TrendingUp}
+                            >
+                                提交变更请求
+                            </Button>
+                        </div>
+
+                        {/* 范围蔓延监控 */}
+                        <ScopeCreepMonitor
+                            project={project}
+                            changeRequests={getChangeRequestsByProject(project.id)}
+                        />
+
+                        {/* 变更请求列表 */}
+                        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                                变更请求历史
+                            </h3>
+                            <div className="space-y-3">
+                                {getChangeRequestsByProject(project.id).map((cr) => (
+                                    <div
+                                        key={cr.id}
+                                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
+                                    >
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                                                    {cr.title}
+                                                </h4>
+                                                <Badge
+                                                    variant={
+                                                        cr.status === 'approved'
+                                                            ? 'success'
+                                                            : cr.status === 'rejected'
+                                                                ? 'danger'
+                                                                : 'warning'
+                                                    }
+                                                >
+                                                    {cr.status}
+                                                </Badge>
+                                            </div>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                {cr.description}
+                                            </p>
+                                            <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                                                <span>工时: +{cr.estimatedEffortHours}h</span>
+                                                <span>成本: +¥{cr.estimatedCostIncrease}</span>
+                                                <span>延期: +{cr.scheduleImpactDays}天</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-slate-500">
+                                            {new Date(cr.requestDate).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))}
+                                {getChangeRequestsByProject(project.id).length === 0 && (
+                                    <div className="text-center py-8 text-slate-400">
+                                        暂无变更请求
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* Change Impact Assessment Modal */}
+            {showChangeAssessment && (
+                <ChangeImpactAssessment
+                    project={project}
+                    onSubmit={(changeRequest) => {
+                        addChangeRequest(changeRequest);
+                        setShowChangeAssessment(false);
+                    }}
+                    onCancel={() => setShowChangeAssessment(false)}
+                    currentUser={{
+                        id: 'current-user',
+                        name: project.manager || '项目经理',
+                    }}
+                />
+            )}
 
             {/* Cost Registration Modal */}
             {isCostFormOpen && (

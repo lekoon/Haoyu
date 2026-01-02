@@ -717,3 +717,288 @@ export interface CacheConfig {
     createdAt: string;
     expiresAt: string;
 }
+
+// ==================== PMO Strategic Optimization Types ====================
+
+// 1. Change Request & Impact Assessment (变更请求与影响评估)
+export type ChangeRequestStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'implemented';
+export type ChangeImpactLevel = 'low' | 'medium' | 'high' | 'critical';
+
+export interface ChangeRequest {
+    id: string;
+    projectId: string;
+    projectName: string;
+    requestedBy: string;
+    requestedByName?: string;
+    requestDate: string;
+
+    // Change Details
+    title: string;
+    description: string;
+    category: 'scope' | 'schedule' | 'budget' | 'resource' | 'quality';
+
+    // Impact Assessment (强制填写)
+    estimatedEffortHours: number; // 预计增加工时
+    estimatedCostIncrease: number; // 预计成本增加
+    scheduleImpactDays: number; // 对进度的影响（天数）
+    impactLevel: ChangeImpactLevel;
+
+    // Justification
+    businessJustification: string; // 业务理由
+    alternativeConsidered?: string; // 考虑过的替代方案
+    riskIfNotImplemented?: string; // 不实施的风险
+
+    // Approval
+    status: ChangeRequestStatus;
+    approvedBy?: string;
+    approvedByName?: string;
+    approvalDate?: string;
+    rejectionReason?: string;
+
+    // Implementation
+    implementedDate?: string;
+    actualEffortHours?: number;
+    actualCostIncrease?: number;
+
+    // Audit
+    createdAt: string;
+    updatedAt?: string;
+}
+
+// 2. Scope Creep Metrics (范围蔓延指标)
+export interface ScopeCreepMetrics {
+    projectId: string;
+    projectName: string;
+
+    // Baseline Comparison
+    baselineEffortHours: number; // 基线总工时
+    currentEffortHours: number; // 当前总工时
+    creepPercentage: number; // 蔓延百分比 = (current - baseline) / baseline * 100
+
+    // Change Tracking
+    totalChangeRequests: number;
+    approvedChanges: number;
+    rejectedChanges: number;
+    pendingChanges: number;
+
+    // Alerts
+    isOverThreshold: boolean; // 是否超过 30% 阈值
+    requiresRebaseline: boolean; // 是否需要重新基线
+
+    // Timestamp
+    calculatedAt: string;
+}
+
+// 3. Environment Resources (非人力资源)
+export type EnvironmentType = 'test' | 'staging' | 'production' | 'integration' | 'device' | 'license';
+export type EnvironmentStatus = 'available' | 'occupied' | 'maintenance' | 'offline';
+
+export interface EnvironmentResource {
+    id: string;
+    name: string; // e.g., "测试环境 A", "发布窗口 - 周五晚"
+    type: EnvironmentType;
+    description?: string;
+
+    // Capacity
+    maxConcurrentUsers?: number;
+    specifications?: Record<string, any>; // 配置信息
+
+    // Availability
+    status: EnvironmentStatus;
+    maintenanceSchedule?: {
+        startDate: string;
+        endDate: string;
+        reason: string;
+    }[];
+
+    // Booking
+    bookings: EnvironmentBooking[];
+
+    // Metadata
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface EnvironmentBooking {
+    id: string;
+    environmentId: string;
+    projectId: string;
+    projectName: string;
+    bookedBy: string;
+    bookedByName?: string;
+
+    // Time Slot
+    startDate: string;
+    endDate: string;
+
+    // Purpose
+    purpose: string; // e.g., "集成测试", "性能测试", "生产发布"
+
+    // Status
+    status: 'reserved' | 'active' | 'completed' | 'cancelled';
+
+    // Audit
+    createdAt: string;
+    updatedAt?: string;
+}
+
+// 4. Resource Booking Type (资源预定类型)
+// Note: BookingType is already defined earlier in the file (line 368)
+
+export interface ResourceAllocation {
+    id: string;
+    resourceId: string;
+    resourceName: string;
+    projectId: string;
+    projectName: string;
+
+    // Allocation Details
+    startDate: string;
+    endDate: string;
+    hoursPerWeek: number;
+    bookingType: BookingType;
+
+    // Priority-based Locking
+    projectPriority: 'P0' | 'P1' | 'P2' | 'P3';
+    canBePreempted: boolean; // 是否可被抢占（P0 项目的 hard booking 不可被抢占）
+
+    // Audit
+    allocatedBy: string;
+    allocatedByName?: string;
+    allocatedAt: string;
+}
+
+// 5. Requirement (需求实体 - 用于 RTM)
+export type RequirementType = 'functional' | 'non-functional' | 'business' | 'technical';
+export type RequirementStatus = 'draft' | 'approved' | 'in-progress' | 'completed' | 'cancelled';
+
+export interface Requirement {
+    id: string;
+    projectId: string;
+
+    // Requirement Details
+    title: string;
+    description: string;
+    type: RequirementType;
+    priority: 'P0' | 'P1' | 'P2' | 'P3';
+
+    // Traceability
+    relatedTaskIds: string[]; // 关联的任务
+    relatedDeliverableIds?: string[]; // 关联的交付物
+
+    // Status
+    status: RequirementStatus;
+    completionPercentage: number;
+
+    // Stakeholder
+    requestedBy: string;
+    requestedByName?: string;
+    assignedTo?: string;
+    assignedToName?: string;
+
+    // Audit
+    createdAt: string;
+    updatedAt?: string;
+    completedAt?: string;
+}
+
+// 6. Approval Workflow (审批流)
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export type ApprovalType = 'project_initiation' | 'project_closure' | 'budget_change' | 'resource_request' | 'change_request';
+
+export interface ApprovalWorkflow {
+    id: string;
+    type: ApprovalType;
+    entityId: string; // 关联实体 ID（项目 ID、变更请求 ID 等）
+    entityName: string;
+
+    // Requester
+    requestedBy: string;
+    requestedByName?: string;
+    requestDate: string;
+
+    // Approval Chain
+    approvers: ApprovalStep[];
+    currentStepIndex: number;
+
+    // Status
+    overallStatus: ApprovalStatus;
+
+    // Metadata
+    createdAt: string;
+    completedAt?: string;
+}
+
+export interface ApprovalStep {
+    stepNumber: number;
+    approverId: string;
+    approverName: string;
+    approverRole: string;
+
+    // Decision
+    status: ApprovalStatus;
+    decision?: 'approve' | 'reject';
+    comments?: string;
+    decidedAt?: string;
+
+    // Conditions
+    isRequired: boolean; // 是否必须审批
+    canSkip: boolean; // 是否可跳过
+}
+
+// 7. Project Simulation (沙盘推演)
+export interface ProjectSimulation {
+    id: string;
+    name: string;
+    description?: string;
+    baseProjectId?: string; // 基于哪个项目进行模拟
+
+    // Simulation Scenario
+    scenarioType: 'resource_change' | 'priority_change' | 'new_project' | 'delay_simulation';
+    changes: SimulationChange[];
+
+    // Results
+    impactAnalysis?: {
+        affectedProjects: string[];
+        totalDelayDays: number;
+        resourceConflicts: number;
+        budgetImpact: number;
+    };
+
+    // Metadata
+    createdBy: string;
+    createdByName?: string;
+    createdAt: string;
+    isActive: boolean; // 是否为当前活跃的模拟
+}
+
+export interface SimulationChange {
+    changeType: 'add_project' | 'remove_project' | 'adjust_priority' | 'reallocate_resource' | 'extend_deadline';
+    targetEntityId: string;
+    targetEntityName: string;
+    changeDetails: Record<string, any>;
+}
+
+// 8. Ghost Task Detection (幽灵任务检测)
+export interface GhostTaskReport {
+    projectId: string;
+    projectName: string;
+
+    // Detection Results
+    ghostTasks: {
+        taskId: string;
+        taskName: string;
+        reason: 'no_requirement_link' | 'no_deliverable' | 'duplicate' | 'obsolete';
+        estimatedEffort: number;
+        assignee?: string;
+    }[];
+
+    totalGhostTasks: number;
+    totalWastedEffort: number; // 浪费的总工时
+
+    // Recommendations
+    recommendations: string[];
+
+    // Timestamp
+    generatedAt: string;
+}

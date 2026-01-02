@@ -1,6 +1,5 @@
 import React, { Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useUser } from './store/useStore';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
@@ -28,6 +27,10 @@ const RiskManagement = lazy(() => import('./pages/RiskManagement'));
 const PortfolioDashboard = lazy(() => import('./pages/PortfolioDashboard'));
 const EVMAnalysis = lazy(() => import('./pages/EVMAnalysis'));
 const DependencyAnalysis = lazy(() => import('./pages/DependencyAnalysis'));
+const EnvironmentManagement = lazy(() => import('./pages/EnvironmentManagement'));
+const RequirementTraceabilityMatrix = lazy(() => import('./pages/RequirementTraceabilityMatrix'));
+const WhatIfSimulation = lazy(() => import('./pages/WhatIfSimulation'));
+const PMODashboard = lazy(() => import('./pages/PMODashboard'));
 
 import SkeletonLoader from './components/SkeletonLoader';
 
@@ -38,26 +41,13 @@ const PageLoader = () => (
   </div>
 );
 
-// Protected Route wrapper
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const user = useUser();
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// Layout wrapper with Suspense
+// Layout wrapper with Suspense (without protection)
 const LayoutRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ProtectedRoute>
-    <Layout>
-      <Suspense fallback={<PageLoader />}>
-        {children}
-      </Suspense>
-    </Layout>
-  </ProtectedRoute>
+  <Layout>
+    <Suspense fallback={<PageLoader />}>
+      {children}
+    </Suspense>
+  </Layout>
 );
 
 function App() {
@@ -83,6 +73,7 @@ function App() {
 
           {/* Resource Management */}
           <Route path="/resources" element={<LayoutRoute><Resources /></LayoutRoute>} />
+          <Route path="/environments" element={<LayoutRoute><EnvironmentManagement /></LayoutRoute>} />
 
           {/* Delivery Efficiency Dashboard */}
           <Route path="/delivery-efficiency" element={<LayoutRoute><DeliveryEfficiency /></LayoutRoute>} />
@@ -94,6 +85,11 @@ function App() {
           <Route path="/analysis" element={<LayoutRoute><Analysis /></LayoutRoute>} />
           <Route path="/ai-decision" element={<LayoutRoute><AIDecisionDashboard /></LayoutRoute>} />
           <Route path="/reports" element={<LayoutRoute><AdvancedReports /></LayoutRoute>} />
+
+          {/* PMO Strategic Tools */}
+          <Route path="/pmo" element={<LayoutRoute><PMODashboard /></LayoutRoute>} />
+          <Route path="/projects/:projectId/rtm" element={<LayoutRoute><RequirementTraceabilityMatrix /></LayoutRoute>} />
+          <Route path="/simulation" element={<LayoutRoute><WhatIfSimulation /></LayoutRoute>} />
 
           {/* User & Settings */}
           <Route path="/workbench" element={<LayoutRoute><UserWorkbench /></LayoutRoute>} />
