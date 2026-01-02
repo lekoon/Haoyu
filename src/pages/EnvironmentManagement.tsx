@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Calendar, Plus, Server, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { usePMOStore } from '../store/usePMOStore';
 import type { EnvironmentResource, EnvironmentBooking, EnvironmentType } from '../types';
-import { Card, Button, Badge, PageContainer, PageHeader } from './ui';
+import { Card, Button, Badge, PageContainer, PageHeader } from '../components/ui';
 import { useTranslation } from 'react-i18next';
 
 const EnvironmentManagement: React.FC = () => {
@@ -56,7 +56,7 @@ const EnvironmentManagement: React.FC = () => {
         <PageContainer>
             <PageHeader
                 title="环境资源管理"
-                subtitle="管理测试环境、发布窗口等非人力资源，避免基础设施冲突"
+                description="管理测试环境、发布窗口等非人力资源，避免基础设施冲突"
                 actions={
                     <Button onClick={() => setShowAddModal(true)}>
                         <Plus className="w-4 h-4 mr-2" />
@@ -72,8 +72,8 @@ const EnvironmentManagement: React.FC = () => {
                         key={type}
                         onClick={() => setFilterType(type as any)}
                         className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${filterType === type
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                     >
                         {type === 'all' ? '全部' : type.charAt(0).toUpperCase() + type.slice(1)}
@@ -166,7 +166,7 @@ const EnvironmentManagement: React.FC = () => {
                                             setSelectedEnvironment(env);
                                             setShowBookingModal(true);
                                         }}
-                                        variant="outline"
+                                        variant="secondary"
                                         className="flex-1"
                                         disabled={env.status !== 'available'}
                                     >
@@ -175,7 +175,7 @@ const EnvironmentManagement: React.FC = () => {
                                     </Button>
                                     <Button
                                         onClick={() => setSelectedEnvironment(env)}
-                                        variant="outline"
+                                        variant="secondary"
                                     >
                                         查看详情
                                     </Button>
