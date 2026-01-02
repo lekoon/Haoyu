@@ -62,6 +62,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             description: 'PMO 总览'
         },
         {
+            label: 'PMO 管控',
+            path: '/pmo',
+            icon: Shield,
+            activePrefix: '/pmo',
+            description: '战略管控中心'
+        },
+        {
             label: '项目组合',
             path: '/projects',
             icon: Briefcase,
@@ -78,7 +85,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {
             label: '风险质量',
             path: '/delivery-efficiency',
-            icon: Shield,
+            icon: TrendingUp,
             activePrefix: '/delivery-efficiency',
             description: '风险与交付'
         },
@@ -94,6 +101,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     // Enhanced Sub Navigation with better categorization
     const getSubNavItems = () => {
         const path = location.pathname;
+
+        // PMO 战略管控
+        if (path.startsWith('/pmo') || path.startsWith('/simulation') || path.startsWith('/environments')) {
+            return [
+                { label: 'PMO 仪表板', path: '/pmo', icon: LayoutDashboard, description: '管控中心' },
+                { label: '环境资源', path: '/environments', icon: Shield, description: '环境管理' },
+                { label: 'What-If 推演', path: '/simulation', icon: Brain, description: '沙盘模拟' },
+            ];
+        }
 
         // 项目组合管理
         if (path.startsWith('/projects') || path.startsWith('/portfolio') || path.startsWith('/dependencies')) {
