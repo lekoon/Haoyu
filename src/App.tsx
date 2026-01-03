@@ -24,9 +24,7 @@ const TemplateManager = lazy(() => import('./pages/TemplateManager'));
 const BatchImport = lazy(() => import('./pages/BatchImport'));
 const DeliveryEfficiency = lazy(() => import('./pages/DeliveryEfficiency'));
 const RiskManagement = lazy(() => import('./pages/RiskManagement'));
-const PortfolioDashboard = lazy(() => import('./pages/PortfolioDashboard'));
 const EVMAnalysis = lazy(() => import('./pages/EVMAnalysis'));
-const DependencyAnalysis = lazy(() => import('./pages/DependencyAnalysis'));
 const EnvironmentManagement = lazy(() => import('./pages/EnvironmentManagement'));
 const RequirementTraceabilityMatrix = lazy(() => import('./pages/RequirementTraceabilityMatrix'));
 const WhatIfSimulation = lazy(() => import('./pages/WhatIfSimulation'));
@@ -78,10 +76,12 @@ function App() {
           {/* Delivery Efficiency Dashboard */}
           <Route path="/delivery-efficiency" element={<LayoutRoute><DeliveryEfficiency /></LayoutRoute>} />
 
+
           {/* Analysis & Reports */}
-          <Route path="/portfolio" element={<LayoutRoute><PortfolioDashboard /></LayoutRoute>} />
+          {/* 项目组合和依赖分析已集成到PMO管控中心 */}
+          <Route path="/portfolio" element={<Navigate to="/pmo" replace />} />
+          <Route path="/dependencies" element={<Navigate to="/pmo" replace />} />
           <Route path="/evm" element={<LayoutRoute><EVMAnalysis /></LayoutRoute>} />
-          <Route path="/dependencies" element={<LayoutRoute><DependencyAnalysis /></LayoutRoute>} />
           <Route path="/analysis" element={<LayoutRoute><Analysis /></LayoutRoute>} />
           <Route path="/ai-decision" element={<LayoutRoute><AIDecisionDashboard /></LayoutRoute>} />
           <Route path="/reports" element={<LayoutRoute><AdvancedReports /></LayoutRoute>} />
