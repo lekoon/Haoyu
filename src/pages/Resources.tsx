@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import type { ResourcePoolItem, TeamMember } from '../types';
-import { Plus, LayoutGrid, Calendar, BarChart2, Activity, AlertTriangle, DollarSign, Target, Gauge } from 'lucide-react';
+import { Plus, LayoutGrid, Calendar, BarChart2, Activity, AlertTriangle, DollarSign, Target, Gauge, Brain } from 'lucide-react';
 import { generateTimeBuckets, calculateResourceLoad } from '../utils/resourcePlanning';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -31,11 +31,12 @@ import DashboardCards from '../components/resource-viz/DashboardCards';
 import ResourceHeatmap from '../components/resource-viz/ResourceHeatmap';
 import ProjectProgressCards from '../components/resource-viz/ProjectProgressCards';
 import ResourceDetailForm from '../components/ResourceDetailForm';
+import ResourceRiskPredictor from '../components/ResourceRiskPredictor';
 
-type ViewMode = 'dashboard' | 'pool' | 'capacity' | 'gantt' | 'analysis' | 'conflicts' | 'costs' | 'skills';
+type ViewMode = 'dashboard' | 'pool' | 'capacity' | 'gantt' | 'analysis' | 'conflicts' | 'costs' | 'skills' | 'predictor';
 
 const Resources: React.FC = () => {
-    const { resourcePool, projects, addResource, updateResource, deleteResource, reorderResources } = useStore();
+    const { resourcePool, projects, addResource, updateResource, deleteResource, reorderResources, user } = useStore();
     const { t } = useTranslation();
     const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -203,6 +204,7 @@ const Resources: React.FC = () => {
         { id: 'conflicts', label: t('resources.conflicts'), icon: AlertTriangle },
         { id: 'skills', label: t('resources.skillMatching'), icon: Target },
         { id: 'costs', label: t('resources.costAnalysis'), icon: DollarSign },
+        { id: 'predictor', label: '风险预测 (AI)', icon: Brain },
     ];
 
     return (
@@ -212,13 +214,15 @@ const Resources: React.FC = () => {
                     <h1 className="text-3xl font-bold text-slate-900">{t('resources.title')}</h1>
                     <p className="text-slate-500 mt-1">{t('resources.subtitle')}</p>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
-                >
-                    <Plus size={20} />
-                    {t('resources.addResource')}
-                </button>
+                {user?.role !== 'user' && (
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
+                    >
+                        <Plus size={20} />
+                        {t('resources.addResource')}
+                    </button>
+                )}
             </div>
 
             {/* Navigation Tabs */}
@@ -245,6 +249,10 @@ const Resources: React.FC = () => {
 
             {/* Content Area */}
             <div className="min-h-[500px]">
+                {viewMode === 'predictor' && (
+                    <ResourceRiskPredictor projects={projects} resourcePool={resourcePool} />
+                )}
+
                 {viewMode === 'dashboard' && (
                     <div className="space-y-6">
                         {/* Dashboard Cards */}

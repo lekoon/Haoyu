@@ -1,4 +1,4 @@
-import { Project, ResourcePoolItem, Task, ProjectTemplate } from '../types';
+import type { Project, ResourcePoolItem, Task, ProjectTemplate } from '../types';
 
 export type SearchResultType = 'project' | 'task' | 'resource' | 'template' | 'page';
 

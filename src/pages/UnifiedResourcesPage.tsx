@@ -17,7 +17,9 @@ import {
     Filter,
     X,
     Brain,
+    TrendingUp,
 } from 'lucide-react';
+import ResourceRiskPredictor from '../components/ResourceRiskPredictor';
 import EnhancedResourcesDashboard from './EnhancedResourcesDashboard';
 import ResourceAllocationHeatmap from '../components/ResourceAllocationHeatmap';
 import EnhancedResourceTimeline from '../components/EnhancedResourceTimeline';
@@ -30,7 +32,7 @@ import AddResourceModal from '../components/AddResourceModal';
 import AIDecisionDashboard from './AIDecisionDashboard';
 import { PageContainer, PageHeader, Button, Badge } from '../components/ui';
 
-type ViewTab = 'dashboard' | 'heatmap' | 'gantt' | 'conflicts' | 'costs' | 'skills' | 'decision';
+type ViewTab = 'dashboard' | 'heatmap' | 'gantt' | 'conflicts' | 'costs' | 'skills' | 'decision' | 'prediction';
 
 const UnifiedResourcesPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ViewTab>('dashboard');
@@ -82,6 +84,7 @@ const UnifiedResourcesPage: React.FC = () => {
         { id: 'costs' as const, label: '成本分析', icon: DollarSign, color: 'yellow' },
         { id: 'skills' as const, label: '技能匹配', icon: Target, color: 'indigo' },
         { id: 'decision' as const, label: '决策支持', icon: Brain, color: 'rose' },
+        { id: 'prediction' as const, label: '负荷预测', icon: TrendingUp, color: 'blue' },
     ];
 
     const handleExport = (format: 'csv' | 'json') => {
@@ -115,7 +118,7 @@ const UnifiedResourcesPage: React.FC = () => {
                         <div className="flex items-center gap-3">
                             {/* Filter Button */}
                             <Button
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation();
                                     setShowFilters(!showFilters);
                                 }}
@@ -263,6 +266,8 @@ const UnifiedResourcesPage: React.FC = () => {
                 {activeTab === 'skills' && <SkillMatchingAnalysis />}
 
                 {activeTab === 'decision' && <AIDecisionDashboard />}
+
+                {activeTab === 'prediction' && <ResourceRiskPredictor projects={projects} resourcePool={resourcePool} />}
             </div>
 
             {/* Click outside to close menus */}

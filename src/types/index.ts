@@ -18,6 +18,61 @@ export interface FactorDefinition {
 
 // Resources
 export type ResourceUnit = 'day' | 'month' | 'year';
+
+export type BaySize = 'S' | 'M' | 'L';
+export type ResourceStatus = 'available' | 'occupied' | 'maintenance';
+
+export interface ResourceBooking {
+    id: string;
+    projectId: string;
+    projectName: string;
+    startDate: string;
+    endDate: string;
+    reservedBy: string; // User ID
+    usageType?: 'test' | 'development' | 'demo' | 'validation';
+    status?: 'planned' | 'active' | 'completed' | 'cancelled';
+}
+
+export interface ReplacementRecord {
+    id: string;
+    date: string;
+    partName: string; // 更换部件
+    reason: string;
+    performedBy: string;
+    notes?: string;
+}
+
+export interface BayResource {
+    id: string;
+    name: string;
+    size: BaySize;
+    status: ResourceStatus;
+    currentProjectId?: string;
+    currentProjectName?: string;
+    health: number; // 0-100
+    lastMaintenance: string;
+    nextMaintenance: string;
+    bookings: ResourceBooking[];
+    conflicts?: string[]; // IDs of conflicting bookings
+    replacementHistory?: ReplacementRecord[];
+    usageHistory?: ResourceBooking[]; // Detailed usage history
+}
+
+export interface MachineResource {
+    id: string;
+    name: string;
+    model: string;
+    status: ResourceStatus;
+    currentProjectId?: string;
+    currentProjectName?: string;
+    health: number; // 0-100
+    lastMaintenance: string;
+    nextMaintenance: string;
+    bookings: ResourceBooking[];
+    conflicts?: string[];
+    replacementHistory?: ReplacementRecord[];
+    usageHistory?: ResourceBooking[];
+}
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export interface Skill {
@@ -261,8 +316,20 @@ export interface Project {
     // Tasks (New for Gantt)
     tasks?: Task[];
 
+    // PDSG Members (核心成员)
+    pdsgMembers?: TeamMember[];
+
     // Risks
     risks?: Risk[];
+
+    // Environment Requirements
+    environmentRequirements?: {
+        environmentId: string;
+        environmentName: string;
+        startDate: string;
+        endDate: string;
+        purpose: string;
+    }[];
 
     estimatedCost?: number; // 预估成本（向后兼容）
 
@@ -328,7 +395,7 @@ export interface EVMMetrics {
 
 // 3. Stage-Gate Process (阶段门径)
 export type ProjectStage = 'initiation' | 'planning' | 'execution' | 'monitoring' | 'closing';
-export type GateStatus = 'pending' | 'approved' | 'rejected' | 'conditional';
+export type GateStatus = 'pending' | 'requested' | 'approved' | 'rejected' | 'conditional';
 
 export interface StageGate {
     id: string;
@@ -735,7 +802,7 @@ export interface ChangeRequest {
     // Change Details
     title: string;
     description: string;
-    category: 'scope' | 'schedule' | 'budget' | 'resource' | 'quality';
+    category: 'scope' | 'schedule' | 'budget' | 'resource' | 'quality' | 'project_status';
 
     // Impact Assessment (强制填写)
     estimatedEffortHours: number; // 预计增加工时
@@ -763,6 +830,7 @@ export interface ChangeRequest {
     // Audit
     createdAt: string;
     updatedAt?: string;
+    metadata?: Record<string, any>;
 }
 
 // 2. Scope Creep Metrics (范围蔓延指标)

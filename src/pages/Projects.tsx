@@ -8,9 +8,11 @@ import TemplateSelector from '../components/TemplateSelector';
 import KanbanBoard from '../components/KanbanBoard';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer, PageHeader, Card, Button, Badge } from '../components/ui';
+import { usePMOStore } from '../store/usePMOStore';
 
 const Projects: React.FC = () => {
-    const { projects, addProject, deleteProject, updateProject, factorDefinitions, resourcePool } = useStore();
+    const { projects, addProject, deleteProject, updateProject, factorDefinitions, resourcePool, user } = useStore();
+    const { environmentResources } = usePMOStore();
     const navigate = useNavigate();
     const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('list');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,7 +74,9 @@ const Projects: React.FC = () => {
         startDate: '',
         endDate: '',
         factors: {},
-        resourceRequirements: []
+        resourceRequirements: [],
+        milestones: [],
+        environmentRequirements: []
     });
 
     // Initialize factors for new project
@@ -147,7 +151,9 @@ const Projects: React.FC = () => {
                 startDate: '',
                 endDate: '',
                 factors: initializeFactors(),
-                resourceRequirements: []
+                resourceRequirements: [],
+                milestones: [],
+                environmentRequirements: []
             });
             setIsTemplateSelectorOpen(false);
             setIsModalOpen(true);
@@ -196,6 +202,67 @@ const Projects: React.FC = () => {
         }));
     };
 
+    // Milestone Handlers
+    const addMilestone = () => {
+        setFormData(prev => ({
+            ...prev,
+            milestones: [
+                ...(prev.milestones || []),
+                { id: Math.random().toString(36).substr(2, 9), name: '', date: '', completed: false }
+            ]
+        }));
+    };
+
+    const removeMilestone = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            milestones: prev.milestones?.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateMilestone = (index: number, field: keyof any, value: any) => {
+        setFormData(prev => ({
+            ...prev,
+            milestones: prev.milestones?.map((m, i) =>
+                i === index ? { ...m, [field]: value } : m
+            )
+        }));
+    };
+
+    // Environment Requirement Handlers
+    const addEnvReq = () => {
+        setFormData(prev => ({
+            ...prev,
+            environmentRequirements: [
+                ...(prev.environmentRequirements || []),
+                { environmentId: environmentResources[0]?.id || '', environmentName: environmentResources[0]?.name || '', startDate: '', endDate: '', purpose: '' }
+            ]
+        }));
+    };
+
+    const removeEnvReq = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            environmentRequirements: prev.environmentRequirements?.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateEnvReq = (index: number, field: string, value: any) => {
+        setFormData(prev => ({
+            ...prev,
+            environmentRequirements: prev.environmentRequirements?.map((req, i) => {
+                if (i === index) {
+                    if (field === 'environmentId') {
+                        const env = environmentResources.find(e => e.id === value);
+                        return { ...req, environmentId: value, environmentName: env?.name || '' };
+                    }
+                    return { ...req, [field]: value };
+                }
+                return req;
+            })
+        }));
+    };
+
     const currentScore = formData.factors ? calculateProjectScore(formData.factors, factorDefinitions) : 0;
 
     // Kanban Columns - Moved to KanbanBoard component
@@ -233,9 +300,11 @@ const Projects: React.FC = () => {
                                 <Calendar size={20} />
                             </button>
                         </div>
-                        <Button onClick={() => handleOpenModal()} variant="primary" icon={Plus}>
-                            New Project
-                        </Button>
+                        {user?.role !== 'user' && (
+                            <Button onClick={() => handleOpenModal()} variant="primary" icon={Plus}>
+                                New Project
+                            </Button>
+                        )}
                     </div>
                 }
             />
@@ -289,12 +358,16 @@ const Projects: React.FC = () => {
                                     </td>
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button onClick={() => handleOpenModal(project)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                                <Edit2 size={18} />
-                                            </button>
-                                            <button onClick={() => deleteProject(project.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                                <Trash2 size={18} />
-                                            </button>
+                                            {user?.role !== 'user' && (
+                                                <>
+                                                    <button onClick={() => handleOpenModal(project)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                    <button onClick={() => deleteProject(project.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -363,16 +436,37 @@ const Projects: React.FC = () => {
                                         <div key={project.id} className="flex items-center group">
                                             <div className="w-48 shrink-0 pr-4">
                                                 <div className="font-medium text-sm text-slate-900 truncate">{project.name}</div>
-                                                <div className="text-xs text-slate-400">Rank #{project.rank}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="text-[10px] text-slate-400">Rank #{project.rank}</div>
+                                                    <Badge variant="neutral" className="text-[9px] py-0 px-1">Score: {(project.score || 0).toFixed(1)}</Badge>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 relative h-8 bg-slate-50 rounded-lg overflow-hidden">
+                                            <div className="flex-1 relative h-8 bg-slate-50 dark:bg-slate-800/50 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
                                                 <div
-                                                    className={`absolute top-1 bottom-1 rounded-md ${colorClass} opacity-80 hover:opacity-100 transition-opacity cursor-pointer flex items-center px-2`}
+                                                    className={`absolute top-1 bottom-1 rounded-md ${colorClass} shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center px-2 group/bar overflow-hidden`}
                                                     style={{ left: `${left}%`, width: `${width}%` }}
                                                     onClick={() => handleOpenModal(project)}
-                                                    title={`${project.name}: ${project.startDate} to ${project.endDate}`}
+                                                    title={`${project.name}: ${project.startDate} to ${project.endDate}\nProgress: ${project.progress || 0}%\nScore: ${project.score || 0}`}
                                                 >
-                                                    <span className="text-xs text-white font-bold truncate drop-shadow-md">{project.name}</span>
+                                                    {/* Internal Progress Bar */}
+                                                    <div
+                                                        className="absolute top-0 left-0 h-full bg-black/20 pointer-events-none transition-all duration-500"
+                                                        style={{ width: `${project.progress || 0}%` }}
+                                                    />
+
+                                                    <div className="relative z-10 w-full flex items-center justify-between gap-2">
+                                                        <span className="text-xs text-white font-bold truncate drop-shadow-md">
+                                                            {project.name}
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            <span className="text-[10px] text-white/90 font-mono bg-black/10 px-1 rounded">
+                                                                {project.progress || 0}%
+                                                            </span>
+                                                            <span className="text-[10px] text-white/90 font-bold bg-white/20 px-1 rounded">
+                                                                S: {(project.score || 0).toFixed(0)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -512,6 +606,110 @@ const Projects: React.FC = () => {
                                         ))}
                                         {formData.resourceRequirements?.length === 0 && (
                                             <p className="text-sm text-slate-400 italic">No resources allocated yet.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Milestones */}
+                                <div className="border-t border-slate-100 pt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-bold text-slate-800">Project Milestones</h3>
+                                        <button type="button" onClick={addMilestone} className="text-sm text-blue-600 font-bold hover:underline">+ Add Milestone</button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {formData.milestones?.map((m, index) => (
+                                            <div key={index} className="flex gap-3 items-end bg-slate-50 p-3 rounded-xl">
+                                                <div className="flex-1">
+                                                    <label className="text-xs font-bold text-slate-500">Milestone Name</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. Design Review"
+                                                        className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                                        value={m.name}
+                                                        onChange={e => updateMilestone(index, 'name', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="w-48">
+                                                    <label className="text-xs font-bold text-slate-500">Date</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                                        value={m.date}
+                                                        onChange={e => updateMilestone(index, 'date', e.target.value)}
+                                                    />
+                                                </div>
+                                                <button type="button" onClick={() => removeMilestone(index)} className="p-2 text-slate-400 hover:text-red-600">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {formData.milestones?.length === 0 && (
+                                            <p className="text-sm text-slate-400 italic">No milestones defined.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Environment Requirements */}
+                                <div className="border-t border-slate-100 pt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-bold text-slate-800">Environment Resources</h3>
+                                        <button type="button" onClick={addEnvReq} className="text-sm text-blue-600 font-bold hover:underline">+ Add Environment</button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {formData.environmentRequirements?.map((req, index) => (
+                                            <div key={index} className="flex flex-col gap-3 bg-slate-50 p-4 rounded-xl">
+                                                <div className="flex gap-3 items-end">
+                                                    <div className="flex-1">
+                                                        <label className="text-xs font-bold text-slate-500">Environment</label>
+                                                        <select
+                                                            className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                                            value={req.environmentId}
+                                                            onChange={e => updateEnvReq(index, 'environmentId', e.target.value)}
+                                                        >
+                                                            {environmentResources.map(e => (
+                                                                <option key={e.id} value={e.id}>{e.name} ({e.type})</option>
+                                                            ))}
+                                                            {environmentResources.length === 0 && <option disabled>No environments available</option>}
+                                                        </select>
+                                                    </div>
+                                                    <div className="w-1/2">
+                                                        <label className="text-xs font-bold text-slate-500">Purpose</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="e.g. UAT Testing"
+                                                            className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                                            value={req.purpose}
+                                                            onChange={e => updateEnvReq(index, 'purpose', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <button type="button" onClick={() => removeEnvReq(index)} className="p-2 text-slate-400 hover:text-red-600">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                <div className="flex gap-3">
+                                                    <div className="flex-1">
+                                                        <label className="text-xs font-bold text-slate-500">Start Date</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                                            value={req.startDate}
+                                                            onChange={e => updateEnvReq(index, 'startDate', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <label className="text-xs font-bold text-slate-500">End Date</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                                            value={req.endDate}
+                                                            onChange={e => updateEnvReq(index, 'endDate', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {formData.environmentRequirements?.length === 0 && (
+                                            <p className="text-sm text-slate-400 italic">No environment resources requested.</p>
                                         )}
                                     </div>
                                 </div>

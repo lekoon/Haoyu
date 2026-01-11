@@ -1,4 +1,4 @@
-import { Project, Risk, RiskCategory } from '../types';
+import type { Project, Risk, RiskCategory } from '../types';
 
 /**
  * Cross-project risk correlation analysis

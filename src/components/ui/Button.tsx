@@ -3,8 +3,8 @@ import type { LucideIcon } from 'lucide-react';
 
 interface ButtonProps {
     children: React.ReactNode;
-    onClick?: () => void;
-    variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
+    onClick?: (e: React.MouseEvent) => void;
+    variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost' | 'outline';
     size?: 'sm' | 'md' | 'lg';
     icon?: LucideIcon;
     iconPosition?: 'left' | 'right';
@@ -28,14 +28,15 @@ const Button: React.FC<ButtonProps> = ({
     className = '',
     type = 'button'
 }) => {
-    const baseClasses = 'flex items-center gap-2 rounded-lg transition-colors font-medium';
+    const baseClasses = 'flex items-center gap-2 rounded-lg transition-colors font-medium whitespace-nowrap flex-shrink-0';
 
     const variantClasses = {
         primary: 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300',
         secondary: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:bg-slate-50',
         danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300',
         success: 'bg-green-600 text-white hover:bg-green-700 disabled:bg-green-300',
-        ghost: 'bg-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:text-slate-300'
+        ghost: 'bg-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:text-slate-300',
+        outline: 'bg-transparent border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50'
     };
 
     const sizeClasses = {

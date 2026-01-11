@@ -1,18 +1,40 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderKanban, Users, PieChart, Brain, ArrowRight } from 'lucide-react';
+import { FolderKanban, Users, PieChart, Brain, ArrowRight, Shield, Box } from 'lucide-react';
+import { useStore } from '../store/useStore';
 
 const Home: React.FC = () => {
     const navigate = useNavigate();
 
-    const cards = [
+    const { user } = useStore();
+
+    const allCards = [
+        {
+            title: 'PMO 管控',
+            description: '战略级项目管控中心，包含环境资源独占管理与 What-If 沙盘模拟推演分析。',
+            icon: Shield,
+            path: '/pmo',
+            color: 'from-indigo-600 to-blue-700',
+            features: ['PMO 仪表板', '环境资源管理', '沙盘推演分析'],
+            roles: ['admin']
+        },
         {
             title: '项目组合',
             description: '全方位的项目全生命周期管理，包括评分、进度追踪、模板管理与批量操作。',
             icon: FolderKanban,
             path: '/projects',
             color: 'from-blue-500 to-cyan-500',
-            features: ['项目列表', '项目模板', '项目组合', '依赖分析']
+            features: ['项目列表', '项目模板', '项目组合', '依赖分析'],
+            roles: ['admin', 'manager', 'user']
+        },
+        {
+            title: '物理资源',
+            description: 'Bay 实验室位与高价值机器的实时状态监控及预定管理，支持可视化看板模式。',
+            icon: Box,
+            path: '/bay-resources',
+            color: 'from-sky-500 to-indigo-500',
+            features: ['Bay 位地图', '机器型号管控', '预定计划轴', '利用率统计'],
+            roles: ['admin', 'manager', 'user']
         },
         {
             title: '资源团队',
@@ -20,7 +42,8 @@ const Home: React.FC = () => {
             icon: Users,
             path: '/resources',
             color: 'from-purple-500 to-pink-500',
-            features: ['资源池', '容量规划', '冲突检测', '技能匹配']
+            features: ['资源池', '容量规划', '冲突检测', '技能匹配'],
+            roles: ['admin', 'manager']
         },
         {
             title: '风险质量',
@@ -28,7 +51,8 @@ const Home: React.FC = () => {
             icon: PieChart,
             path: '/delivery-efficiency',
             color: 'from-amber-500 to-orange-500',
-            features: ['交付效率', 'AI 决策', '风险预警', '质量追踪']
+            features: ['交付效率', 'AI 决策', '风险预警', '质量追踪'],
+            roles: ['admin', 'manager']
         },
         {
             title: '分析报告',
@@ -36,9 +60,12 @@ const Home: React.FC = () => {
             icon: Brain,
             path: '/analysis',
             color: 'from-emerald-500 to-teal-500',
-            features: ['成本分析', 'AI 洞察', '高级报表', '挣值管理']
+            features: ['成本分析', 'AI 洞察', '高级报表', '挣值管理'],
+            roles: ['admin', 'manager']
         }
     ];
+
+    const cards = allCards.filter(card => card.roles.includes(user?.role || 'user'));
 
     return (
         <div className="min-h-full flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
@@ -54,7 +81,7 @@ const Home: React.FC = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[110rem] mx-auto w-full">
                 {cards.map((card, index) => (
                     <div
                         key={index}
@@ -72,7 +99,7 @@ const Home: React.FC = () => {
                                 {card.title}
                             </h3>
 
-                            <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm leading-relaxed h-20">
+                            <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm leading-relaxed min-h-[4.5rem] line-clamp-3 overflow-hidden">
                                 {card.description}
                             </p>
 

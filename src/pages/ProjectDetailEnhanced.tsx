@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, useResourcePool } from '../store/useStore';
 import { usePMOStore } from '../store/usePMOStore';
-import { ArrowLeft, Edit2, Check, DollarSign, Layout, Users, AlertTriangle, BarChart3, Target, GitBranch, GitMerge, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Edit2, Check, DollarSign, Layout, Users, AlertTriangle, BarChart3, Target, GitBranch, GitMerge, TrendingUp, Shield } from 'lucide-react';
 import SmartTaskView from '../components/SmartTaskView';
 import ProjectResourceDetail from '../components/ProjectResourceDetail';
 import RiskAssessment from '../components/RiskAssessment';
@@ -14,15 +14,18 @@ import BaselineHistory from '../components/BaselineHistory';
 import StageGateWorkflow from '../components/StageGateWorkflow';
 import ScopeCreepMonitor from '../components/ScopeCreepMonitor';
 import ChangeImpactAssessment from '../components/ChangeImpactAssessment';
+import ProjectOverviewSummary from '../components/ProjectOverviewSummary';
+import TaskImpactSimulator from '../components/TaskImpactSimulator';
+import PDSGManagement from '../components/PDSGManagement';
 import { calculateProjectHealth } from '../utils/projectHealth';
-import { DEFAULT_STAGE_GATES, getNextStage } from '../utils/stageGateManagement';
+import { DEFAULT_STAGE_GATES, getNextStage, getStageName } from '../utils/stageGateManagement';
 import type { CostEntry, Task, ProjectWithStageGate, StageGate, ProjectStage } from '../types';
 import { Badge, Button } from '../components/ui';
 
 const ProjectDetailEnhanced: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
-    const { projects, updateProject } = useStore();
+    const { projects, updateProject, user } = useStore();
     const resourcePool = useResourcePool();
     const { addChangeRequest, getChangeRequestsByProject } = usePMOStore();
 
@@ -30,9 +33,10 @@ const ProjectDetailEnhanced: React.FC = () => {
 
     // Initialize state
     const [isEditing, setIsEditing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'diagram' | 'resources' | 'costs' | 'risks' | 'analytics' | 'strategy' | 'baseline' | 'stagegate' | 'scope'>('diagram');
+    const [activeTab, setActiveTab] = useState<'diagram' | 'resources' | 'costs' | 'risks' | 'analytics' | 'strategy' | 'baseline' | 'stagegate' | 'scope' | 'pdsg'>('diagram');
     const [isCostFormOpen, setIsCostFormOpen] = useState(false);
     const [showChangeAssessment, setShowChangeAssessment] = useState(false);
+    const [showSimulator, setShowSimulator] = useState(false);
 
     if (!project) {
         return (
@@ -171,22 +175,28 @@ const ProjectDetailEnhanced: React.FC = () => {
                 </div>
 
                 {/* View Switcher */}
-                <div className="flex bg-slate-100 p-1 rounded-lg">
+                <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto no-scrollbar scroll-smooth">
                     <button
                         onClick={() => setActiveTab('diagram')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'diagram' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'diagram' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <Layout size={16} /> 任务视图
                     </button>
                     <button
                         onClick={() => setActiveTab('resources')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'resources' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'resources' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <Users size={16} /> 资源
+                        <Users size={16} /> 资源池
                     </button>
                     <button
-                        onClick={() => navigate(`/projects/${project.id}/risks`)}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all relative ${activeTab === 'risks' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveTab('pdsg')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'pdsg' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Shield size={16} /> PDSG 核心组
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('risks')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all relative ${activeTab === 'risks' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <AlertTriangle size={16} /> 风险
                         {project.risks && project.risks.length > 0 && (
@@ -197,37 +207,37 @@ const ProjectDetailEnhanced: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('costs')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'costs' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'costs' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <DollarSign size={16} /> 成本
                     </button>
                     <button
                         onClick={() => setActiveTab('analytics')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'analytics' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'analytics' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <BarChart3 size={16} /> 高级分析
                     </button>
                     <button
                         onClick={() => setActiveTab('strategy')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'strategy' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'strategy' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <Target size={16} /> 战略评分
                     </button>
                     <button
                         onClick={() => setActiveTab('baseline')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'baseline' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'baseline' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <GitBranch size={16} /> 基线管理
                     </button>
                     <button
                         onClick={() => setActiveTab('stagegate')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'stagegate' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'stagegate' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <GitMerge size={16} /> 阶段门径
                     </button>
                     <button
                         onClick={() => setActiveTab('scope')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${activeTab === 'scope' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 transition-all ${activeTab === 'scope' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <TrendingUp size={16} /> 范围管理
                     </button>
@@ -237,13 +247,55 @@ const ProjectDetailEnhanced: React.FC = () => {
             {/* Main Content Area - Full Screen */}
             <div className="flex-1 relative overflow-hidden bg-slate-50">
                 {activeTab === 'diagram' && (
-                    <SmartTaskView
-                        tasks={project.tasks || []}
-                        projectName={project.name}
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskAdd={handleTaskAdd}
-                        onTaskDelete={handleTaskDelete}
-                    />
+                    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+                        {/* 进展概览与统计 */}
+                        <div className="p-6 pb-0 shrink-0">
+                            <ProjectOverviewSummary
+                                project={project}
+                                tasks={project.tasks || []}
+                            />
+
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <Layout size={20} className="text-blue-600" />
+                                    任务编排与进度分析
+                                </h3>
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={() => setShowSimulator(!showSimulator)}
+                                        variant={showSimulator ? 'primary' : 'secondary'}
+                                        size="sm"
+                                        icon={TrendingUp}
+                                    >
+                                        {showSimulator ? '隐藏分析器' : '开启影响分析模拟'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 影响模拟器 */}
+                        {showSimulator && (
+                            <div className="px-6 pb-6 shrink-0 animate-in slide-in-from-top duration-300">
+                                <TaskImpactSimulator
+                                    project={project}
+                                    existingTasks={project.tasks || []}
+                                    resourcePool={resourcePool}
+                                />
+                            </div>
+                        )}
+
+                        {/* 核心任务视图 */}
+                        <div className="flex-1 overflow-hidden">
+                            <SmartTaskView
+                                tasks={project.tasks || []}
+                                projectName={project.name}
+                                pdsgMembers={project.pdsgMembers}
+                                onTaskUpdate={handleTaskUpdate}
+                                onTaskAdd={handleTaskAdd}
+                                onTaskDelete={handleTaskDelete}
+                            />
+                        </div>
+                    </div>
                 )}
 
                 {activeTab === 'risks' && (
@@ -335,6 +387,17 @@ const ProjectDetailEnhanced: React.FC = () => {
                     />
                 )}
 
+                {/* PDSG 管理视图 */}
+                {activeTab === 'pdsg' && (
+                    <div className="h-full overflow-auto p-8 max-w-7xl mx-auto">
+                        <PDSGManagement
+                            project={project}
+                            resourcePool={resourcePool}
+                            onUpdateMembers={(members) => updateProject(project.id, { ...project, pdsgMembers: members })}
+                        />
+                    </div>
+                )}
+
                 {/* 基线管理视图 */}
                 {activeTab === 'baseline' && (
                     <div className="h-full overflow-auto p-6 max-w-7xl mx-auto">
@@ -389,9 +452,32 @@ const ProjectDetailEnhanced: React.FC = () => {
                                     } as any);
                                 }
                             }}
-                            currentUserId="current-user"
-                            currentUserName={project.manager || "项目经理"}
-                            userRole="admin"
+                            currentUserId={user?.id || 'anonymous'}
+                            currentUserName={user?.name || 'Anonymous User'}
+                            userRole={user?.role || 'user'}
+                            onRequestApproval={(gate) => {
+                                addChangeRequest({
+                                    projectId: project.id,
+                                    projectName: project.name,
+                                    requestedBy: user?.id || 'anonymous',
+                                    requestedByName: user?.name || '项目经理',
+                                    requestDate: new Date().toISOString(),
+                                    title: `阶段门径申请: ${getStageName(gate.stage)}`,
+                                    description: `项目经理申请进入下一步阶段: ${gate.name}\n${gate.description}`,
+                                    category: 'project_status',
+                                    estimatedEffortHours: 0,
+                                    estimatedCostIncrease: 0,
+                                    scheduleImpactDays: 0,
+                                    impactLevel: 'medium',
+                                    businessJustification: '项目已完成当前阶段所有必需任务，申请进入下一流程节点。',
+                                    status: 'pending',
+                                    metadata: {
+                                        type: 'stage_gate',
+                                        gateId: gate.id,
+                                        stage: gate.stage
+                                    }
+                                });
+                            }}
                         />
                     </div>
                 )}

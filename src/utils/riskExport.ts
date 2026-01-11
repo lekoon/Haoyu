@@ -1,4 +1,4 @@
-import { Risk, Project } from '../types';
+import type { Risk, Project } from '../types';
 import { getRiskCategoryInfo, getRiskStatusInfo } from './riskManagement';
 import { format } from 'date-fns';
 

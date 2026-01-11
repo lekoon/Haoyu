@@ -58,21 +58,21 @@ const UserWorkbench: React.FC = () => {
         <div className="space-y-6">
             {/* Profile Banner */}
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex-shrink-0 flex items-center justify-center text-3xl font-bold">
                             {currentMember.name.charAt(0)}
                         </div>
-                        <div>
-                            <h1 className="text-3xl font-bold mb-1">{currentMember.name}</h1>
-                            <p className="text-blue-100">{currentMember.role}</p>
-                            <p className="text-sm text-blue-100 mt-2">
-                                <Clock className="inline mr-1" size={14} />
-                                {t('workbench.weeklyCapacity')}: {currentMember.availability}h
+                        <div className="min-w-0">
+                            <h1 className="text-3xl font-bold mb-1 truncate">{currentMember.name}</h1>
+                            <p className="text-blue-100 truncate">{currentMember.role}</p>
+                            <p className="text-sm text-blue-100 mt-2 flex items-center gap-1">
+                                <Clock size={14} />
+                                <span className="whitespace-nowrap">{t('workbench.weeklyCapacity')}: {currentMember.availability}h</span>
                             </p>
                         </div>
                     </div>
-                    <button className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur rounded-lg transition-colors flex items-center gap-2">
+                    <button className="whitespace-nowrap px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur rounded-lg transition-colors flex items-center gap-2 flex-shrink-0">
                         <Edit size={18} />
                         {t('common.edit')}
                     </button>
@@ -86,9 +86,9 @@ const UserWorkbench: React.FC = () => {
                         <div className="p-3 bg-blue-100 rounded-lg">
                             <Calendar className="text-blue-600" size={24} />
                         </div>
-                        <div>
-                            <p className="text-sm text-slate-500">{t('workbench.thisWeek')}</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{totalHours}h</h3>
+                        <div className="min-w-0 mr-2 flex-1">
+                            <p className="text-sm text-slate-500 truncate" title={t('workbench.thisWeek')}>{t('workbench.thisWeek')}</p>
+                            <h3 className="text-2xl font-bold text-slate-900 truncate">{totalHours}h</h3>
                         </div>
                     </div>
                 </div>
@@ -103,9 +103,9 @@ const UserWorkbench: React.FC = () => {
                                 <User className="text-green-600" size={24} />
                             )}
                         </div>
-                        <div>
-                            <p className="text-sm text-slate-500">{t('workbench.utilization')}</p>
-                            <h3 className={`text-2xl font-bold ${isOverloaded ? 'text-red-600' : 'text-green-600'}`}>
+                        <div className="min-w-0 mr-2 flex-1">
+                            <p className="text-sm text-slate-500 truncate" title={t('workbench.utilization')}>{t('workbench.utilization')}</p>
+                            <h3 className={`text-2xl font-bold truncate ${isOverloaded ? 'text-red-600' : 'text-green-600'}`}>
                                 {((totalHours / currentMember.availability) * 100).toFixed(0)}%
                             </h3>
                         </div>
@@ -117,9 +117,9 @@ const UserWorkbench: React.FC = () => {
                         <div className="p-3 bg-purple-100 rounded-lg">
                             <Calendar className="text-purple-600" size={24} />
                         </div>
-                        <div>
-                            <p className="text-sm text-slate-500">{t('workbench.activeProjects')}</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{currentMember.assignments.length}</h3>
+                        <div className="min-w-0 mr-2 flex-1">
+                            <p className="text-sm text-slate-500 truncate" title={t('workbench.activeProjects')}>{t('workbench.activeProjects')}</p>
+                            <h3 className="text-2xl font-bold text-slate-900 truncate">{currentMember.assignments.length}</h3>
                         </div>
                     </div>
                 </div>
@@ -137,13 +137,13 @@ const UserWorkbench: React.FC = () => {
                     <div className="flex gap-2">
                         <button
                             onClick={handleRequestAdjustment}
-                            className="px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors"
+                            className="whitespace-nowrap px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors"
                         >
                             {t('workbench.requestAdjustment')}
                         </button>
                         <button
                             onClick={handleExportPlan}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                            className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                         >
                             <Download size={18} />
                             {t('workbench.exportPlan')}
@@ -156,7 +156,7 @@ const UserWorkbench: React.FC = () => {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-200">
-                                <th className="text-left p-3 text-sm font-semibold text-slate-600 w-64">
+                                <th className="text-left p-3 text-sm font-semibold text-slate-600 w-64 whitespace-nowrap">
                                     {t('workbench.project')}
                                 </th>
                                 {weekDays.map(day => (

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Risk } from '../types';
+import type { Risk } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { format, subDays, eachDayOfInterval } from 'date-fns';
 import { calculateRiskScore } from '../utils/riskManagement';

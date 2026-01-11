@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ZoomIn, ZoomOut, Undo2, Redo2, Download, Grid3x3,
+    ZoomIn, ZoomOut, Undo2, Redo2, Download, Grid3x3, Target, PanelLeftOpen, PanelLeftClose,
 } from 'lucide-react';
 import {
     format, addDays, differenceInDays, startOfWeek,
@@ -26,6 +26,7 @@ interface InteractiveGanttChartProps {
 type ViewMode = 'Day' | 'Week' | 'Month';
 
 const ROW_HEIGHT = 48; // Height of a task row
+const SIDEBAR_WIDTH = 320; // Width of the task list sidebar
 
 const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     tasks,
@@ -41,6 +42,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     onEditTask,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const sidebarRef = useRef<HTMLDivElement>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('Day');
     const [zoomLevel, setZoomLevel] = useState(1);
     const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
@@ -48,31 +50,44 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
     const [showGridLines, setShowGridLines] = useState(true);
+    const [showSidebar, setShowSidebar] = useState(true);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string } | null>(null);
-    const [showMilestoneForm, setShowMilestoneForm] = useState(false);
 
     // Interaction states
     const [draggingTask, setDraggingTask] = useState<{ id: string, type: 'move' | 'resize-l' | 'resize-r', startX: number, status?: string } | null>(null);
     const [linkingState, setLinkingState] = useState<{ sourceId: string, endX: number, endY: number } | null>(null);
 
+    // --- Auto Scroll to Today ---
+    React.useEffect(() => {
+        if (containerRef.current) {
+            const todayX = getXFromDate(new Date());
+            const containerWidth = containerRef.current.clientWidth;
+            setScrollPos(prev => ({ ...prev, x: Math.max(0, todayX - containerWidth / 3) }));
+        }
+    }, [viewMode]);
+
+    const scrollToToday = () => {
+        const todayX = getXFromDate(new Date());
+        const containerWidth = containerRef.current?.clientWidth || 800;
+        setScrollPos(prev => ({ ...prev, x: Math.max(0, todayX - containerWidth / 3) }));
+    };
+
     // Calculate timeline range
     const { startDate, totalDays } = useMemo(() => {
         if (tasks.length === 0) {
             const start = startOfWeek(new Date());
-            return { startDate: start, endDate: addDays(start, 30), totalDays: 30 };
+            return { startDate: start, totalDays: 30 };
         }
 
         const timestamps = tasks.flatMap(t => [new Date(t.startDate).getTime(), new Date(t.endDate).getTime()]);
         const min = new Date(Math.min(...timestamps));
         const max = new Date(Math.max(...timestamps));
 
-        // Add buffer
-        const start = addDays(startOfWeek(min), -7);
-        const end = addDays(max, 14);
+        const start = addDays(startOfWeek(min), -14);
+        const end = addDays(max, 30);
 
         return {
             startDate: start,
-            endDate: end,
             totalDays: differenceInDays(end, start)
         };
     }, [tasks]);
@@ -80,9 +95,9 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     // Handle Zoom & View Mode
     const getBaseWidth = () => {
         switch (viewMode) {
-            case 'Week': return 20;
-            case 'Month': return 8;
-            default: return 50;
+            case 'Week': return 25;
+            case 'Month': return 10;
+            default: return 60;
         }
     };
     const currentCellWidth = getBaseWidth() * zoomLevel;
@@ -93,152 +108,118 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
         return differenceInDays(d, startDate) * currentCellWidth;
     };
 
-    // Mouse Event Handlers
-    const handleMouseDown = (e: React.MouseEvent) => {
-        // Only start pan if accessing the container directly (or non-interactive elements)
-        if (e.target === containerRef.current || (e.target as Element).tagName === 'svg') {
-            if (e.button === 0) { // Left click only
-                setIsDragging(true);
-                setDragStart({ x: e.clientX + scrollPos.x, y: e.clientY + scrollPos.y });
+    const handleTaskDragStart = (e: React.MouseEvent, task: Task, type: 'move' | 'resize-l' | 'resize-r') => {
+        e.stopPropagation();
+        setDraggingTask({ id: task.id, type, startX: e.clientX });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (isDragging) {
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            setScrollPos({
+                x: Math.max(0, scrollPos.x - dx),
+                y: Math.max(0, scrollPos.y - dy)
+            });
+            setDragStart({ x: e.clientX, y: e.clientY });
+            return;
+        }
+
+        if (draggingTask) {
+            const dx = e.clientX - draggingTask.startX;
+            const daysDiff = Math.round(dx / currentCellWidth);
+            if (daysDiff === 0) return;
+
+            const task = tasks.find(t => t.id === draggingTask.id);
+            if (!task) return;
+
+            let updatedTask = { ...task };
+            if (draggingTask.type === 'move') {
+                updatedTask.startDate = addDays(parseISO(task.startDate), daysDiff).toISOString();
+                updatedTask.endDate = addDays(parseISO(task.endDate), daysDiff).toISOString();
+            } else if (draggingTask.type === 'resize-l') {
+                const newStart = addDays(parseISO(task.startDate), daysDiff);
+                if (newStart < parseISO(task.endDate)) {
+                    updatedTask.startDate = newStart.toISOString();
+                }
+            } else {
+                const newEnd = addDays(parseISO(task.endDate), daysDiff);
+                if (newEnd > parseISO(task.startDate)) {
+                    updatedTask.endDate = newEnd.toISOString();
+                }
+            }
+
+            onTaskUpdate(updatedTask);
+            setDraggingTask({ ...draggingTask, startX: e.clientX });
+        }
+
+        if (linkingState) {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) {
+                setLinkingState({
+                    ...linkingState,
+                    endX: e.clientX - rect.left + scrollPos.x,
+                    endY: e.clientY - rect.top + scrollPos.y
+                });
             }
         }
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        // Handle Pan
-        if (isDragging) {
-            setScrollPos({
-                x: dragStart.x - e.clientX,
-                y: dragStart.y - e.clientY
-            });
-            return;
-        }
-
-        // Handle Linking Line
-        if (linkingState && containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            setLinkingState(prev => prev ? {
-                ...prev,
-                endX: e.clientX - rect.left - scrollPos.x,
-                endY: e.clientY - rect.top - scrollPos.y
-            } : null);
-        }
-
-        // Handle Task Dragging
-        if (draggingTask) {
-            const task = tasks.find(t => t.id === draggingTask.id);
-            if (!task) return;
-
-            const deltaPixels = e.clientX - draggingTask.startX;
-            const deltaDays = Math.round(deltaPixels / currentCellWidth);
-
-            if (deltaDays === 0) return;
-
-            try {
-                const originals = JSON.parse(draggingTask.status || '{}');
-                if (!originals.start || !originals.end) return;
-
-                const originalStart = parseISO(originals.start);
-                const originalEnd = parseISO(originals.end);
-
-                if (draggingTask.type === 'move') {
-                    const newStart = addDays(originalStart, deltaDays);
-                    const newEnd = addDays(originalEnd, deltaDays);
-
-                    if (format(newStart, 'yyyy-MM-dd') !== task.startDate) {
-                        onTaskUpdate({ ...task, startDate: format(newStart, 'yyyy-MM-dd'), endDate: format(newEnd, 'yyyy-MM-dd') });
-                    }
-                } else if (draggingTask.type === 'resize-l') {
-                    const newStart = addDays(originalStart, deltaDays);
-                    if (differenceInDays(originalEnd, newStart) > 0) {
-                        onTaskUpdate({ ...task, startDate: format(newStart, 'yyyy-MM-dd') });
-                    }
-                } else if (draggingTask.type === 'resize-r') {
-                    const newEnd = addDays(originalEnd, deltaDays);
-                    if (differenceInDays(newEnd, originalStart) > 0) {
-                        onTaskUpdate({ ...task, endDate: format(newEnd, 'yyyy-MM-dd') });
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-            }
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (e.target === containerRef.current || (e.target as Element).tagName === 'svg') {
+            setIsDragging(true);
+            setDragStart({ x: e.clientX, y: e.clientY });
+            setContextMenu(null);
         }
     };
 
     const handleMouseUp = () => {
-        if (isDragging) {
-            setIsDragging(false);
-        }
-        if (linkingState) {
-            setLinkingState(null);
-        }
-        if (draggingTask) {
-            setDraggingTask(null);
-        }
+        setIsDragging(false);
+        setDraggingTask(null);
+        setLinkingState(null);
     };
 
-    const handleWheel = (e: React.WheelEvent) => {
-        if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            // Zoom
-            const delta = -e.deltaY;
-            setZoomLevel(prev => Math.min(3, Math.max(0.1, prev + delta * 0.001)));
-        } else {
-            // Pan
-            setScrollPos(prev => ({
-                x: prev.x + e.deltaX,
-                y: prev.y + e.deltaY
-            }));
-        }
-    };
-
-    // --- Task Manipulation ---
-    const handleTaskDragStart = (e: React.MouseEvent, task: Task, type: 'move' | 'resize-l' | 'resize-r') => {
+    const startLinking = (e: React.MouseEvent, taskId: string) => {
         e.stopPropagation();
-        setDraggingTask({
-            id: task.id,
-            type,
-            startX: e.clientX,
-            status: JSON.stringify({ start: task.startDate, end: task.endDate })
-        });
-    };
-
-    const startLinking = (e: React.MouseEvent, sourceId: string) => {
-        e.stopPropagation();
-        if (containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
             setLinkingState({
-                sourceId,
-                endX: e.clientX - rect.left - scrollPos.x,
-                endY: e.clientY - rect.top - scrollPos.y
+                sourceId: taskId,
+                endX: e.clientX - rect.left + scrollPos.x,
+                endY: e.clientY - rect.top + scrollPos.y
             });
         }
     };
 
     const finishLinking = (e: React.MouseEvent, targetId: string) => {
-        e.stopPropagation();
         if (linkingState && linkingState.sourceId !== targetId) {
-            if (onDependencyAdd) {
-                onDependencyAdd(linkingState.sourceId, targetId);
-            }
+            onDependencyAdd?.(linkingState.sourceId, targetId);
         }
         setLinkingState(null);
     };
 
-    // --- Render Header ---
+    const handleWheel = (e: React.WheelEvent) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            setZoomLevel(z => Math.max(0.1, Math.min(3, z * delta)));
+        } else {
+            setScrollPos({
+                x: Math.max(0, scrollPos.x + e.deltaX),
+                y: Math.max(0, scrollPos.y + e.deltaY)
+            });
+        }
+    };
+
     const renderHeader = () => {
-        const months = [];
+        const months: Date[] = [];
         let iter = startOfMonth(startDate);
         const end = addDays(startDate, totalDays);
-
         while (iter <= end) {
             months.push(iter);
             iter = addDays(iter, 32);
             iter = startOfMonth(iter);
         }
-
-        const showDays = currentCellWidth >= 20;
-        const showWeeks = currentCellWidth >= 5 && currentCellWidth < 20;
 
         return (
             <div className="h-12 bg-white border-b flex-shrink-0 relative overflow-hidden z-20 shadow-sm select-none">
@@ -249,70 +230,20 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                         width: totalDays * currentCellWidth
                     }}
                 >
-                    {/* Top Tier: Months */}
                     <div className="h-1/2 border-b flex relative bg-slate-50 text-xs font-semibold text-slate-600">
                         {months.map((date, i) => {
                             const left = getXFromDate(date);
-                            const nextMonth = addDays(date, 32);
-                            const startNext = startOfMonth(nextMonth);
-                            let width = differenceInDays(startNext, date) * currentCellWidth;
-
+                            const width = differenceInDays(startOfMonth(addDays(date, 32)), date) * currentCellWidth;
                             return (
                                 <div
                                     key={i}
-                                    className="absolute top-0 border-r flex items-center px-2 whitespace-nowrap overflow-hidden"
+                                    className="absolute top-0 border-r flex items-center justify-center px-2 whitespace-nowrap overflow-hidden"
                                     style={{ left, width, height: '100%' }}
                                 >
                                     {format(date, 'yyyy年 M月')}
                                 </div>
                             );
                         })}
-                    </div>
-
-                    {/* Bottom Tier: Days / Weeks */}
-                    <div className="h-1/2 relative bg-white text-[10px] text-slate-500">
-                        {showDays ? (
-                            Array.from({ length: totalDays }).map((_, i) => {
-                                const date = addDays(startDate, i);
-                                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`absolute border-r h-full flex items-center justify-center ${isWeekend ? 'bg-slate-50 text-slate-400' : ''}`}
-                                        style={{ left: i * currentCellWidth, width: currentCellWidth }}
-                                    >
-                                        {format(date, 'd')}
-                                    </div>
-                                );
-                            })
-                        ) : showWeeks ? (
-                            (() => {
-                                const weeks = [];
-                                let curr = startOfWeek(startDate, { weekStartsOn: 1 });
-                                const endRange = addDays(startDate, totalDays);
-                                while (curr < endRange) {
-                                    weeks.push(curr);
-                                    curr = addDays(curr, 7);
-                                }
-                                return weeks.map((date, i) => {
-                                    const left = getXFromDate(date);
-                                    return (
-                                        <div
-                                            key={i}
-                                            className="absolute border-r h-full flex items-center justify-center px-1"
-                                            style={{ left, width: 7 * currentCellWidth }}
-                                        >
-                                            {format(date, 'd')}
-                                        </div>
-                                    );
-                                });
-                            })()
-                        ) : (
-                            // Month view low details
-                            <div className="w-full h-full flex items-center pl-2 text-slate-300">
-                                ...
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -322,47 +253,57 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     return (
         <div className="flex flex-col h-full bg-slate-50 border rounded-xl overflow-hidden shadow-sm">
             {/* Toolbar */}
-            <div className="h-12 bg-white border-b flex items-center px-4 justify-between z-30 relative shrink-0">
-                <div className="flex items-center gap-2">
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg mr-2">
+            <div className="h-12 bg-white border-b flex items-center px-4 justify-between z-40 relative shrink-0">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setShowSidebar(!showSidebar)}
+                        className={`p-1.5 rounded-lg transition-colors ${showSidebar ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+                        title={showSidebar ? "隐藏任务列表" : "显示任务列表"}
+                    >
+                        {showSidebar ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+                    </button>
+
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg">
                         {(['Day', 'Week', 'Month'] as const).map(mode => (
                             <button
                                 key={mode}
-                                onClick={() => {
-                                    // Logic to switch view and center
-                                    const containerWidth = containerRef.current?.clientWidth || 800;
-                                    const centerX = scrollPos.x + containerWidth / 2;
-                                    const daysFromStart = centerX / currentCellWidth;
-
-                                    setViewMode(mode);
-                                }}
-                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === mode ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                onClick={() => setViewMode(mode)}
+                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${viewMode === mode ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                {mode === 'Day' ? '日' : mode === 'Week' ? '周' : '月'}
+                                {mode === 'Day' ? '天 (d)' : mode === 'Week' ? '周 (w)' : '月 (m)'}
                             </button>
                         ))}
                     </div>
-                    <button onClick={() => setZoomLevel(z => Math.max(0.1, z - 0.1))} className="p-1.5 hover:bg-slate-100 rounded text-slate-600">
-                        <ZoomOut size={18} />
-                    </button>
-                    <span className="text-sm font-medium w-12 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
-                    <button onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))} className="p-1.5 hover:bg-slate-100 rounded text-slate-600">
-                        <ZoomIn size={18} />
-                    </button>
-                    <div className="w-px h-6 bg-slate-200 mx-1" />
+
+                    <div className="flex items-center gap-1">
+                        <button onClick={() => setZoomLevel(z => Math.max(0.1, z - 0.1))} className="p-1.5 hover:bg-slate-100 rounded text-slate-600">
+                            <ZoomOut size={18} />
+                        </button>
+                        <span className="text-sm font-medium w-12 text-center text-slate-500">{(zoomLevel * 100).toFixed(0)}%</span>
+                        <button onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))} className="p-1.5 hover:bg-slate-100 rounded text-slate-600">
+                            <ZoomIn size={18} />
+                        </button>
+                    </div>
+
+                    <div className="w-px h-6 bg-slate-200" />
+
                     <button
                         onClick={() => setShowGridLines(!showGridLines)}
-                        className={`p-1.5 rounded transition-colors ${showGridLines
-                            ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                            : 'text-slate-600 hover:bg-slate-100'
-                            }`}
-                        title={showGridLines ? '隐藏网格线' : '显示网格线'}
+                        className={`p-1.5 rounded transition-colors ${showGridLines ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-100'}`}
+                        title="切换网格线"
                     >
                         <Grid3x3 size={18} />
                     </button>
                 </div>
-                {/* Actions */}
+
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={scrollToToday}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-sm transition-all flex items-center gap-1.5"
+                    >
+                        <Target size={14} /> 跳转今天
+                    </button>
+                    <div className="w-px h-6 bg-slate-200 mx-1" />
                     <button className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Undo2 size={18} /></button>
                     <button className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Redo2 size={18} /></button>
                     <div className="w-px h-6 bg-slate-200 mx-1" />
@@ -370,269 +311,223 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                 </div>
             </div>
 
-            {/* Header */}
-            {renderHeader()}
-
-            {/* Canvas */}
-            <div
-                className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing select-none bg-slate-50"
-                ref={containerRef}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onWheel={handleWheel}
-                onContextMenu={(e) => e.preventDefault()}
-            >
-                <div
-                    className="absolute transition-transform duration-75 ease-out origin-top-left"
-                    style={{
-                        transform: `translate(${-scrollPos.x}px, ${-scrollPos.y}px)`
-                    }}
-                >
-                    {/* Grid Background */}
-                    <div className="absolute top-0 bottom-0 left-0 right-0 flex pointer-events-none z-0">
-                        {/* Weekend highlighting */}
-                        {Array.from({ length: totalDays }).map((_, i) => {
-                            const date = addDays(startDate, i);
-                            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-                            if (!isWeekend) return null;
-
-                            return (
-                                <div
-                                    key={`weekend-${i}`}
-                                    className="absolute top-0 bottom-0 bg-slate-100/20"
-                                    style={{
-                                        left: i * currentCellWidth,
-                                        width: currentCellWidth
-                                    }}
-                                />
-                            );
-                        })}
-
-                        {/* Grid Lines - subtle vertical lines */}
-                        {showGridLines && currentCellWidth > 5 && Array.from({ length: totalDays }).map((_, i) => {
-                            // Only show grid lines at reasonable intervals
-                            const date = addDays(startDate, i);
-                            const isMonthStart = date.getDate() === 1;
-                            const isWeekStart = date.getDay() === 1; // Monday
-
-                            // Show monthly lines always, weekly lines when zoomed in
-                            if (isMonthStart || (currentCellWidth > 20 && isWeekStart)) {
-                                return (
-                                    <div
-                                        key={`grid-${i}`}
-                                        className="absolute top-0 bottom-0"
-                                        style={{
-                                            left: i * currentCellWidth,
-                                            borderLeft: isMonthStart
-                                                ? '1px solid rgba(148, 163, 184, 0.3)'
-                                                : '1px dashed rgba(203, 213, 225, 0.3)'
-                                        }}
-                                    />
-                                );
-                            }
-                            return null;
-                        })}
-
-                        {/* Current Time Line */}
-                        <div
-                            className="absolute top-0 bottom-0 border-l-2 border-red-500 z-10 pointer-events-none"
-                            style={{ left: getXFromDate(new Date()) }}
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Fixed Sidebar for Task Data */}
+                <AnimatePresence>
+                    {showSidebar && (
+                        <motion.div
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: SIDEBAR_WIDTH, opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            className="bg-white border-r flex-shrink-0 flex flex-col z-30 shadow-[4px_0_12px_-2px_rgba(0,0,0,0.05)]"
                         >
-                            <div className="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-red-500" />
-                        </div>
-                    </div>
-
-                    {/* Dependencies Lines (SVG) */}
-                    <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible z-0">
-                        <defs>
-                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                                <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
-                            </marker>
-                        </defs>
-                        {tasks.flatMap(task =>
-                            (task.dependencies || []).map(depId => {
-                                const targetTask = tasks.find(t => t.id === depId);
-                                if (!targetTask) return null;
-                                const startX = getXFromDate(task.endDate) + currentCellWidth;
-                                const startY = tasks.findIndex(t => t.id === task.id) * ROW_HEIGHT + 20 + 16;
-                                const endX = getXFromDate(targetTask.startDate);
-                                const endY = tasks.findIndex(t => t.id === targetTask.id) * ROW_HEIGHT + 20 + 16;
-                                const path = `M ${startX} ${startY} C ${startX + 50} ${startY}, ${endX - 50} ${endY}, ${endX} ${endY}`;
-                                return (
-                                    <path
-                                        key={`${task.id}-${targetTask.id}`}
-                                        d={path}
-                                        stroke="#cbd5e1"
-                                        strokeWidth="2"
-                                        fill="none"
-                                        markerEnd="url(#arrowhead)"
-                                    />
-                                );
-                            })
-                        )}
-                        {linkingState && (() => {
-                            const sourceTask = tasks.find(t => t.id === linkingState.sourceId);
-                            if (!sourceTask) return null;
-                            const startX = getXFromDate(sourceTask.endDate) + currentCellWidth;
-                            const startY = tasks.findIndex(t => t.id === sourceTask.id) * ROW_HEIGHT + 20 + 16;
-                            return (
-                                <line
-                                    x1={startX} y1={startY}
-                                    x2={linkingState.endX} y2={linkingState.endY}
-                                    stroke="#3b82f6" strokeWidth="2" strokeDasharray="5 5"
-                                    markerEnd="url(#arrowhead)"
-                                />
-                            );
-                        })()}
-                    </svg>
-
-                    {/* Tasks */}
-                    <div className="relative z-1 pt-4 pb-20 select-none" style={{ minHeight: '100%' }}>
-                        {tasks.map((task, index) => {
-                            const x = getXFromDate(task.startDate);
-                            const width = Math.max(currentCellWidth, differenceInDays(parseISO(task.endDate), parseISO(task.startDate)) * currentCellWidth + currentCellWidth);
-                            const top = index * ROW_HEIGHT + 20;
-                            const isSelected = selectedTasks.has(task.id);
-                            const isMilestone = task.type === 'milestone';
-
-                            // 里程碑特殊渲染
-                            if (isMilestone) {
-                                return (
-                                    <motion.div
-                                        key={task.id}
-                                        className={`absolute group cursor-pointer z-30 ${isSelected ? 'ring-2 ring-blue-500 rounded-full' : ''}`}
-                                        style={{ left: x - 16, top: top - 4 }}
-                                        whileHover={{ scale: 1.1 }}
-                                        onMouseDown={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedTasks(new Set([task.id]));
-                                        }}
-                                        onDoubleClick={(e) => { e.stopPropagation(); onEditTask?.(task); }}
-                                    >
-                                        <div className="relative">
-                                            {/* 五角星 */}
-                                            <div className="text-4xl" style={{ color: task.color || '#fbbf24' }}>⭐</div>
-                                            {/* 里程碑信息提示 */}
-                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-amber-500 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">
-                                                <div className="font-bold">{task.name}</div>
-                                                <div className="text-[10px] mt-1">{format(parseISO(task.startDate), 'yyyy-MM-dd')}</div>
-                                                {task.description && (
-                                                    <div className="text-[10px] mt-1 max-w-xs">{task.description}</div>
-                                                )}
+                            <div className="h-12 border-b bg-slate-50 flex items-center px-4 font-bold text-xs text-slate-500 uppercase tracking-wider">
+                                <div className="flex-1">任务名称</div>
+                                <div className="w-24 text-center">周期</div>
+                            </div>
+                            <div
+                                className="flex-1 overflow-hidden"
+                                onWheel={(e) => {
+                                    setScrollPos(prev => ({ ...prev, y: Math.max(0, prev.y + e.deltaY) }));
+                                }}
+                            >
+                                <div style={{ transform: `translateY(${-scrollPos.y}px)` }} className="pt-4">
+                                    {tasks.map((task, i) => (
+                                        <div
+                                            key={task.id}
+                                            className={`h-[48px] px-4 flex items-center text-sm border-b border-slate-50 hover:bg-blue-50/50 transition-colors group cursor-pointer ${selectedTasks.has(task.id) ? 'bg-blue-50' : ''}`}
+                                            onClick={() => setSelectedTasks(new Set([task.id]))}
+                                            onDoubleClick={() => onEditTask?.(task)}
+                                        >
+                                            <div className="flex-1 truncate font-medium text-slate-700">
+                                                <span className="text-blue-500 opacity-0 group-hover:opacity-100 mr-1.5">●</span>
+                                                {task.name}
                                             </div>
-                                            {/* 垂直参考线 */}
-                                            <div
-                                                className="absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 bg-amber-400/50 pointer-events-none"
-                                                style={{ height: `${(tasks.length - index) * ROW_HEIGHT}px` }}
+                                            <div className="w-24 text-[10px] text-slate-400 font-mono text-center flex flex-col leading-tight">
+                                                <span>{format(parseISO(task.startDate), 'MM/dd')}</span>
+                                                <span className="opacity-40">→</span>
+                                                <span>{format(parseISO(task.endDate), 'MM/dd')}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {tasks.length === 0 && (
+                                        <div className="p-8 text-center text-slate-400 text-xs">列表为空</div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Main Gantt Canvas Area */}
+                <div className="flex-1 flex flex-col overflow-hidden relative">
+                    {renderHeader()}
+
+                    <div
+                        className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing bg-slate-50"
+                        ref={containerRef}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                        onWheel={handleWheel}
+                        onContextMenu={(e) => e.preventDefault()}
+                    >
+                        <div
+                            className="absolute top-0 left-0 transition-transform duration-75 ease-out"
+                            style={{ transform: `translate(${-scrollPos.x}px, ${-scrollPos.y}px)` }}
+                        >
+                            {/* Grid Background */}
+                            <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none z-0">
+                                {/* Weekends */}
+                                {Array.from({ length: totalDays }).map((_, i) => {
+                                    const date = addDays(startDate, i);
+                                    if (date.getDay() !== 0 && date.getDay() !== 6) return null;
+                                    return (
+                                        <div
+                                            key={`weekend-${i}`}
+                                            className="absolute top-0 bottom-0 bg-slate-200/20 shadow-inner"
+                                            style={{ left: i * currentCellWidth, width: currentCellWidth }}
+                                        />
+                                    );
+                                })}
+
+                                {/* Rows */}
+                                {tasks.map((_, i) => (
+                                    <div
+                                        key={`row-bg-${i}`}
+                                        className={`absolute left-0 right-0 h-[48px] border-b border-slate-100 ${i % 2 === 1 ? 'bg-slate-400/5' : 'bg-transparent'}`}
+                                        style={{ top: i * ROW_HEIGHT + 20 }}
+                                    />
+                                ))}
+
+                                {/* Today */}
+                                <div
+                                    className="absolute top-0 bottom-0 border-l-2 border-red-500 z-10"
+                                    style={{ left: getXFromDate(new Date()) }}
+                                >
+                                    <div className="absolute top-0 -left-1.5 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-sm shadow-sm whitespace-nowrap">今天</div>
+                                    <div className="h-full w-px bg-red-500/20" />
+                                </div>
+                            </div>
+
+                            {/* SVG Layer */}
+                            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible z-10">
+                                <defs>
+                                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                        <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                                    </marker>
+                                </defs>
+                                {tasks.flatMap(task =>
+                                    (task.dependencies || []).map(depId => {
+                                        const targetTask = tasks.find(t => t.id === depId);
+                                        if (!targetTask) return null;
+                                        const startX = getXFromDate(task.endDate) + currentCellWidth;
+                                        const startY = tasks.findIndex(t => t.id === task.id) * ROW_HEIGHT + 20 + 16;
+                                        const endX = getXFromDate(targetTask.startDate);
+                                        const endY = tasks.findIndex(t => t.id === targetTask.id) * ROW_HEIGHT + 20 + 16;
+                                        return (
+                                            <path
+                                                key={`${task.id}-${targetTask.id}`}
+                                                d={`M ${startX} ${startY} C ${startX + 30} ${startY}, ${endX - 30} ${endY}, ${endX} ${endY}`}
+                                                stroke="#cbd5e1" strokeWidth="1.5" fill="none" markerEnd="url(#arrowhead)"
                                             />
+                                        );
+                                    })
+                                )}
+                                {linkingState && (() => {
+                                    const sourceTask = tasks.find(t => t.id === linkingState.sourceId);
+                                    if (!sourceTask) return null;
+                                    const startX = getXFromDate(sourceTask.endDate) + currentCellWidth;
+                                    const startY = tasks.findIndex(t => t.id === sourceTask.id) * ROW_HEIGHT + 20 + 16;
+                                    return (
+                                        <line x1={startX} y1={startY} x2={linkingState.endX} y2={linkingState.endY} stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 4" markerEnd="url(#arrowhead)" />
+                                    );
+                                })()}
+                            </svg>
+
+                            {/* Task Items */}
+                            <div className="relative pt-4 pb-20 select-none z-20">
+                                {tasks.map((task, index) => {
+                                    const x = getXFromDate(task.startDate);
+                                    const width = Math.max(currentCellWidth, differenceInDays(parseISO(task.endDate), parseISO(task.startDate)) * currentCellWidth + currentCellWidth);
+                                    const top = index * ROW_HEIGHT + 20;
+                                    const isSelected = selectedTasks.has(task.id);
+
+                                    if (task.type === 'milestone') {
+                                        return (
+                                            <motion.div
+                                                key={task.id}
+                                                className={`absolute cursor-pointer z-30 ${isSelected ? 'ring-2 ring-blue-500 rounded-full scale-110 shadow-lg' : 'hover:scale-110'}`}
+                                                style={{ left: x - 16, top: top - 4 }}
+                                                onClick={() => setSelectedTasks(new Set([task.id]))}
+                                                onDoubleClick={() => onEditTask?.(task)}
+                                            >
+                                                <div className="relative text-center group">
+                                                    <div className="text-4xl drop-shadow-md">⭐</div>
+                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded shadow-sm whitespace-nowrap z-50">
+                                                        {task.name}
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    }
+
+                                    return (
+                                        <motion.div
+                                            key={task.id}
+                                            className={`absolute h-8 rounded-lg shadow-sm border border-black/5 flex items-center group overflow-hidden ${isSelected ? 'ring-2 ring-blue-500 z-30 shadow-md' : 'hover:shadow-md z-20'}`}
+                                            style={{ left: x, width, top, backgroundColor: task.color || '#3b82f6' }}
+                                            onMouseDown={(e) => handleTaskDragStart(e, task, 'move')}
+                                            onDoubleClick={() => onEditTask?.(task)}
+                                            onContextMenu={(e) => {
+                                                e.preventDefault();
+                                                setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id });
+                                                setSelectedTasks(new Set([task.id]));
+                                            }}
+                                        >
+                                            <div className="absolute top-0 left-0 h-full bg-black/15 pointer-events-none transition-all duration-300" style={{ width: `${task.progress || 0}%` }} />
+                                            <div className="px-3 text-xs text-white font-bold truncate w-full flex items-center justify-between gap-2 z-10 pointer-events-none drop-shadow-sm">
+                                                <span className="truncate">{task.name}</span>
+                                                <span className="text-[10px] opacity-90">{task.progress || 0}%</span>
+                                            </div>
+
+                                            {/* Handles */}
+                                            <div className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-white/30 z-20" onMouseDown={(e) => handleTaskDragStart(e, task, 'resize-l')} />
+                                            <div className="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-white/30 z-20" onMouseDown={(e) => handleTaskDragStart(e, task, 'resize-r')} />
+
+                                            {/* Connector Dot */}
+                                            <div className="absolute -right-3 w-6 h-6 flex items-center justify-center cursor-crosshair opacity-0 group-hover:opacity-100 transition-opacity z-30" onMouseDown={(e) => startLinking(e, task.id)} onMouseUp={() => finishLinking(null as any, task.id)}>
+                                                <div className="w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full shadow-sm" />
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+
+                                {milestones.map((milestone) => {
+                                    const x = getXFromDate(milestone.date);
+                                    return (
+                                        <div key={milestone.id} className="absolute group cursor-pointer z-30" style={{ left: x - 12, top: 10 }}>
+                                            <div className="text-2xl drop-shadow-sm">⭐</div>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded shadow-sm whitespace-nowrap">
+                                                {milestone.name}
+                                            </div>
                                         </div>
-                                    </motion.div>
-                                );
-                            }
-
-                            // 普通任务渲染
-                            return (
-                                <motion.div
-                                    key={task.id}
-                                    className={`absolute group h-8 rounded-lg shadow-sm border border-black/10 flex items-center ${isSelected ? 'ring-2 ring-blue-500 z-20' : 'hover:shadow-md z-10'}`}
-                                    style={{
-                                        left: x, width, top,
-                                        backgroundColor: task.color || '#3b82f6',
-                                        cursor: 'move'
-                                    }}
-                                    onMouseDown={(e) => handleTaskDragStart(e, task, 'move')}
-                                    onDoubleClick={(e) => { e.stopPropagation(); onEditTask?.(task); }}
-                                    onContextMenu={(e) => {
-                                        e.stopPropagation(); e.preventDefault();
-                                        setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id });
-                                        setSelectedTasks(new Set([task.id]));
-                                    }}
-                                >
-                                    <div className="px-2 text-xs text-white font-medium truncate w-full drop-shadow-md pointer-events-none flex items-center gap-1">
-                                        {/* Priority Badge */}
-                                        {task.priority && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${task.priority === 'P0' ? 'bg-red-600/90' :
-                                                task.priority === 'P1' ? 'bg-orange-500/90' :
-                                                    task.priority === 'P2' ? 'bg-blue-500/90' :
-                                                        'bg-slate-500/90'
-                                                }`}>
-                                                {task.priority}
-                                            </span>
-                                        )}
-                                        <span className="truncate">{task.name}</span>
-                                    </div>
-                                    {/* Left Handle */}
-                                    <div
-                                        className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/20 z-20"
-                                        onMouseDown={(e) => handleTaskDragStart(e, task, 'resize-l')}
-                                    />
-                                    {/* Right Handle */}
-                                    <div
-                                        className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/20 z-20"
-                                        onMouseDown={(e) => handleTaskDragStart(e, task, 'resize-r')}
-                                    />
-                                    {/* Link dots */}
-                                    <div
-                                        className="absolute -right-3 w-5 h-5 rounded-full bg-transparent flex items-center justify-center cursor-crosshair z-30 group-hover:opacity-100 opacity-0 transition-opacity"
-                                        onMouseDown={(e) => startLinking(e, task.id)}
-                                        onMouseUp={(e) => finishLinking(e, task.id)}
-                                    >
-                                        <div className="w-3 h-3 bg-white border border-blue-500 rounded-full shadow-sm" />
-                                    </div>
-                                    <div
-                                        className="absolute -left-3 w-5 h-5 rounded-full bg-transparent flex items-center justify-center cursor-crosshair z-30 group-hover:opacity-100 opacity-0 transition-opacity"
-                                        onMouseUp={(e) => finishLinking(e, task.id)}
-                                    >
-                                        <div className="w-3 h-3 bg-white border border-slate-400 rounded-full shadow-sm" />
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
-
-                        {/* Milestones */}
-                        {milestones.map((milestone) => {
-                            const x = getXFromDate(milestone.date);
-
-                            return (
-                                <motion.div
-                                    key={milestone.id}
-                                    className="absolute group cursor-pointer z-30"
-                                    style={{ left: x - 12, top: 10 }}
-                                    whileHover={{ scale: 1.2 }}
-                                    title={`${milestone.name}\n${milestone.date}`}
-                                >
-                                    <div className="relative">
-                                        <div className="text-2xl">⭐</div>
-                                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-1 bg-amber-500 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
-                                            {milestone.name}
-                                        </div>
-                                    </div>
-                                    {/* Vertical line */}
-                                    <div
-                                        className="absolute top-6 left-1/2 transform -translate-x-1/2 w-0.5 bg-amber-400/50 pointer-events-none"
-                                        style={{ height: `${tasks.length * ROW_HEIGHT + 20}px` }}
-                                    />
-                                </motion.div>
-                            );
-                        })}
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Context Menu (Simplified) */}
             <AnimatePresence>
                 {contextMenu && (
-                    <div
-                        className="fixed bg-white shadow-xl border rounded-md py-1 z-50 w-32"
-                        style={{ top: contextMenu.y, left: contextMenu.x }}
-                    >
-                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50" onClick={() => { onEditTask?.(tasks.find(t => t.id === contextMenu.taskId)!); setContextMenu(null); }}>编辑</button>
-                        <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50" onClick={() => { onTaskDelete(contextMenu.taskId); setContextMenu(null); }}>删除</button>
-                        <div className="border-t my-1" />
-                        <button className="w-full text-left px-4 py-2 text-sm text-slate-400" onClick={() => setContextMenu(null)}>取消</button>
+                    <div className="fixed bg-white shadow-2xl border border-slate-200 rounded-xl py-1.5 z-[100] w-40 overflow-hidden" style={{ top: contextMenu.y, left: contextMenu.x }}>
+                        <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 transition-colors" onClick={() => { onEditTask?.(tasks.find(t => t.id === contextMenu.taskId)!); setContextMenu(null); }}>编辑任务</button>
+                        <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors" onClick={() => { onTaskDelete(contextMenu.taskId); setContextMenu(null); }}>删除任务</button>
+                        <div className="border-t border-slate-100 my-1" />
+                        <button className="w-full text-left px-4 py-2 text-sm text-slate-400 font-medium" onClick={() => setContextMenu(null)}>取消操作</button>
                     </div>
                 )}
             </AnimatePresence>

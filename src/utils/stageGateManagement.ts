@@ -1,4 +1,4 @@
-import type { ProjectStage, StageGate, GateRequirement, GateStatus } from '../types';
+import type { ProjectStage, StageGate, GateStatus } from '../types';
 
 /**
  * Default stage-gate templates for different project types
@@ -206,6 +206,7 @@ export function getGateCompletionPercentage(gate: StageGate): number {
 export function getGateStatusColor(status: GateStatus): string {
     const colors: Record<GateStatus, string> = {
         pending: 'text-slate-600 bg-slate-100 dark:text-slate-400 dark:bg-slate-700',
+        requested: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20',
         approved: 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20',
         rejected: 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/20',
         conditional: 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20'
@@ -218,7 +219,8 @@ export function getGateStatusColor(status: GateStatus): string {
  */
 export function getGateStatusLabel(status: GateStatus): string {
     const labels: Record<GateStatus, string> = {
-        pending: '待审批',
+        pending: '待申请',
+        requested: '申请中',
         approved: '已批准',
         rejected: '已拒绝',
         conditional: '有条件批准'
@@ -244,6 +246,16 @@ export function approveGate(
         approvalDate: new Date().toISOString(),
         comments,
         conditions
+    };
+}
+
+/**
+ * Request gate approval
+ */
+export function requestGate(gate: StageGate): StageGate {
+    return {
+        ...gate,
+        status: 'requested'
     };
 }
 

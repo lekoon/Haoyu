@@ -1,17 +1,51 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { ArrowLeft, Calendar, TrendingUp, Edit2 } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp, Edit2, ShieldAlert, CheckCircle2, Server, Flag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { usePMOStore } from '../store/usePMOStore';
+import { Badge } from '../components/ui';
 
 const ProjectDetail: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
-    const { projects, resourcePool } = useStore();
+    const { projects, resourcePool, user } = useStore();
+    const { simulations, changeRequests } = usePMOStore();
     const { t } = useTranslation();
 
     const project = projects.find(p => p.id === projectId);
+
+    // 获取 PMO 维度的联动影响
+    const pmoImpacts = useMemo(() => {
+        if (!project) return [];
+
+        const impacts = [];
+
+        // 1. 活跃的沙盘推演影响
+        const activeSim = simulations.find(s => s.isActive && s.impactAnalysis?.affectedProjects.includes(project.id));
+        if (activeSim) {
+            impacts.push({
+                type: 'simulation',
+                title: '沙盘推演联动',
+                content: `本项目受 "${activeSim.name}" 推演影响，预计延期 ${activeSim.impactAnalysis?.totalDelayDays} 天`,
+                level: 'warning'
+            });
+        }
+
+        // 2. 待处理的变更请求
+        const pendingCRs = changeRequests.filter(cr => cr.projectId === project.id && cr.status === 'pending');
+        if (pendingCRs.length > 0) {
+            impacts.push({
+                type: 'change_request',
+                title: '待审批变更',
+                content: `当前有 ${pendingCRs.length} 个变更请求等待决策，可能触发进度重基线`,
+                level: 'info'
+            });
+        }
+
+        return impacts;
+    }, [project, simulations, changeRequests]);
 
     // 计算资源投入数据
     const resourceData = useMemo(() => {
@@ -120,17 +154,39 @@ const ProjectDetail: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <button
-                        onClick={() => navigate(`/resources?project=${project.id}`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                    >
-                        <Edit2 size={18} />
-                        {t('projectDetail.adjustResources')}
-                    </button>
+                    {user?.role !== 'user' && (
+                        <button
+                            onClick={() => navigate(`/resources?project=${project.id}`)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        >
+                            <Edit2 size={18} />
+                            {t('projectDetail.adjustResources')}
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {/* Resource Investment Donut Chart */}
+            {/* PMO 维度联动影响 */}
+            {pmoImpacts.length > 0 && (
+                <div className="bg-orange-50/30 border border-orange-100 rounded-2xl p-6">
+                    <h2 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
+                        <ShieldAlert size={20} />
+                        PMO 维度联动影响分析
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {pmoImpacts.map((impact, idx) => (
+                            <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant={impact.level === 'warning' ? 'danger' : 'primary'} size="sm">{impact.title}</Badge>
+                                </div>
+                                <p className="text-sm text-slate-600">{impact.content}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Resource Investment & Historical Trend */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                     <h2 className="text-lg font-bold text-slate-900 mb-4">{t('projectDetail.resourceInvestment')}</h2>
@@ -161,7 +217,6 @@ const ProjectDetail: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Historical Trend */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                     <h2 className="text-lg font-bold text-slate-900 mb-4">{t('projectDetail.historicalTrend')}</h2>
                     <div className="h-80">
@@ -181,6 +236,63 @@ const ProjectDetail: React.FC = () => {
                                 />
                             </LineChart>
                         </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 里程碑进度 */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <Flag className="text-blue-600" size={20} />
+                            里程碑进度掌控
+                        </h2>
+                        <Badge variant="primary">{(project.milestones?.filter(m => m.completed).length || 0)}/{(project.milestones?.length || 0)} 已完成</Badge>
+                    </div>
+                    <div className="space-y-4">
+                        {project.milestones?.map((milestone) => (
+                            <div key={milestone.id} className="relative pl-8 pb-4 border-l-2 border-slate-100 last:border-0 last:pb-0">
+                                <div className={`absolute left-[-9px] top-0 w-4 h-4 rounded-full border-2 border-white shadow-sm ${milestone.completed ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h4 className={`text-sm font-bold ${milestone.completed ? 'text-slate-900' : 'text-slate-500'}`}>{milestone.name}</h4>
+                                        <p className="text-xs text-slate-400">{milestone.date}</p>
+                                    </div>
+                                    {milestone.completed && <CheckCircle2 size={16} className="text-green-500" />}
+                                </div>
+                            </div>
+                        ))}
+                        {(!project.milestones || project.milestones.length === 0) && (
+                            <div className="text-center py-6 text-slate-400 text-sm italic">暂未配置里程碑</div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 环境资源使用情况 */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                        <Server className="text-purple-600" size={20} />
+                        环境资源独占/共享状态
+                    </h2>
+                    <div className="space-y-3">
+                        {project.environmentRequirements?.map((req, idx) => (
+                            <div key={idx} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                                <div className="flex justify-between mb-2">
+                                    <span className="font-bold text-slate-700">{req.environmentName}</span>
+                                    <Badge variant="neutral">{req.purpose}</Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-slate-500">
+                                    <div className="flex items-center gap-1">
+                                        <Calendar size={12} />
+                                        {req.startDate} 至 {req.endDate}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {(!project.environmentRequirements || project.environmentRequirements.length === 0) && (
+                            <div className="text-center py-6 text-slate-400 text-sm italic">暂未预定环境资源</div>
+                        )}
                     </div>
                 </div>
             </div>

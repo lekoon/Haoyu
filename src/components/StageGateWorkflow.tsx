@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    CheckCircle, Circle, XCircle, AlertCircle,
-    ChevronRight, Check, X, FileText
+    CheckCircle, Circle, XCircle,
+    ChevronRight, Check, FileText, ShieldAlert, Clock
 } from 'lucide-react';
-import type { ProjectWithStageGate, StageGate, GateRequirement, ProjectStage } from '../types';
+import type { ProjectWithStageGate, StageGate, ProjectStage } from '../types';
 import {
     getStageName,
     getNextStage,
@@ -14,7 +14,8 @@ import {
     getGateStatusLabel,
     approveGate,
     rejectGate,
-    updateRequirement
+    updateRequirement,
+    requestGate
 } from '../utils/stageGateManagement';
 
 interface StageGateWorkflowProps {
@@ -24,6 +25,7 @@ interface StageGateWorkflowProps {
     currentUserId: string;
     currentUserName: string;
     userRole: 'admin' | 'manager' | 'user' | 'readonly';
+    onRequestApproval?: (gate: StageGate) => void;
 }
 
 const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
@@ -32,18 +34,30 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
     onMoveToNextStage,
     currentUserId,
     currentUserName,
-    userRole
+    userRole,
+    onRequestApproval
 }) => {
     const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
     const [approvalComments, setApprovalComments] = useState('');
     const [approvalConditions, setApprovalConditions] = useState('');
 
-    const canManageGates = userRole === 'admin' || userRole === 'manager';
+    const isPMO = userRole === 'admin';
+    const isPM = userRole === 'manager';
+    const canManageRequirements = isPM || isPMO;
+
     const currentStageIndex = ['initiation', 'planning', 'execution', 'monitoring', 'closing'].indexOf(project.currentStage);
 
     const handleToggleRequirement = (gate: StageGate, requirementId: string, completed: boolean) => {
         const updatedGate = updateRequirement(gate, requirementId, completed, currentUserId);
         onUpdateGate(updatedGate);
+    };
+
+    const handleRequestGate = (gate: StageGate) => {
+        const updatedGate = requestGate(gate);
+        onUpdateGate(updatedGate);
+        if (onRequestApproval) {
+            onRequestApproval(updatedGate);
+        }
     };
 
     const handleApproveGate = (gate: StageGate) => {
@@ -85,8 +99,8 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
         return (
             <div className="flex flex-col items-center">
                 <div className={`relative flex items-center justify-center w-16 h-16 rounded-full border-4 ${isPassed ? 'border-green-500 bg-green-100 dark:bg-green-900/20' :
-                        isActive ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/20' :
-                            'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800'
+                    isActive ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/20' :
+                        'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800'
                     }`}>
                     {isPassed ? (
                         <CheckCircle className="text-green-600 dark:text-green-400" size={32} />
@@ -125,8 +139,8 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
                             {index < 4 && (
                                 <ChevronRight
                                     className={`mx-2 ${index < currentStageIndex
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-slate-300 dark:text-slate-600'
+                                        ? 'text-green-600 dark:text-green-400'
+                                        : 'text-slate-300 dark:text-slate-600'
                                         }`}
                                     size={24}
                                 />
@@ -138,7 +152,7 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
 
             {/* Gates List */}
             <div className="space-y-4">
-                {project.gates.map((gate, index) => {
+                {project.gates.map((gate) => {
                     const completion = getGateCompletionPercentage(gate);
                     const canApprove = canApproveGate(gate);
                     const isExpanded = selectedGateId === gate.id;
@@ -183,8 +197,8 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
                                         initial={{ width: 0 }}
                                         animate={{ width: `${completion}%` }}
                                         className={`h-full ${completion === 100 ? 'bg-green-500' :
-                                                completion >= 50 ? 'bg-blue-500' :
-                                                    'bg-orange-500'
+                                            completion >= 50 ? 'bg-blue-500' :
+                                                'bg-orange-500'
                                             }`}
                                     />
                                 </div>
@@ -212,20 +226,20 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
                                                             className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg"
                                                         >
                                                             <button
-                                                                onClick={() => canManageGates && handleToggleRequirement(gate, req.id, !req.completed)}
-                                                                disabled={!canManageGates || gate.status === 'approved'}
+                                                                onClick={() => canManageRequirements && handleToggleRequirement(gate, req.id, !req.completed)}
+                                                                disabled={!canManageRequirements || gate.status === 'approved' || gate.status === 'requested'}
                                                                 className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${req.completed
-                                                                        ? 'bg-green-500 border-green-500'
-                                                                        : 'border-slate-300 dark:border-slate-600 hover:border-green-500'
-                                                                    } ${!canManageGates || gate.status === 'approved' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                    ? 'bg-green-500 border-green-500'
+                                                                    : 'border-slate-300 dark:border-slate-600 hover:border-green-500'
+                                                                    } ${!canManageRequirements || gate.status === 'approved' || gate.status === 'requested' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                                             >
                                                                 {req.completed && <Check size={14} className="text-white" />}
                                                             </button>
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className={`text-sm ${req.completed
-                                                                            ? 'text-slate-500 dark:text-slate-400 line-through'
-                                                                            : 'text-slate-900 dark:text-slate-100'
+                                                                        ? 'text-slate-500 dark:text-slate-400 line-through'
+                                                                        : 'text-slate-900 dark:text-slate-100'
                                                                         }`}>
                                                                         {req.description}
                                                                     </span>
@@ -247,60 +261,87 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
                                                 </div>
                                             </div>
 
-                                            {/* Approval Section */}
-                                            {canManageGates && gate.status === 'pending' && (
+                                            {/* Approval/Request Section */}
+                                            {gate.status === 'pending' && isPM && (
                                                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                                                    <h5 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">
-                                                        审批决策
+                                                    <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                                                <FileText size={20} />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-sm font-bold text-slate-900 dark:text-slate-100">发起审批申请</div>
+                                                                <p className="text-xs text-slate-500">已完成所有必需项，可申请 PMO 审核进入下一阶段</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleRequestGate(gate)}
+                                                            disabled={!canApprove}
+                                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20 transition-all whitespace-nowrap flex-shrink-0"
+                                                        >
+                                                            提交申请
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {gate.status === 'requested' && isPMO && (
+                                                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                                    <h5 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                                                        <ShieldAlert size={16} /> PMO 审批决策
                                                     </h5>
-                                                    <div className="space-y-3">
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                                审批意见
-                                                            </label>
-                                                            <textarea
-                                                                value={approvalComments}
-                                                                onChange={(e) => setApprovalComments(e.target.value)}
-                                                                rows={2}
-                                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-none"
-                                                                placeholder="输入审批意见..."
-                                                            />
+                                                    <div className="space-y-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase ml-1">
+                                                                    审批意见
+                                                                </label>
+                                                                <textarea
+                                                                    value={approvalComments}
+                                                                    onChange={(e) => setApprovalComments(e.target.value)}
+                                                                    rows={2}
+                                                                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                                    placeholder="请输入详细的评审意见..."
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase ml-1">
+                                                                    附加条件 (可选)
+                                                                </label>
+                                                                <textarea
+                                                                    value={approvalConditions}
+                                                                    onChange={(e) => setApprovalConditions(e.target.value)}
+                                                                    rows={2}
+                                                                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                                    placeholder="每行一个附加执行条件..."
+                                                                />
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                                附加条件（可选，每行一个）
-                                                            </label>
-                                                            <textarea
-                                                                value={approvalConditions}
-                                                                onChange={(e) => setApprovalConditions(e.target.value)}
-                                                                rows={2}
-                                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-none"
-                                                                placeholder="例如：需在2周内完成XX任务"
-                                                            />
-                                                        </div>
-                                                        <div className="flex gap-2">
+                                                        <div className="flex gap-3">
                                                             <button
                                                                 onClick={() => handleApproveGate(gate)}
-                                                                disabled={!canApprove}
-                                                                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                                                                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-green-500/20 whitespace-nowrap flex-shrink-0"
                                                             >
-                                                                <CheckCircle size={16} />
+                                                                <CheckCircle size={18} />
                                                                 批准通过
                                                             </button>
                                                             <button
                                                                 onClick={() => handleRejectGate(gate)}
-                                                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                                                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-red-500/20 whitespace-nowrap flex-shrink-0"
                                                             >
-                                                                <XCircle size={16} />
-                                                                拒绝
+                                                                <XCircle size={18} />
+                                                                拒绝申请
                                                             </button>
                                                         </div>
-                                                        {!canApprove && (
-                                                            <p className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                                                                <AlertCircle size={12} />
-                                                                请先完成所有必需项才能批准
-                                                            </p>
-                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {gate.status === 'requested' && !isPMO && (
+                                                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl flex items-center gap-3">
+                                                        <Clock size={20} className="text-amber-600" />
+                                                        <div className="text-sm text-amber-700 dark:text-amber-400 font-medium">已提交申请，请等待 PMO 审核通过。</div>
                                                     </div>
                                                 </div>
                                             )}
@@ -345,7 +386,7 @@ const StageGateWorkflow: React.FC<StageGateWorkflowProps> = ({
             </div>
 
             {/* Move to Next Stage Button */}
-            {canManageGates && getNextStage(project.currentStage) && (
+            {isPMO && getNextStage(project.currentStage) && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4">
                     <div className="flex items-center justify-between">
                         <div>

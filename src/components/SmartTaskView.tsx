@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, List, LayoutGrid, Zap, ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock, Download, Printer, Network } from 'lucide-react';
-import type { Task } from '../types';
+import { Calendar, List, LayoutGrid, Zap, ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock, Download, Printer, Network, User } from 'lucide-react';
+import type { Task, TeamMember } from '../types';
 import { format, parseISO, addDays } from 'date-fns';
 
 import TaskEditModal from './TaskEditModal';
@@ -15,6 +15,7 @@ interface SmartTaskViewProps {
     onTaskUpdate: (task: Task) => void;
     onTaskAdd: (task: Task) => void;
     onTaskDelete: (taskId: string) => void;
+    pdsgMembers?: TeamMember[];
 }
 
 type ViewMode = 'gantt' | 'list' | 'board' | 'network';
@@ -25,7 +26,8 @@ const SmartTaskView: React.FC<SmartTaskViewProps> = ({
     projectName = 'Project',
     onTaskUpdate,
     onTaskAdd,
-    onTaskDelete
+    onTaskDelete,
+    pdsgMembers
 }) => {
     const [viewMode, setViewMode] = useState<ViewMode>('gantt');
     const [groupBy, setGroupBy] = useState<GroupBy>('status');
@@ -233,6 +235,12 @@ const SmartTaskView: React.FC<SmartTaskViewProps> = ({
                                                             <Calendar size={12} />
                                                             {format(parseISO(task.startDate), 'yyyy-MM-dd')} - {format(parseISO(task.endDate), 'yyyy-MM-dd')}
                                                         </span>
+                                                        {task.assignee && (
+                                                            <span className="flex items-center gap-1 text-indigo-600 font-bold">
+                                                                <User size={12} />
+                                                                负责人: {pdsgMembers?.find(m => m.id === task.assignee)?.name || '未知'}
+                                                            </span>
+                                                        )}
                                                         {task.progress !== undefined && (
                                                             <span>进度: {task.progress}%</span>
                                                         )}
@@ -390,6 +398,7 @@ const SmartTaskView: React.FC<SmartTaskViewProps> = ({
             {editingTask && (
                 <TaskEditModal
                     task={editingTask}
+                    pdsgMembers={pdsgMembers}
                     onSave={(updatedTask) => {
                         onTaskUpdate(updatedTask);
                         setEditingTask(null);

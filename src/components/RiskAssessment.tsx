@@ -17,7 +17,8 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
         probability: 3,
         impact: 3,
         status: 'identified',
-        owner: ''
+        owner: '',
+        mitigationStrategy: ''
     });
 
     const categories = [
@@ -33,12 +34,12 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
     const getRiskScore = (risk: Risk) => risk.probability * risk.impact;
 
     // Get risk level based on score
-    const getRiskLevel = (score: number): { label: string; color: string; bgColor: string } => {
-        if (score >= 20) return { label: '极高', color: 'text-red-700', bgColor: 'bg-red-100 border-red-300' };
-        if (score >= 15) return { label: '高', color: 'text-orange-700', bgColor: 'bg-orange-100 border-orange-300' };
-        if (score >= 10) return { label: '中', color: 'text-yellow-700', bgColor: 'bg-yellow-100 border-yellow-300' };
-        if (score >= 5) return { label: '低', color: 'text-blue-700', bgColor: 'bg-blue-100 border-blue-300' };
-        return { label: '极低', color: 'text-slate-700', bgColor: 'bg-slate-100 border-slate-300' };
+    const getRiskLevel = (score: number): { label: string; color: string; bgColor: string; darkColor: string; darkBgColor: string } => {
+        if (score >= 20) return { label: '极高', color: 'text-red-700', bgColor: 'bg-red-50 border-red-200', darkColor: 'text-red-400', darkBgColor: 'dark:bg-red-900/20 dark:border-red-800' };
+        if (score >= 15) return { label: '高', color: 'text-orange-700', bgColor: 'bg-orange-50 border-orange-200', darkColor: 'text-orange-400', darkBgColor: 'dark:bg-orange-900/20 dark:border-orange-800' };
+        if (score >= 10) return { label: '中', color: 'text-yellow-700', bgColor: 'bg-yellow-50 border-yellow-200', darkColor: 'text-yellow-400', darkBgColor: 'dark:bg-yellow-900/20 dark:border-yellow-800' };
+        if (score >= 5) return { label: '低', color: 'text-blue-700', bgColor: 'bg-blue-50 border-blue-200', darkColor: 'text-blue-400', darkBgColor: 'dark:bg-blue-900/20 dark:border-blue-800' };
+        return { label: '极低', color: 'text-slate-700', bgColor: 'bg-slate-50 border-slate-200', darkColor: 'text-slate-400', darkBgColor: 'dark:bg-slate-700/50 dark:border-slate-700' };
     };
 
     // Calculate overall project risk
@@ -82,16 +83,33 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
             return;
         }
 
+        const score = (newRisk.probability || 3) * (newRisk.impact || 3);
+        const priority = score >= 20 ? 'critical' : score >= 15 ? 'high' : score >= 10 ? 'medium' : 'low';
+
         const risk: Risk = {
-            id: Date.now().toString(),
+            id: `risk-${Date.now()}`,
+            projectId: project.id,
             category: newRisk.category as Risk['category'],
             title: newRisk.title!,
             description: newRisk.description!,
             probability: newRisk.probability || 3,
             impact: newRisk.impact || 3,
-            mitigation: newRisk.mitigation || '',
+            riskScore: score,
+            priority: priority,
+            mitigationStrategy: newRisk.mitigationStrategy || '',
+            mitigationActions: [],
             owner: newRisk.owner || '',
-            status: 'identified'
+            ownerName: newRisk.owner || '',
+            status: 'identified',
+            identifiedDate: new Date().toISOString(),
+            history: [{
+                id: `hist-${Date.now()}`,
+                date: new Date().toISOString(),
+                userId: 'current-user',
+                userName: 'Admin',
+                action: 'created',
+                description: '风险已创建'
+            }]
         };
 
         onRisksChange([...risks, risk]);
@@ -99,7 +117,9 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
             category: 'schedule',
             probability: 3,
             impact: 3,
-            status: 'identified'
+            status: 'identified',
+            owner: '',
+            mitigationStrategy: ''
         });
         setIsAddingRisk(false);
     };
@@ -113,21 +133,21 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                        <Shield size={32} className="text-blue-600" />
-                        <h2 className="text-3xl font-bold text-slate-900">风险评估</h2>
+                        <Shield size={32} className="text-blue-600 dark:text-blue-400" />
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">风险评估</h2>
                     </div>
-                    <p className="text-sm text-slate-500">项目: {project.name}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">项目: {project.name}</p>
                 </div>
 
                 {/* Overall Risk Score */}
-                <div className={`px-6 py-4 rounded-xl border-2 ${overallRisk.level.bgColor}`}>
-                    <div className="text-xs font-semibold text-slate-600 mb-1">综合风险等级</div>
-                    <div className={`text-3xl font-bold ${overallRisk.level.color}`}>
+                <div className={`px-6 py-4 rounded-xl border-2 ${overallRisk.level.bgColor} ${overallRisk.level.darkBgColor}`}>
+                    <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">综合风险等级</div>
+                    <div className={`text-3xl font-bold ${overallRisk.level.color} ${overallRisk.level.darkColor}`}>
                         {overallRisk.level.label}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">
@@ -146,23 +166,39 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
             </div>
 
             {/* Category Filters */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
                 {categories.map(cat => {
                     const Icon = cat.icon;
                     const count = cat.id === 'all' ? risks.length : risks.filter(r => r.category === cat.id).length;
+                    const isActive = selectedCategory === cat.id;
+
+                    const activeClasses: Record<string, string> = {
+                        slate: 'bg-slate-600 text-white shadow-md',
+                        blue: 'bg-blue-600 text-white shadow-md',
+                        green: 'bg-green-600 text-white shadow-md',
+                        purple: 'bg-purple-600 text-white shadow-md',
+                        orange: 'bg-orange-600 text-white shadow-md',
+                        red: 'bg-red-600 text-white shadow-md'
+                    };
+
+                    const inactiveClasses: Record<string, string> = {
+                        slate: 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                        blue: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400',
+                        green: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400',
+                        purple: 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400',
+                        orange: 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400',
+                        red: 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400'
+                    };
 
                     return (
                         <button
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${selectedCategory === cat.id
-                                ? `bg-${cat.color}-600 text-white shadow-lg`
-                                : `bg-${cat.color}-100 text-${cat.color}-700 hover:bg-${cat.color}-200`
-                                }`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive ? activeClasses[cat.color] : inactiveClasses[cat.color]}`}
                         >
                             <Icon size={16} />
-                            {cat.label}
-                            <span className="ml-1 px-2 py-0.5 bg-white/30 rounded-full text-xs">
+                            <span>{cat.label}</span>
+                            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-700'}`}>
                                 {count}
                             </span>
                         </button>
@@ -268,11 +304,11 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
                         </div>
                     </div>
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">缓解措施</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">缓解措施</label>
                         <textarea
-                            value={newRisk.mitigation || ''}
-                            onChange={(e) => setNewRisk({ ...newRisk, mitigation: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={newRisk.mitigationStrategy || ''}
+                            onChange={(e) => setNewRisk({ ...newRisk, mitigationStrategy: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             rows={2}
                             placeholder="如何降低或消除此风险"
                         />
@@ -314,23 +350,23 @@ const RiskAssessment: React.FC<RiskAssessmentProps> = ({ project, risks, onRisks
                                     return (
                                         <div
                                             key={risk.id}
-                                            className={`p-5 rounded-xl border-2 ${riskLevel.bgColor} transition-all hover:shadow-lg`}
+                                            className={`p-5 rounded-xl border-2 ${riskLevel.bgColor} ${riskLevel.darkBgColor} transition-all hover:shadow-lg`}
                                         >
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <h4 className="font-bold text-lg text-slate-900">{risk.title}</h4>
-                                                        <span className={`text-xs font-semibold px-2 py-1 rounded uppercase ${riskLevel.color} ${riskLevel.bgColor}`}>
+                                                        <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">{risk.title}</h4>
+                                                        <span className={`text-xs font-semibold px-2 py-1 rounded uppercase ${riskLevel.color} ${riskLevel.darkColor} ${riskLevel.bgColor} ${riskLevel.darkBgColor}`}>
                                                             {riskLevel.label}
                                                         </span>
-                                                        <span className="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded">
+                                                        <span className="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded">
                                                             {categories.find(c => c.id === risk.category)?.label}
                                                         </span>
                                                     </div>
-                                                    <p className="text-sm text-slate-700 mb-2">{risk.description}</p>
-                                                    {risk.mitigation && (
-                                                        <div className="text-sm text-slate-600 bg-white/50 p-2 rounded">
-                                                            <strong>缓解措施:</strong> {risk.mitigation}
+                                                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">{risk.description}</p>
+                                                    {risk.mitigationStrategy && (
+                                                        <div className="text-sm text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-black/20 p-2 rounded">
+                                                            <strong>缓解措施:</strong> {risk.mitigationStrategy}
                                                         </div>
                                                     )}
                                                 </div>

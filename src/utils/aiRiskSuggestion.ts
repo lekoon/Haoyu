@@ -1,5 +1,6 @@
-import { Project, Risk, Task, RiskCategory } from '../types';
-import { RISK_TEMPLATES, RiskTemplate } from './riskTemplates';
+import type { Project, Risk, Task, RiskCategory } from '../types';
+import { RISK_TEMPLATES } from './riskTemplates';
+import type { RiskTemplate } from './riskTemplates';
 
 /**
  * AI-powered risk identification based on project characteristics

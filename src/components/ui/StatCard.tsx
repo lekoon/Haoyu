@@ -38,11 +38,11 @@ const StatCard: React.FC<StatCardProps> = ({
     return (
         <Card className={className} padding="md">
             <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+                <div className="flex-1 min-w-0 mr-4">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-1 truncate" title={title}>
                         {title}
                     </p>
-                    <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                    <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 truncate">
                         {value}
                     </p>
                     {trend && (
@@ -52,7 +52,7 @@ const StatCard: React.FC<StatCardProps> = ({
                         </div>
                     )}
                 </div>
-                <div className={`p-3 rounded-lg ${iconColorClasses[iconColor]}`}>
+                <div className={`p-3 rounded-lg flex-shrink-0 ${iconColorClasses[iconColor]}`}>
                     <Icon size={24} />
                 </div>
             </div>

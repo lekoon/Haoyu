@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, AlertCircle, CheckCircle, Plus } from 'lucide-react';
-import { Project, Risk } from '../types';
+import type { Project, Risk } from '../types';
 import { suggestRisks, getRiskInsights } from '../utils/aiRiskSuggestion';
 import { getRiskCategoryInfo } from '../utils/riskManagement';
 

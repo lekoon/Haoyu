@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Edit3, AlertCircle } from 'lucide-react';
-import { Project } from '../types';
+import type { Project } from '../types';
 
 interface BatchEditModalProps {
     isOpen: boolean;

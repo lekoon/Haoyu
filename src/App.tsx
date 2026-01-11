@@ -29,6 +29,7 @@ const EnvironmentManagement = lazy(() => import('./pages/EnvironmentManagement')
 const RequirementTraceabilityMatrix = lazy(() => import('./pages/RequirementTraceabilityMatrix'));
 const WhatIfSimulation = lazy(() => import('./pages/WhatIfSimulation'));
 const PMODashboard = lazy(() => import('./pages/PMODashboard'));
+const BayMachineResource = lazy(() => import('./pages/BayMachineResource'));
 
 import SkeletonLoader from './components/SkeletonLoader';
 
@@ -93,6 +94,7 @@ function App() {
 
           {/* User & Settings */}
           <Route path="/workbench" element={<LayoutRoute><UserWorkbench /></LayoutRoute>} />
+          <Route path="/bay-resources" element={<LayoutRoute><BayMachineResource /></LayoutRoute>} />
           <Route path="/profile" element={<LayoutRoute><Profile /></LayoutRoute>} />
           <Route path="/settings" element={<LayoutRoute><Settings /></LayoutRoute>} />
 

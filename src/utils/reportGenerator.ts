@@ -1,4 +1,4 @@
-import { Project, ResourcePoolItem } from '../types';
+import type { Project, ResourcePoolItem } from '../types';
 import { format } from 'date-fns';
 
 /**

@@ -16,7 +16,6 @@ import {
 import { usePMOStore } from '../store/usePMOStore';
 import { useStore } from '../store/useStore';
 import { Card, Button, Badge } from '../components/ui';
-
 interface SimulationItem {
     id: string;
     type: 'add_project' | 'delay_project' | 'resource_cut' | 'priority_shift';
@@ -45,7 +44,7 @@ interface ResourceImpact {
 
 const WhatIfSimulation: React.FC = () => {
     const { createSimulation, getActiveSimulation } = usePMOStore();
-    const { projects, resourcePool } = useStore();
+    const { projects, resourcePool, user } = useStore();
 
     const [simulationName, setSimulationName] = useState('');
     const [selectedScenario, setSelectedScenario] = useState<'resource_change' | 'priority_change' | 'new_project' | 'delay_simulation'>('delay_simulation');
@@ -200,13 +199,15 @@ const WhatIfSimulation: React.FC = () => {
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        <Button
-                            onClick={() => { setSimulationName(''); setImpactItems([]); }}
-                            variant="secondary"
-                            className="bg-white dark:bg-slate-800 border-slate-200"
-                        >
-                            <RotateCcw className="w-4 h-4 mr-2" /> 重置画布
-                        </Button>
+                        {user?.role === 'admin' && (
+                            <Button
+                                onClick={() => { setSimulationName(''); setImpactItems([]); }}
+                                variant="secondary"
+                                className="bg-white dark:bg-slate-800 border-slate-200"
+                            >
+                                <RotateCcw className="w-4 h-4 mr-2" /> 重置画布
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -289,9 +290,11 @@ const WhatIfSimulation: React.FC = () => {
                                         <div className="w-1 h-5 bg-purple-600 rounded-full" />
                                         2. 变更影响事项录入
                                     </h3>
-                                    <Button onClick={addImpactItem} variant="secondary" size="sm" className="rounded-full gap-2">
-                                        <PlusCircle size={14} /> 添加事项
-                                    </Button>
+                                    {user?.role === 'admin' && (
+                                        <Button onClick={addImpactItem} variant="secondary" size="sm" className="rounded-full gap-2">
+                                            <PlusCircle size={14} /> 添加事项
+                                        </Button>
+                                    )}
                                 </div>
 
                                 <div className="flex-1 overflow-auto rounded-xl border border-slate-200 dark:border-slate-800">

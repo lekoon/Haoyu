@@ -7,9 +7,12 @@ interface TaskEditModalProps {
     onSave: (task: Task) => void;
     onDelete?: (taskId: string) => void;
     onClose: () => void;
+    pdsgMembers?: TeamMember[];
 }
 
-const TaskEditModal: React.FC<TaskEditModalProps> = ({ task, onSave, onDelete, onClose }) => {
+import type { TeamMember } from '../types';
+
+const TaskEditModal: React.FC<TaskEditModalProps> = ({ task, onSave, onDelete, onClose, pdsgMembers }) => {
     const [editedTask, setEditedTask] = useState<Task>(task);
 
     const handleSave = () => {
@@ -130,20 +133,27 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({ task, onSave, onDelete, o
                         </div>
                     </div>
 
-                    {/* 进度 */}
+                    {/* 负责人指派 (PDSG) */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            进度: {editedTask.progress || 0}%
+                        <label className="block text-sm font-medium text-slate-700 mb-2 font-bold flex items-center gap-2">
+                            负责人 (PDSG 成员)
                         </label>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={editedTask.progress || 0}
-                            onChange={(e) => setEditedTask({ ...editedTask, progress: parseInt(e.target.value) })}
-                            className="w-full"
-                        />
+                        <select
+                            value={editedTask.assignee || ''}
+                            onChange={(e) => setEditedTask({ ...editedTask, assignee: e.target.value })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        >
+                            <option value="">未指派</option>
+                            {pdsgMembers && pdsgMembers.map(member => (
+                                <option key={member.id} value={member.id}>{member.name} ({member.role})</option>
+                            ))}
+                        </select>
+                        {(!pdsgMembers || pdsgMembers.length === 0) && (
+                            <p className="text-[10px] text-amber-600 mt-1 italic">提示：请先在项目“PDSG”页签中添加成员，以便在此处指派负责人。</p>
+                        )}
                     </div>
+
+                    {/* 进度 */}
 
                     {/* 颜色选择 */}
                     <div>

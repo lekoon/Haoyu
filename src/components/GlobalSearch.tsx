@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Command, X, FileText, User, Layers, Layout, Kanban, ArrowRight } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { aggregateSearch, SearchResult, SearchResultType } from '../utils/searchEngine';
+import { aggregateSearch } from '../utils/searchEngine';
+import type { SearchResult, SearchResultType } from '../utils/searchEngine';
 import { useTranslation } from 'react-i18next';
 
 interface GlobalSearchProps {

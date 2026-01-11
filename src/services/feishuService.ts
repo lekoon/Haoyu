@@ -1,4 +1,4 @@
-import { Project, ResourcePoolItem, Task } from '../types';
+import type { Project, ResourcePoolItem, Task } from '../types';
 
 export interface FeishuConfig {
     appId: string;

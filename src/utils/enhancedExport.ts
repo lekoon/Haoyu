@@ -1,4 +1,4 @@
-import { Project, Task, ResourcePoolItem, Risk, ExportConfig } from '../types';
+import type { Project, Task, ResourcePoolItem, Risk, ExportConfig } from '../types';
 import { format } from 'date-fns';
 
 /**
