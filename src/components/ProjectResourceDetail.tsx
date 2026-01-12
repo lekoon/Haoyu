@@ -17,51 +17,87 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
 
     // 计算资源详细信息
     const resourceDetails = useMemo(() => {
-        return (project.resourceRequirements || []).map((req: ResourceRequirement) => {
-            const resource = resourcePool.find(r => r.id === req.resourceId);
+        const planned = project.resourceRequirements || [];
+        const actual = project.actualResourceUsage || [];
+
+        // Get all unique resource IDs from both planned and actual
+        const resourceIds = Array.from(new Set([
+            ...planned.map(r => r.resourceId),
+            ...actual.map(r => r.resourceId)
+        ]));
+
+        return resourceIds.map(resId => {
+            const resource = resourcePool.find(r => r.id === resId);
             if (!resource) return null;
 
-            // 计算工作日
-            const workDays = req.unit === 'day' ? req.duration :
-                req.unit === 'month' ? req.duration * 22 :
-                    req.unit === 'year' ? req.duration * 260 : 0;
+            const plan = planned.find(p => p.resourceId === resId);
+            const usage = actual.find(a => a.resourceId === resId);
+
+            const plannedCount = plan?.count || 0;
+            const actualCount = usage?.count || 0;
+
+            // 计算工作日 (based on plan if exists, else actual)
+            const unit = plan?.unit || usage?.unit || 'month';
+            const duration = plan?.duration || usage?.duration || 0;
+            const workDays = unit === 'day' ? duration :
+                unit === 'month' ? duration * 22 :
+                    unit === 'year' ? duration * 260 : 0;
 
             // 计算成本
             const estimatedCost = resource.hourlyRate
-                ? resource.hourlyRate * workDays * 8 * req.count
+                ? resource.hourlyRate * workDays * 8 * plannedCount
                 : resource.costPerUnit
-                    ? resource.costPerUnit * req.duration * req.count
+                    ? resource.costPerUnit * duration * plannedCount
+                    : 0;
+
+            const actualCost = resource.hourlyRate
+                ? resource.hourlyRate * workDays * 8 * actualCount
+                : resource.costPerUnit
+                    ? resource.costPerUnit * duration * actualCount
                     : 0;
 
             // 计算利用率
             const totalCapacity = resource.totalQuantity;
-            const utilization = (req.count / totalCapacity) * 100;
+            const utilization = (actualCount / totalCapacity) * 100;
 
             return {
-                requirement: req,
+                resourceId: resId,
                 resource,
+                plannedCount,
+                actualCount,
+                variance: actualCount - plannedCount,
                 workDays,
                 estimatedCost,
+                actualCost,
                 utilization,
-                isOverAllocated: req.count > totalCapacity
+                unit,
+                duration,
+                isOverAllocated: actualCount > totalCapacity,
+                requiredSkills: plan?.requiredSkills || []
             };
         }).filter(Boolean);
-    }, [project.resourceRequirements, resourcePool]);
+    }, [project.resourceRequirements, project.actualResourceUsage, resourcePool]);
 
     // 计算总体统计
     const summary = useMemo(() => {
-        const totalCost = resourceDetails.reduce((sum: number, detail: any) => sum + (detail?.estimatedCost || 0), 0);
-        const totalHeadcount = resourceDetails.reduce((sum: number, detail: any) => sum + (detail?.requirement.count || 0), 0);
+        const totalEstimatedCost = resourceDetails.reduce((sum: number, detail: any) => sum + (detail?.estimatedCost || 0), 0);
+        const totalActualCost = resourceDetails.reduce((sum: number, detail: any) => sum + (detail?.actualCost || 0), 0);
+        const totalPlannedHeadcount = resourceDetails.reduce((sum: number, detail: any) => sum + (detail?.plannedCount || 0), 0);
+        const totalActualHeadcount = resourceDetails.reduce((sum: number, detail: any) => sum + (detail?.actualCount || 0), 0);
         const overAllocatedCount = resourceDetails.filter((detail: any) => detail?.isOverAllocated).length;
         const avgUtilization = resourceDetails.length > 0
             ? resourceDetails.reduce((sum: number, detail: any) => sum + (detail?.utilization || 0), 0) / resourceDetails.length
             : 0;
 
         return {
-            totalCost,
-            totalHeadcount,
+            totalEstimatedCost,
+            totalActualCost,
+            totalPlannedHeadcount,
+            totalActualHeadcount,
             overAllocatedCount,
-            avgUtilization
+            avgUtilization,
+            costVariance: totalActualCost - totalEstimatedCost,
+            headcountVariance: totalActualHeadcount - totalPlannedHeadcount
         };
     }, [resourceDetails]);
 
@@ -220,8 +256,8 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
                                     <Users size={20} className="text-blue-600" />
                                     <span className="text-sm text-slate-600 font-medium">总人力投入</span>
                                 </div>
-                                <div className="text-2xl font-bold text-slate-900">{summary.totalHeadcount}</div>
-                                <div className="text-xs text-slate-500 mt-1">项目累计分配人数</div>
+                                <div className="text-2xl font-bold text-slate-900">{summary.totalActualHeadcount}</div>
+                                <div className="text-xs text-slate-500 mt-1">项目累计实际占用 (Plan: {summary.totalPlannedHeadcount})</div>
                             </div>
 
                             <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
@@ -239,9 +275,9 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
                                     <span className="text-sm text-slate-600 font-medium">预估人力成本</span>
                                 </div>
                                 <div className="text-2xl font-bold text-slate-900">
-                                    ¥{(summary.totalCost / 10000).toFixed(1)}万
+                                    ¥{(summary.totalActualCost / 10000).toFixed(1)}万
                                 </div>
-                                <div className="text-xs text-slate-500 mt-1">基于岗位单价核算</div>
+                                <div className="text-xs text-slate-500 mt-1">实际成本 (Plan: ¥{(summary.totalEstimatedCost / 10000).toFixed(1)}万)</div>
                             </div>
 
                             <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
@@ -272,12 +308,12 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
                                     <thead className="bg-slate-50/80 border-b border-slate-200">
                                         <tr>
                                             <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">资源名称</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">分配数量</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">岗位容量</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">预计投入</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">实际占用</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">偏差</th>
                                             <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">实时利用率</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">工期单位</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">总工作日</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">人力成本</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">预计成本</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">实际成本</th>
                                             <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">状态</th>
                                         </tr>
                                     </thead>
@@ -291,21 +327,25 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
                                                         </div>
                                                         <div>
                                                             <div className="font-bold text-slate-900">{detail.resource.name}</div>
-                                                            {detail.resource.hourlyRate && (
-                                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">¥{detail.resource.hourlyRate}/HOUR</div>
-                                                            )}
+                                                            <div className="flex gap-2">
+                                                                {detail.resource.department && <Badge variant="neutral" size="sm" className="text-[9px] px-1">{detail.resource.department}</Badge>}
+                                                                {detail.resource.category && <Badge variant="neutral" size="sm" className="text-[9px] px-1 uppercase">{detail.resource.category}</Badge>}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 font-bold text-slate-900">
-                                                    {detail.requirement.count}
+                                                <td className="px-4 py-3 text-slate-500 font-medium">
+                                                    {detail.plannedCount}
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-500">
-                                                    {detail.resource.totalQuantity}
+                                                <td className="px-4 py-3 font-bold text-slate-900">
+                                                    {detail.actualCount}
+                                                </td>
+                                                <td className={`px-4 py-3 text-xs font-bold ${detail.variance > 0 ? 'text-red-500' : detail.variance < 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                                    {detail.variance > 0 ? `+${detail.variance}` : detail.variance === 0 ? '-' : detail.variance}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                                                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[60px]">
                                                             <div
                                                                 className={`h-full rounded-full ${detail.utilization > 100 ? 'bg-red-500' :
                                                                     detail.utilization > 80 ? 'bg-yellow-500' :
@@ -322,16 +362,11 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-slate-600">
-                                                    {detail.requirement.duration} {
-                                                        detail.requirement.unit === 'day' ? '天' :
-                                                            detail.requirement.unit === 'month' ? '月' :
-                                                                detail.requirement.unit === 'year' ? '年' : ''
-                                                    }
+                                                <td className="px-4 py-3 text-sm text-slate-500">
+                                                    ¥{(detail.estimatedCost / 10000).toFixed(1)}万
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-slate-600 font-medium">{detail.workDays}天</td>
                                                 <td className="px-4 py-3 font-bold text-slate-900">
-                                                    ¥{(detail.estimatedCost / 10000).toFixed(2)}万
+                                                    ¥{(detail.actualCost / 10000).toFixed(1)}万
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {detail.isOverAllocated ? (
@@ -404,7 +439,7 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
                         </div>
 
                         {/* 成本预警面板 */}
-                        {summary.totalCost > (project.budget || 0) && (
+                        {summary.totalActualCost > (project.budget || 0) && (
                             <div className="bg-red-50 border border-red-200 rounded-2xl p-6 shadow-sm border-l-8 border-l-red-500">
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 bg-white rounded-xl shadow-sm text-red-600">
@@ -413,10 +448,10 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
                                     <div className="flex-1">
                                         <h4 className="font-bold text-red-900 text-lg mb-1">人力资本预算超支预警</h4>
                                         <p className="text-sm text-red-800/80 leading-relaxed font-medium">
-                                            当前预估人力成本 ¥{(summary.totalCost / 10000).toFixed(2)}万 已超出项目初期核准预算
+                                            当前实际人力成本 ¥{(summary.totalActualCost / 10000).toFixed(2)}万 已超出项目初期核准预算
                                             ¥{((project.budget || 0) / 10000).toFixed(2)}万。
                                             <span className="block mt-2 font-bold underline decoration-2 underline-offset-4 decoration-red-300">
-                                                当前缺口规模：¥{((summary.totalCost - (project.budget || 0)) / 10000).toFixed(2)}万，建议优先审视 P2 级以下资源岗位。
+                                                当前缺口规模：¥{((summary.totalActualCost - (project.budget || 0)) / 10000).toFixed(2)}万，建议优先审视 P2 级以下资源岗位。
                                             </span>
                                         </p>
                                     </div>

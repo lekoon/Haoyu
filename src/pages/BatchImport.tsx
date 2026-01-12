@@ -27,6 +27,9 @@ const BatchImport: React.FC = () => {
             'Priority',
             'Start Date',
             'End Date',
+            'Category',
+            'Department',
+            'Budget',
             ...factorDefinitions.map(f => f.name)
         ];
 
@@ -37,6 +40,9 @@ const BatchImport: React.FC = () => {
             'P1',
             '2025-01-01',
             '2025-12-31',
+            'web',
+            'IT Department',
+            '1000000',
             ...factorDefinitions.map(() => '5')
         ];
 
@@ -86,6 +92,9 @@ const BatchImport: React.FC = () => {
             const priorityIdx = headers.findIndex(h => h.toLowerCase().includes('priority'));
             const startDateIdx = headers.findIndex(h => h.toLowerCase().includes('start'));
             const endDateIdx = headers.findIndex(h => h.toLowerCase().includes('end'));
+            const categoryIdx = headers.findIndex(h => h.toLowerCase().includes('category'));
+            const deptIdx = headers.findIndex(h => h.toLowerCase().includes('dept') || h.toLowerCase().includes('部门'));
+            const budgetIdx = headers.findIndex(h => h.toLowerCase().includes('budget') || h.toLowerCase().includes('预算'));
 
             for (let i = 0; i < dataRows.length; i++) {
                 const row = dataRows[i];
@@ -116,6 +125,9 @@ const BatchImport: React.FC = () => {
                         priority: (row[priorityIdx] as Project['priority']) || 'P2',
                         startDate: row[startDateIdx] || '',
                         endDate: row[endDateIdx] || '',
+                        category: (row[categoryIdx] as any) || 'custom',
+                        department: row[deptIdx] || '',
+                        budget: row[budgetIdx] ? parseInt(row[budgetIdx]) : 0,
                         factors,
                         score: 0,
                         resourceRequirements: []

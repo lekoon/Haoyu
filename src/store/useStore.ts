@@ -68,10 +68,11 @@ const DEFAULT_FACTORS: FactorDefinition[] = [
 ];
 
 const DEFAULT_RESOURCES: ResourcePoolItem[] = [
-    { id: 'res-1', name: 'Software Engineers', totalQuantity: 20 },
-    { id: 'res-2', name: 'Product Managers', totalQuantity: 5 },
-    { id: 'res-3', name: 'QA Specialists', totalQuantity: 8 },
-    { id: 'res-4', name: 'UX Designers', totalQuantity: 4 },
+    { id: 'res-1', name: 'Frontend Engineers', department: 'Software Dept', category: 'frontend', totalQuantity: 12 },
+    { id: 'res-2', name: 'Backend Engineers', department: 'Software Dept', category: 'backend', totalQuantity: 15 },
+    { id: 'res-3', name: 'Product Managers', department: 'Product Dept', category: 'management', totalQuantity: 5 },
+    { id: 'res-4', name: 'QA Specialists', department: 'QA Dept', category: 'testing', totalQuantity: 8 },
+    { id: 'res-5', name: 'UX Designers', department: 'Design Dept', category: 'design', totalQuantity: 4 },
 ];
 
 const DEFAULT_TEMPLATES: ProjectTemplate[] = [
@@ -80,8 +81,10 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
         name: 'Web Application',
         description: 'Full-stack web application with frontend and backend',
         category: 'web',
+        department: 'Software Dept',
         icon: '🌐',
         defaultDuration: 6,
+        defaultBudget: 500000,
         defaultFactors: {
             strategic_alignment: 7,
             financial_roi: 6,
@@ -90,9 +93,10 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
             tech_feasibility: 8
         },
         defaultResources: [
-            { count: 3, duration: 6, unit: 'month' as const },
-            { count: 1, duration: 6, unit: 'month' as const },
-            { count: 1, duration: 4, unit: 'month' as const }
+            { resourceId: 'res-1', count: 3, duration: 6, unit: 'month' as const },
+            { resourceId: 'res-2', count: 2, duration: 6, unit: 'month' as const },
+            { resourceId: 'res-3', count: 1, duration: 6, unit: 'month' as const },
+            { resourceId: 'res-4', count: 1, duration: 4, unit: 'month' as const }
         ],
         isBuiltIn: true,
         createdAt: new Date().toISOString()
@@ -102,8 +106,10 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
         name: 'Mobile App',
         description: 'Native or cross-platform mobile application',
         category: 'mobile',
+        department: 'Mobile Dept',
         icon: '📱',
         defaultDuration: 5,
+        defaultBudget: 350000,
         defaultFactors: {
             strategic_alignment: 8,
             financial_roi: 7,
@@ -112,9 +118,10 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
             tech_feasibility: 7
         },
         defaultResources: [
-            { count: 2, duration: 5, unit: 'month' as const },
-            { count: 1, duration: 5, unit: 'month' as const },
-            { count: 1, duration: 3, unit: 'month' as const }
+            { resourceId: 'res-1', count: 2, duration: 5, unit: 'month' as const },
+            { resourceId: 'res-2', count: 1, duration: 5, unit: 'month' as const },
+            { resourceId: 'res-3', count: 1, duration: 5, unit: 'month' as const },
+            { resourceId: 'res-4', count: 1, duration: 3, unit: 'month' as const }
         ],
         isBuiltIn: true,
         createdAt: new Date().toISOString()
@@ -124,8 +131,10 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
         name: 'Data Analytics',
         description: 'Data pipeline, analytics, and reporting project',
         category: 'data',
+        department: 'Data Sci Dept',
         icon: '📊',
         defaultDuration: 4,
+        defaultBudget: 450000,
         defaultFactors: {
             strategic_alignment: 7,
             financial_roi: 8,
@@ -134,8 +143,8 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
             tech_feasibility: 7
         },
         defaultResources: [
-            { count: 2, duration: 4, unit: 'month' as const },
-            { count: 1, duration: 4, unit: 'month' as const }
+            { resourceId: 'res-2', count: 2, duration: 4, unit: 'month' as const },
+            { resourceId: 'res-3', count: 1, duration: 4, unit: 'month' as const }
         ],
         isBuiltIn: true,
         createdAt: new Date().toISOString()
@@ -155,7 +164,7 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
             tech_feasibility: 8
         },
         defaultResources: [
-            { count: 2, duration: 3, unit: 'month' as const }
+            { resourceId: 'res-2', count: 2, duration: 3, unit: 'month' as const }
         ],
         isBuiltIn: true,
         createdAt: new Date().toISOString()
@@ -325,10 +334,24 @@ export const useStore = create<StoreState>()(
                         endDate: endDate.toISOString().split('T')[0],
                         factors: template.defaultFactors,
                         score: calculateProjectScore(template.defaultFactors, state.factorDefinitions),
-                        resourceRequirements: template.defaultResources.map((res, idx) => ({
-                            ...res,
-                            resourceId: state.resourcePool[idx]?.id || ''
-                        }))
+                        resourceRequirements: template.defaultResources,
+                        category: template.category,
+                        department: template.department,
+                        budget: template.defaultBudget || 0,
+                        actualResourceUsage: template.defaultResources.map(req => {
+                            const res = state.resourcePool.find(r => r.id === req.resourceId);
+                            // Generate mock actuals: +/- 20% of planned
+                            const variance = 0.8 + Math.random() * 0.4;
+                            return {
+                                resourceId: req.resourceId,
+                                resourceName: res?.name || 'Unknown',
+                                count: Math.round(req.count * variance * 10) / 10,
+                                duration: req.duration,
+                                unit: req.unit,
+                                department: res?.department,
+                                category: res?.category
+                            };
+                        })
                     };
 
                     return newProject;

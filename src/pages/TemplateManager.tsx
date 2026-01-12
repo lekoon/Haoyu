@@ -12,6 +12,10 @@ const TemplateManager: React.FC = () => {
     const [formData, setFormData] = useState<Partial<ProjectTemplate>>({
         name: '',
         description: '',
+        category: 'web',
+        department: '',
+        defaultBudget: 0,
+        defaultDuration: 12,
         defaultFactors: {},
         defaultResources: []
     });
@@ -31,6 +35,10 @@ const TemplateManager: React.FC = () => {
             setFormData({
                 name: '',
                 description: '',
+                category: 'web',
+                department: '',
+                defaultBudget: 0,
+                defaultDuration: 12,
                 defaultFactors: initializeFactors(),
                 defaultResources: []
             });
@@ -192,10 +200,63 @@ const TemplateManager: React.FC = () => {
                                         </label>
                                         <textarea
                                             className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            rows={3}
+                                            rows={2}
                                             value={formData.description}
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                                             placeholder={t('templates.descriptionPlaceholder')}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            {t('templates.category')}
+                                        </label>
+                                        <select
+                                            className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={formData.category}
+                                            onChange={e => setFormData({ ...formData, category: e.target.value as any })}
+                                        >
+                                            <option value="web">Web 应用</option>
+                                            <option value="mobile">移动应用</option>
+                                            <option value="data">数据分析</option>
+                                            <option value="infrastructure">基础设施</option>
+                                            <option value="custom">自定义</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            {t('templates.department')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={formData.department}
+                                            onChange={e => setFormData({ ...formData, department: e.target.value })}
+                                            placeholder="输入负责部门"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            {t('templates.budget')} (¥)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={formData.defaultBudget}
+                                            onChange={e => setFormData({ ...formData, defaultBudget: parseInt(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            {t('templates.duration')} ({t('common.months')})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={formData.defaultDuration}
+                                            onChange={e => setFormData({ ...formData, defaultDuration: parseInt(e.target.value) })}
                                         />
                                     </div>
                                 </div>
@@ -250,7 +311,7 @@ const TemplateManager: React.FC = () => {
                                 </div>
                             </form>
                         </div>
-                    </div>
+                    </div >
                 )
             }
         </div >

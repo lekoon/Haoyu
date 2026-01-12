@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import type { Project, ResourceRequirement, ProjectTemplate } from '../types';
 import { Plus, Trash2, Edit2, X, LayoutList, Kanban, Users, Calendar } from 'lucide-react';
@@ -15,6 +16,7 @@ import { Settings } from 'lucide-react';
 
 const Projects: React.FC = () => {
     const { projects, addProject, deleteProject, updateProject, factorDefinitions, resourcePool, user } = useStore();
+    const { t } = useTranslation();
     const { environmentResources } = usePMOStore();
     const navigate = useNavigate();
     const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('list');
@@ -34,8 +36,8 @@ const Projects: React.FC = () => {
             defaultDuration: 3,
             defaultFactors: { market: 8, value: 7, risk: 6, roi: 8, strategy: 7, innovation: 6, cost: 5 },
             defaultResources: [
-                { count: 2, duration: 3, unit: 'month', requiredSkills: ['react', 'node'] },
-                { count: 1, duration: 3, unit: 'month', requiredSkills: ['design'] }
+                { resourceId: '', count: 2, duration: 3, unit: 'month', requiredSkills: ['react', 'node'] },
+                { resourceId: '', count: 1, duration: 3, unit: 'month', requiredSkills: ['design'] }
             ],
             isBuiltIn: true,
             createdAt: new Date().toISOString()
@@ -48,8 +50,8 @@ const Projects: React.FC = () => {
             defaultDuration: 4,
             defaultFactors: { market: 9, value: 8, risk: 5, roi: 7, strategy: 8, innovation: 7, cost: 6 },
             defaultResources: [
-                { count: 2, duration: 4, unit: 'month', requiredSkills: ['flutter'] },
-                { count: 1, duration: 2, unit: 'month', requiredSkills: ['qa'] }
+                { resourceId: '', count: 2, duration: 4, unit: 'month', requiredSkills: ['flutter'] },
+                { resourceId: '', count: 1, duration: 2, unit: 'month', requiredSkills: ['qa'] }
             ],
             isBuiltIn: true,
             createdAt: new Date().toISOString()
@@ -62,8 +64,8 @@ const Projects: React.FC = () => {
             defaultDuration: 6,
             defaultFactors: { market: 7, value: 9, risk: 4, roi: 9, strategy: 9, innovation: 8, cost: 4 },
             defaultResources: [
-                { count: 3, duration: 6, unit: 'month', requiredSkills: ['python', 'sql'] },
-                { count: 1, duration: 6, unit: 'month', requiredSkills: ['data-science'] }
+                { resourceId: '', count: 3, duration: 6, unit: 'month', requiredSkills: ['python', 'sql'] },
+                { resourceId: '', count: 1, duration: 6, unit: 'month', requiredSkills: ['data-science'] }
             ],
             isBuiltIn: true,
             createdAt: new Date().toISOString()
@@ -78,6 +80,9 @@ const Projects: React.FC = () => {
         priority: 'P2',
         startDate: '',
         endDate: '',
+        category: 'custom',
+        department: '',
+        budget: 0,
         factors: {},
         resourceRequirements: [],
         milestones: [],
@@ -131,10 +136,12 @@ const Projects: React.FC = () => {
                 endDate: format(endDate, 'yyyy-MM-dd'),
                 factors: { ...template.defaultFactors },
                 resourceRequirements: mappedResources,
+                category: template.category,
+                department: template.department,
+                budget: template.defaultBudget || 0,
                 score: 0, // Will be calculated
                 milestones: [], // Initialize empty milestones
                 costHistory: [],
-                budget: 0,
                 actualCost: 0
             };
 
@@ -155,6 +162,9 @@ const Projects: React.FC = () => {
                 priority: 'P2',
                 startDate: '',
                 endDate: '',
+                category: 'custom',
+                department: '',
+                budget: 0,
                 factors: initializeFactors(),
                 resourceRequirements: [],
                 milestones: [],
@@ -684,36 +694,71 @@ const Projects: React.FC = () => {
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
-                                        <input
-                                            type="date"
-                                            className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={formData.startDate}
-                                            onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
-                                        <input
-                                            type="date"
-                                            className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={formData.endDate}
-                                            onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                                        <select
-                                            className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={formData.status}
-                                            onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                                        >
-                                            <option value="planning">Planning</option>
-                                            <option value="active">Active</option>
-                                            <option value="on-hold">On Hold</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('projects.category')}</label>
+                                            <select
+                                                className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                value={formData.category}
+                                                onChange={e => setFormData({ ...formData, category: e.target.value as any })}
+                                            >
+                                                <option value="web">Web 应用</option>
+                                                <option value="mobile">移动应用</option>
+                                                <option value="data">数据分析</option>
+                                                <option value="infrastructure">基础设施</option>
+                                                <option value="custom">自定义</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('projects.department')}</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                value={formData.department}
+                                                onChange={e => setFormData({ ...formData, department: e.target.value })}
+                                                placeholder="输入负责部门"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('projects.budget')} (¥)</label>
+                                            <input
+                                                type="number"
+                                                className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                value={formData.budget}
+                                                onChange={e => setFormData({ ...formData, budget: parseInt(e.target.value) })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('projects.status')}</label>
+                                            <select
+                                                className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                value={formData.status}
+                                                onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                                            >
+                                                <option value="planning">Planning</option>
+                                                <option value="active">Active</option>
+                                                <option value="on-hold">On Hold</option>
+                                                <option value="completed">Completed</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('projects.startDate')}</label>
+                                            <input
+                                                type="date"
+                                                className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                value={formData.startDate}
+                                                onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('projects.endDate')}</label>
+                                            <input
+                                                type="date"
+                                                className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                value={formData.endDate}
+                                                onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 

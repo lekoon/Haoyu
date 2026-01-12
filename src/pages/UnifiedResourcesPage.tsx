@@ -18,6 +18,7 @@ import {
     X,
     Brain,
     TrendingUp,
+    Briefcase
 } from 'lucide-react';
 import ResourceRiskPredictor from '../components/ResourceRiskPredictor';
 import EnhancedResourcesDashboard from './EnhancedResourcesDashboard';
@@ -30,9 +31,10 @@ import { generateTimeBuckets, calculateResourceLoad } from '../utils/resourcePla
 import { exportResourcesToCSV, exportResourcePoolToCSV, exportToJSON } from '../utils/resourceExport';
 import AddResourceModal from '../components/AddResourceModal';
 import AIDecisionDashboard from './AIDecisionDashboard';
+import ResourceDeepDive from '../components/resource-viz/ResourceDeepDive';
 import { PageContainer, PageHeader, Button, Badge } from '../components/ui';
 
-type ViewTab = 'dashboard' | 'heatmap' | 'gantt' | 'conflicts' | 'costs' | 'skills' | 'decision' | 'prediction';
+type ViewTab = 'dashboard' | 'heatmap' | 'gantt' | 'conflicts' | 'costs' | 'skills' | 'decision' | 'prediction' | 'efficiency';
 
 const UnifiedResourcesPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ViewTab>('dashboard');
@@ -85,6 +87,7 @@ const UnifiedResourcesPage: React.FC = () => {
         { id: 'skills' as const, label: '技能匹配', icon: Target, color: 'indigo' },
         { id: 'decision' as const, label: '决策支持', icon: Brain, color: 'rose' },
         { id: 'prediction' as const, label: '负荷预测', icon: TrendingUp, color: 'blue' },
+        { id: 'efficiency' as const, label: '效能下钻', icon: Briefcase, color: 'emerald' },
     ];
 
     const handleExport = (format: 'csv' | 'json') => {
@@ -268,6 +271,8 @@ const UnifiedResourcesPage: React.FC = () => {
                 {activeTab === 'decision' && <AIDecisionDashboard />}
 
                 {activeTab === 'prediction' && <ResourceRiskPredictor projects={projects} resourcePool={resourcePool} />}
+
+                {activeTab === 'efficiency' && <ResourceDeepDive />}
             </div>
 
             {/* Click outside to close menus */}

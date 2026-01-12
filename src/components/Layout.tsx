@@ -152,7 +152,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         if (path.startsWith('/pmo') || path.startsWith('/simulation') || path.startsWith('/environments')) {
             return [
                 { label: 'PMO 仪表板', path: '/pmo', icon: LayoutDashboard, description: '管控中心' },
-                { label: '项目组合', path: '/pmo?tab=portfolio', icon: Briefcase, description: '组合总览' },
                 { label: '依赖分析', path: '/pmo?tab=dependencies', icon: Search, description: '跨项目依赖' },
                 { label: '环境资源', path: '/environments', icon: Shield, description: '环境管理' },
                 { label: 'What-If 推演', path: '/simulation', icon: Brain, description: '沙盘模拟' },

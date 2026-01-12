@@ -84,6 +84,8 @@ export interface Skill {
 export interface ResourcePoolItem {
     id: string;
     name: string; // e.g., "Software Department"
+    department?: string; // 归属部门
+    category?: 'frontend' | 'backend' | 'design' | 'testing' | 'hardware' | 'management' | 'other'; // 技术栈/类别
     totalQuantity: number; // e.g., 10 people
     costPerUnit?: number; // Cost per unit per time period
     skills?: Skill[]; // Skills this resource possesses
@@ -294,6 +296,7 @@ export interface Project {
     endDate: string;
     manager?: string;
     department?: string;
+    category?: 'web' | 'mobile' | 'data' | 'infrastructure' | 'custom';
 
     // Dynamic Factors: key is FactorDefinition.id, value is 0-10 score
     factors: Record<string, number>;
@@ -352,6 +355,17 @@ export interface Project {
 
     // Strategic Key Tasks (关键任务总览)
     keyTasks?: ProjectKeyTask[];
+
+    // Resource Consumption (实际资源消耗记录)
+    actualResourceUsage?: {
+        resourceId: string;
+        resourceName: string;
+        count: number;
+        duration: number;
+        unit: ResourceUnit;
+        department?: string;
+        category?: string;
+    }[];
 }
 
 // ==================== PMO Enhancement Types ====================
@@ -579,10 +593,12 @@ export interface ProjectTemplate {
     name: string;
     description: string;
     category: 'web' | 'mobile' | 'data' | 'infrastructure' | 'custom';
+    department?: string;
     icon?: string;
     defaultDuration: number; // in months
+    defaultBudget?: number;
     defaultFactors: Record<string, number>;
-    defaultResources: Omit<ResourceRequirement, 'resourceId'>[];
+    defaultResources: ResourceRequirement[];
     defaultMilestones?: Omit<Milestone, 'id' | 'completed'>[];
     isBuiltIn: boolean;
     createdAt: string;
