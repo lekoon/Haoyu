@@ -188,7 +188,7 @@ const WhatIfSimulation: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-[1920px] mx-auto w-full">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">

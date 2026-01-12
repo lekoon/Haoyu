@@ -473,7 +473,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Main Content Area */}
             <main className="flex-1 overflow-hidden relative bg-slate-50 dark:bg-slate-900">
                 <div className="h-full overflow-y-auto p-6 scroll-smooth">
-                    <div className="max-w-7xl mx-auto min-h-full">
+                    <div className="max-w-[1920px] mx-auto min-h-full w-full">
                         {children}
                     </div>
                 </div>

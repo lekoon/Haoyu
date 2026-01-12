@@ -299,7 +299,7 @@ const ProjectDetailEnhanced: React.FC = () => {
                 )}
 
                 {activeTab === 'risks' && (
-                    <div className="h-full overflow-auto p-6 max-w-7xl mx-auto">
+                    <div className="h-full overflow-auto p-6 max-w-[1920px] mx-auto w-full">
                         <RiskAssessment
                             project={project}
                             risks={project.risks || []}
@@ -309,7 +309,7 @@ const ProjectDetailEnhanced: React.FC = () => {
                 )}
 
                 {activeTab === 'costs' && (
-                    <div className="h-full overflow-auto p-6 max-w-7xl mx-auto">
+                    <div className="h-full overflow-auto p-6 max-w-[1920px] mx-auto w-full">
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">成本概览</h3>
@@ -353,7 +353,7 @@ const ProjectDetailEnhanced: React.FC = () => {
 
                 {/* 高级分析视图 */}
                 {activeTab === 'analytics' && (
-                    <div className="h-full overflow-auto p-6 max-w-7xl mx-auto space-y-6">
+                    <div className="h-full overflow-auto p-6 max-w-[1920px] mx-auto w-full space-y-6">
                         {/* 项目健康度仪表板 - Enhanced Version */}
                         <EnhancedHealthVisualization
                             project={project}
@@ -371,7 +371,7 @@ const ProjectDetailEnhanced: React.FC = () => {
 
                 {/* 战略评分视图 */}
                 {activeTab === 'strategy' && (
-                    <div className="h-full overflow-hidden max-w-7xl mx-auto">
+                    <div className="h-full overflow-hidden max-w-[1920px] mx-auto w-full">
                         <ProjectScoringPanel
                             project={project}
                             onUpdate={(updates) => updateProject(project.id, { ...project, ...updates })}
@@ -389,7 +389,7 @@ const ProjectDetailEnhanced: React.FC = () => {
 
                 {/* PDSG 管理视图 */}
                 {activeTab === 'pdsg' && (
-                    <div className="h-full overflow-auto p-8 max-w-7xl mx-auto">
+                    <div className="h-full overflow-auto p-8 max-w-[1920px] mx-auto w-full">
                         <PDSGManagement
                             project={project}
                             resourcePool={resourcePool}
@@ -400,7 +400,7 @@ const ProjectDetailEnhanced: React.FC = () => {
 
                 {/* 基线管理视图 */}
                 {activeTab === 'baseline' && (
-                    <div className="h-full overflow-auto p-6 max-w-7xl mx-auto">
+                    <div className="h-full overflow-auto p-6 max-w-[1920px] mx-auto w-full">
                         <BaselineHistory
                             project={project}
                             onCreateBaseline={(baseline) => {
@@ -425,7 +425,7 @@ const ProjectDetailEnhanced: React.FC = () => {
 
                 {/* 阶段门径视图 */}
                 {activeTab === 'stagegate' && (
-                    <div className="h-full overflow-auto p-6 max-w-7xl mx-auto">
+                    <div className="h-full overflow-auto p-6 max-w-[1920px] mx-auto w-full">
                         <StageGateWorkflow
                             project={{
                                 ...project,
@@ -484,7 +484,7 @@ const ProjectDetailEnhanced: React.FC = () => {
 
                 {/* 范围管理视图 */}
                 {activeTab === 'scope' && (
-                    <div className="h-full overflow-auto p-6 max-w-7xl mx-auto space-y-6">
+                    <div className="h-full overflow-auto p-6 max-w-[1920px] mx-auto w-full space-y-6">
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">

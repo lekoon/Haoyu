@@ -67,7 +67,7 @@ const ProjectResourceDetail: React.FC<ProjectResourceDetailProps> = ({ project, 
 
     return (
         <div className="h-full overflow-auto p-6 bg-slate-50">
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className="max-w-[1920px] mx-auto w-full space-y-6">
                 {/* 顶部工具栏 */}
                 <div className="flex justify-between items-center">
                     <div className="flex bg-white rounded-lg border border-slate-200 p-1">

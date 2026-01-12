@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, devtools } from 'zustand/middleware';
-import type { Project, FactorDefinition, User, ResourcePoolItem, Notification, Alert, ProjectTemplate, ProjectBaseline } from '../types';
+import type { Project, FactorDefinition, User, ResourcePoolItem, Notification, Alert, ProjectTemplate, KeyTaskDefinition } from '../types';
 import { calculateProjectScore, rankProjects } from '../utils/algorithm';
 import { createBaseline as createBaselineSnapshot } from '../utils/baselineManagement';
 
@@ -12,6 +12,7 @@ interface StoreState {
     projectTemplates: ProjectTemplate[];
     notifications: Notification[];
     alerts: Alert[];
+    keyTaskDefinitions: KeyTaskDefinition[];
 
     // Actions
     login: (username: string, role: 'admin' | 'manager' | 'user' | 'readonly') => void;
@@ -50,6 +51,11 @@ interface StoreState {
     // Baseline Management
     createBaseline: (projectId: string, name: string, description: string) => void;
     setActiveBaseline: (projectId: string, baselineId: string) => void;
+
+    // Key Task Definitions
+    addKeyTaskDefinition: (name: string, color: string) => void;
+    updateKeyTaskDefinition: (id: string, updates: Partial<KeyTaskDefinition>) => void;
+    deleteKeyTaskDefinition: (id: string) => void;
 }
 
 // Default data
@@ -156,6 +162,15 @@ const DEFAULT_TEMPLATES: ProjectTemplate[] = [
     }
 ];
 
+const DEFAULT_KEY_TASKS: KeyTaskDefinition[] = [
+    { id: 'kt-design', name: '系统设计', color: '#cb605b' },
+    { id: 'kt-dev', name: '功能开发', color: '#d9b75a' },
+    { id: 'kt-sit', name: 'SIT', color: '#509765' },
+    { id: 'kt-st', name: 'ST', color: '#5a6da4' },
+    { id: 'kt-transfer', name: '设计转换', color: '#5e84c9' },
+    { id: 'kt-eco', name: 'ECO', color: '#8b71cc' },
+];
+
 export const useStore = create<StoreState>()(
     devtools(
         persist(
@@ -167,6 +182,7 @@ export const useStore = create<StoreState>()(
                 projectTemplates: DEFAULT_TEMPLATES,
                 notifications: [],
                 alerts: [],
+                keyTaskDefinitions: DEFAULT_KEY_TASKS,
 
                 login: (username, role) => set({
                     user: {
@@ -351,6 +367,23 @@ export const useStore = create<StoreState>()(
                             : p
                     )
                 }), false, 'baseline/setActive'),
+
+                addKeyTaskDefinition: (name, color) => set((state) => ({
+                    keyTaskDefinitions: [
+                        ...state.keyTaskDefinitions,
+                        { id: `kt-${Date.now()}`, name, color }
+                    ]
+                }), false, 'keyTasks/add'),
+
+                updateKeyTaskDefinition: (id, updates) => set((state) => ({
+                    keyTaskDefinitions: state.keyTaskDefinitions.map(kt =>
+                        kt.id === id ? { ...kt, ...updates } : kt
+                    )
+                }), false, 'keyTasks/update'),
+
+                deleteKeyTaskDefinition: (id) => set((state) => ({
+                    keyTaskDefinitions: state.keyTaskDefinitions.filter(kt => kt.id !== id)
+                }), false, 'keyTasks/delete'),
             }),
             {
                 name: 'visorq-storage',
@@ -362,7 +395,8 @@ export const useStore = create<StoreState>()(
                     factorDefinitions: state.factorDefinitions,
                     resourcePool: state.resourcePool,
                     projectTemplates: state.projectTemplates,
-                    alerts: state.alerts
+                    alerts: state.alerts,
+                    keyTaskDefinitions: state.keyTaskDefinitions
                 }),
             }
         ),
@@ -399,3 +433,5 @@ export const useProjectsByStatus = (status: Project['status']) => useStore((stat
 export const useTopProjects = (limit: number = 5) => useStore((state) =>
     state.projects.slice(0, limit)
 );
+
+export const useKeyTaskDefinitions = () => useStore((state) => state.keyTaskDefinitions);

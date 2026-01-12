@@ -148,6 +148,19 @@ export interface Milestone {
     description?: string;
 }
 
+// Key Task Definitions for Portfolio Timeline
+export interface KeyTaskDefinition {
+    id: string;
+    name: string;
+    color: string;
+}
+
+export interface ProjectKeyTask {
+    definitionId: string; // Reference to KeyTaskDefinition
+    startDate: string;
+    endDate: string;
+}
+
 // Cost Analysis
 export interface CostBreakdown {
     projectId: string;
@@ -336,6 +349,9 @@ export interface Project {
     // Baseline Management (基线管理)
     baselines?: ProjectBaseline[];
     activeBaselineId?: string; // 当前激活的基线ID
+
+    // Strategic Key Tasks (关键任务总览)
+    keyTasks?: ProjectKeyTask[];
 }
 
 // ==================== PMO Enhancement Types ====================

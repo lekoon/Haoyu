@@ -46,7 +46,7 @@ const RequirementTraceabilityMatrix: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-[1920px] mx-auto w-full">
                 <button
                     onClick={() => navigate(`/projects/${projectId}`)}
                     className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 mb-6"

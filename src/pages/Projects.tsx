@@ -9,6 +9,9 @@ import KanbanBoard from '../components/KanbanBoard';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer, PageHeader, Card, Button, Badge } from '../components/ui';
 import { usePMOStore } from '../store/usePMOStore';
+import { useKeyTaskDefinitions } from '../store/useStore';
+import KeyTaskSettingsModal from '../components/KeyTaskSettingsModal';
+import { Settings } from 'lucide-react';
 
 const Projects: React.FC = () => {
     const { projects, addProject, deleteProject, updateProject, factorDefinitions, resourcePool, user } = useStore();
@@ -18,6 +21,8 @@ const Projects: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [isKeyTaskSettingsOpen, setIsKeyTaskSettingsOpen] = useState(false);
+    const keyTaskDefinitions = useKeyTaskDefinitions();
 
     // Mock Templates (In a real app, these would come from the store or API)
     const templates: ProjectTemplate[] = [
@@ -263,6 +268,34 @@ const Projects: React.FC = () => {
         }));
     };
 
+    const addKeyTask = () => {
+        setFormData(prev => ({
+            ...prev,
+            keyTasks: [
+                ...(prev.keyTasks || []),
+                {
+                    definitionId: keyTaskDefinitions[0]?.id || '',
+                    startDate: prev.startDate || new Date().toISOString().split('T')[0],
+                    endDate: prev.endDate || new Date().toISOString().split('T')[0]
+                }
+            ]
+        }));
+    };
+
+    const updateKeyTask = (index: number, field: string, value: any) => {
+        setFormData(prev => ({
+            ...prev,
+            keyTasks: prev.keyTasks?.map((kt, i) => i === index ? { ...kt, [field]: value } : kt)
+        }));
+    };
+
+    const removeKeyTask = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            keyTasks: prev.keyTasks?.filter((_, i) => i !== index)
+        }));
+    };
+
     const currentScore = formData.factors ? calculateProjectScore(formData.factors, factorDefinitions) : 0;
 
     // Kanban Columns - Moved to KanbanBoard component
@@ -280,24 +313,38 @@ const Projects: React.FC = () => {
                 description="Manage and track all your projects"
                 actions={
                     <div className="flex items-center gap-4">
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                icon={Settings}
+                                onClick={() => setIsKeyTaskSettingsOpen(true)}
+                                size="sm"
+                                className="border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                                关键任务
+                            </Button>
+                        </div>
                         <div className="flex bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 shadow-sm">
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-slate-100 dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                             >
-                                <LayoutList size={20} />
+                                <LayoutList size={18} />
+                                <span className="text-sm font-medium">列表</span>
                             </button>
                             <button
                                 onClick={() => setViewMode('kanban')}
-                                className={`p-2 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-2 ${viewMode === 'kanban' ? 'bg-slate-100 dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                             >
-                                <Kanban size={20} />
+                                <Kanban size={18} />
+                                <span className="text-sm font-medium">看板</span>
                             </button>
                             <button
                                 onClick={() => setViewMode('gantt')}
-                                className={`p-2 rounded-md transition-colors ${viewMode === 'gantt' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-2 ${viewMode === 'gantt' ? 'bg-slate-100 dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                             >
-                                <Calendar size={20} />
+                                <Calendar size={18} />
+                                <span className="text-sm font-medium">甘特图</span>
                             </button>
                         </div>
                         {user?.role !== 'user' && (
@@ -380,104 +427,228 @@ const Projects: React.FC = () => {
                     <KanbanBoard onEditProject={handleOpenModal} />
                 </div>
             ) : (
-                <Card>
-                    <div className="overflow-x-auto">
-                        <div className="min-w-[1200px] pb-4">
-                            {/* Timeline Header */}
-                            <div className="flex border-b border-slate-200 pb-2 mb-4">
-                                <div className="w-48 shrink-0 font-bold text-slate-500">Project</div>
-                                <div className="flex-1 flex relative h-6">
-                                    {(() => {
-                                        const validProjects = projects.filter(p => p.startDate && p.endDate);
-                                        if (validProjects.length === 0) return <div className="text-sm text-slate-400">No scheduled projects</div>;
+                <Card padding="none" className="overflow-hidden">
+                    {(() => {
+                        const validProjectsForGantt = projects.filter(p => p.startDate && p.endDate);
+                        if (validProjectsForGantt.length === 0) {
+                            return <div className="p-20 text-center text-slate-400 italic">暂无排程项目</div>;
+                        }
 
-                                        const startDates = validProjects.map(p => parseISO(p.startDate).getTime());
-                                        const endDates = validProjects.map(p => parseISO(p.endDate).getTime());
-                                        const minDate = startOfMonth(new Date(Math.min(...startDates)));
-                                        const maxDate = endOfMonth(new Date(Math.max(...endDates)));
-                                        const months = differenceInMonths(maxDate, minDate) + 1;
+                        const startDates = validProjectsForGantt.map(p => parseISO(p.startDate).getTime());
+                        const endDates = validProjectsForGantt.map(p => parseISO(p.endDate).getTime());
+                        const minDate = startOfMonth(new Date(Math.min(...startDates)));
+                        const maxDate = endOfMonth(new Date(Math.max(...endDates)));
+                        const totalMonths = differenceInMonths(maxDate, minDate) + 1;
+                        const totalDays = differenceInDays(maxDate, minDate) + 1;
 
-                                        return Array.from({ length: months }).map((_, i) => {
-                                            const monthDate = addMonths(minDate, i);
-                                            return (
-                                                <div key={i} className="flex-1 text-xs text-slate-400 border-l border-slate-100 pl-1">
-                                                    {format(monthDate, 'MMM yy')}
-                                                </div>
-                                            );
-                                        });
-                                    })()}
-                                </div>
-                            </div>
+                        const monthWidth = 120; // 每个月的宽度
+                        const timelineWidth = totalMonths * monthWidth;
 
-                            {/* Project Rows */}
-                            <div className="space-y-3">
-                                {projects.filter(p => p.startDate && p.endDate).map(project => {
-                                    const validProjects = projects.filter(p => p.startDate && p.endDate);
-                                    const startDates = validProjects.map(p => parseISO(p.startDate).getTime());
-                                    const endDates = validProjects.map(p => parseISO(p.endDate).getTime());
-                                    const minDate = startOfMonth(new Date(Math.min(...startDates)));
-                                    const maxDate = endOfMonth(new Date(Math.max(...endDates)));
-                                    const totalDays = differenceInDays(maxDate, minDate) + 1;
+                        const today = new Date();
+                        const todayOffset = differenceInDays(today, minDate);
+                        const todayLeft = (todayOffset / totalDays) * 100;
 
-                                    const start = parseISO(project.startDate);
-                                    const end = parseISO(project.endDate);
-                                    const offset = differenceInDays(start, minDate);
-                                    const duration = differenceInDays(end, start);
+                        // 生成年份分组
+                        const years: { year: string, monthCount: number }[] = [];
+                        for (let i = 0; i < totalMonths; i++) {
+                            const date = addMonths(minDate, i);
+                            const yearStr = format(date, 'yyyy年');
+                            if (years.length > 0 && years[years.length - 1].year === yearStr) {
+                                years[years.length - 1].monthCount++;
+                            } else {
+                                years.push({ year: yearStr, monthCount: 1 });
+                            }
+                        }
 
-                                    const left = (offset / totalDays) * 100;
-                                    const width = (duration / totalDays) * 100;
-
-                                    const colorClass =
-                                        project.status === 'active' ? 'bg-green-500' :
-                                            project.status === 'planning' ? 'bg-blue-500' :
-                                                project.status === 'completed' ? 'bg-purple-500' : 'bg-orange-500';
-
-                                    return (
-                                        <div key={project.id} className="flex items-center group">
-                                            <div className="w-48 shrink-0 pr-4">
-                                                <div className="font-medium text-sm text-slate-900 truncate">{project.name}</div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="text-[10px] text-slate-400">Rank #{project.rank}</div>
-                                                    <Badge variant="neutral" className="text-[9px] py-0 px-1">Score: {(project.score || 0).toFixed(1)}</Badge>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 relative h-8 bg-slate-50 dark:bg-slate-800/50 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
-                                                <div
-                                                    className={`absolute top-1 bottom-1 rounded-md ${colorClass} shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center px-2 group/bar overflow-hidden`}
-                                                    style={{ left: `${left}%`, width: `${width}%` }}
-                                                    onClick={() => handleOpenModal(project)}
-                                                    title={`${project.name}: ${project.startDate} to ${project.endDate}\nProgress: ${project.progress || 0}%\nScore: ${project.score || 0}`}
-                                                >
-                                                    {/* Internal Progress Bar */}
+                        return (
+                            <div className="overflow-x-auto custom-scrollbar group/gantt">
+                                <div style={{ width: `calc(14rem + ${timelineWidth}px)` }} className="relative bg-white dark:bg-slate-900 min-h-[400px]">
+                                    {/* Timeline Header - Multi Tier */}
+                                    <div className="sticky top-0 z-30 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                                        {/* Tier 1: Years */}
+                                        <div className="flex">
+                                            <div className="w-56 shrink-0 sticky left-0 bg-white dark:bg-slate-900 z-40 border-r border-slate-100 dark:border-slate-800"></div>
+                                            <div className="flex-1 flex">
+                                                {years.map((y, idx) => (
                                                     <div
-                                                        className="absolute top-0 left-0 h-full bg-black/20 pointer-events-none transition-all duration-500"
-                                                        style={{ width: `${project.progress || 0}%` }}
-                                                    />
-
-                                                    <div className="relative z-10 w-full flex items-center justify-between gap-2">
-                                                        <span className="text-xs text-white font-bold truncate drop-shadow-md">
-                                                            {project.name}
-                                                        </span>
-                                                        <div className="flex items-center gap-1.5 shrink-0">
-                                                            <span className="text-[10px] text-white/90 font-mono bg-black/10 px-1 rounded">
-                                                                {project.progress || 0}%
-                                                            </span>
-                                                            <span className="text-[10px] text-white/90 font-bold bg-white/20 px-1 rounded">
-                                                                S: {(project.score || 0).toFixed(0)}
-                                                            </span>
-                                                        </div>
+                                                        key={idx}
+                                                        className="border-l border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 dark:text-slate-500 py-1 px-3 bg-slate-50/50 dark:bg-slate-800/30 uppercase tracking-widest"
+                                                        style={{ width: `${(y.monthCount / totalMonths) * 100}%` }}
+                                                    >
+                                                        {y.year}
                                                     </div>
-                                                </div>
+                                                ))}
                                             </div>
                                         </div>
-                                    );
-                                })}
+                                        {/* Tier 2: Months */}
+                                        <div className="flex h-10 items-center">
+                                            <div className="w-56 shrink-0 font-bold text-slate-600 dark:text-slate-300 px-6 sticky left-0 bg-white dark:bg-slate-900 z-40 border-r border-slate-100 dark:border-slate-800 flex items-center">
+                                                项目清单
+                                            </div>
+                                            <div className="flex-1 flex h-full">
+                                                {Array.from({ length: totalMonths }).map((_, i) => {
+                                                    const monthDate = addMonths(minDate, i);
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            className="flex-1 border-l border-slate-50 dark:border-slate-800/50 text-[11px] font-bold text-slate-500 flex items-center pl-3 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors"
+                                                        >
+                                                            {format(monthDate, 'MM月')}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Legend Section (Always visible below header) */}
+                                    {keyTaskDefinitions.length > 0 && (
+                                        <div className="flex flex-wrap gap-4 px-6 py-3 bg-slate-50/30 dark:bg-slate-800/10 border-b border-slate-100 dark:border-slate-800 sticky left-0 z-10" style={{ width: `calc(14rem + ${timelineWidth}px)` }}>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest self-center mr-2">战略任务图例:</span>
+                                            {keyTaskDefinitions.map(def => (
+                                                <div key={def.id} className="flex items-center gap-2">
+                                                    <div className="w-2.5 h-2.5 rounded-sm shadow-sm" style={{ backgroundColor: def.color }}></div>
+                                                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{def.name}</span>
+                                                </div>
+                                            ))}
+                                            <div className="flex items-center gap-2 ml-auto border-l border-slate-200 dark:border-slate-700 pl-4">
+                                                <div className="w-3 h-0.5 bg-red-400 shadow-[0_0_5px_rgba(248,113,113,0.5)]"></div>
+                                                <span className="text-[11px] font-bold text-red-500">今日位置</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Project Rows Area */}
+                                    <div className="relative pt-4 pb-8">
+                                        {/* Global Vertical Grid Lines */}
+                                        <div className="absolute inset-0 pointer-events-none z-0">
+                                            <div className="flex h-full ml-56">
+                                                {Array.from({ length: totalMonths }).map((_, i) => (
+                                                    <div key={i} className="flex-1 border-l border-dashed border-slate-100 dark:border-slate-800/50" />
+                                                ))}
+                                            </div>
+                                            {/* Today Line */}
+                                            {todayLeft >= 0 && todayLeft <= 100 && (
+                                                <div
+                                                    className="absolute top-0 bottom-0 w-[2px] bg-red-400/40 dark:bg-red-500/20 z-20"
+                                                    style={{ left: `calc(14rem + ${todayLeft}%)` }}
+                                                >
+                                                    <div className="w-full h-full border-l-2 border-dotted border-red-500/50" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Rows */}
+                                        <div className="space-y-4 px-0">
+                                            {validProjectsForGantt.sort((a, b) => (a.rank || 99) - (b.rank || 99)).map(project => {
+                                                const start = parseISO(project.startDate);
+                                                const end = parseISO(project.endDate);
+                                                const offset = differenceInDays(start, minDate);
+                                                const duration = differenceInDays(end, start);
+
+                                                const left = (offset / totalDays) * 100;
+                                                const width = (duration / totalDays) * 100;
+
+                                                const colorClass =
+                                                    project.status === 'active' ? 'bg-gradient-to-r from-emerald-500 to-teal-600' :
+                                                        project.status === 'planning' ? 'bg-gradient-to-r from-blue-500 to-indigo-600' :
+                                                            project.status === 'completed' ? 'bg-gradient-to-r from-purple-500 to-fuchsia-600' : 'bg-gradient-to-r from-orange-400 to-amber-500';
+
+                                                return (
+                                                    <div key={project.id} className="flex items-center group relative z-10 py-1.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all rounded-r-xl">
+                                                        {/* Sticky Left Column */}
+                                                        <div className="w-56 shrink-0 px-6 sticky left-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-20 border-r border-slate-100 dark:border-slate-800 flex items-center gap-3 shadow-[5px_0_15px_-5px_rgba(0,0,0,0.05)]">
+                                                            <div className={`w-2 h-2 rounded-full shrink-0 ${project.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : project.status === 'completed' ? 'bg-purple-500' : 'bg-slate-300'} ${project.status === 'active' ? 'animate-pulse' : ''}`}></div>
+                                                            <div className="min-w-0">
+                                                                <div
+                                                                    className="font-black text-[13px] text-slate-700 dark:text-slate-200 truncate group-hover:text-blue-600 transition-colors cursor-pointer"
+                                                                    onClick={() => navigate(`/projects/${project.id}`)}
+                                                                >
+                                                                    {project.name}
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Badge variant="neutral" className="text-[9px] py-0 px-1 border-none bg-slate-100 dark:bg-slate-800 font-bold opacity-60">
+                                                                        PK:{project.rank}
+                                                                    </Badge>
+                                                                    <span className="text-[10px] text-slate-400 font-black tracking-tighter">
+                                                                        {format(start, 'MM/dd')} » {format(end, 'MM/dd')}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Bar Column */}
+                                                        <div className="flex-1 relative h-12 flex items-center">
+                                                            <div
+                                                                className={`absolute h-8 rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.1)] group-hover:shadow-[0_8px_20px_rgba(37,99,235,0.2)] transition-all cursor-pointer flex items-center px-3 group/bar overflow-hidden ${project.keyTasks && project.keyTasks.length > 0 ? 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : colorClass}`}
+                                                                style={{ left: `${left}%`, width: `${width}%` }}
+                                                                onClick={() => handleOpenModal(project)}
+                                                            >
+                                                                {project.keyTasks && project.keyTasks.length > 0 ? (
+                                                                    <div className="absolute inset-0 p-0.5">
+                                                                        {project.keyTasks.map((kt, idx) => {
+                                                                            const ktDef = keyTaskDefinitions.find(d => d.id === kt.definitionId);
+                                                                            if (!ktDef) return null;
+
+                                                                            const pStart = parseISO(project.startDate).getTime();
+                                                                            const pEnd = parseISO(project.endDate).getTime();
+                                                                            const ktStart = parseISO(kt.startDate).getTime();
+                                                                            const ktEnd = parseISO(kt.endDate).getTime();
+
+                                                                            const pTotal = pEnd - pStart;
+                                                                            const ktLeft = Math.max(0, ((ktStart - pStart) / pTotal) * 100);
+                                                                            const ktWidth = Math.min(100 - ktLeft, ((ktEnd - ktStart) / pTotal) * 100);
+
+                                                                            return (
+                                                                                <div
+                                                                                    key={idx}
+                                                                                    className="absolute top-0.5 bottom-0.5 rounded-md flex items-center justify-center overflow-hidden border border-white/40 shadow-sm backdrop-blur-[2px] transition-all hover:scale-[1.05] hover:z-30 z-10"
+                                                                                    style={{
+                                                                                        backgroundColor: ktDef.color,
+                                                                                        left: `${ktLeft}%`,
+                                                                                        width: `${ktWidth}%`,
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
+                                                                                    <span className="text-[10px] text-white font-black truncate px-1.5 leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] pointer-events-none uppercase tracking-tighter">
+                                                                                        {ktDef.name}
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        <div className="absolute top-0 left-0 h-full bg-white/20 pointer-events-none transition-all duration-700" style={{ width: `${project.progress || 0}%` }} />
+                                                                        <div className="relative z-10 w-full flex items-center justify-between gap-2 overflow-hidden">
+                                                                            <span className="text-[12px] text-white font-black truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
+                                                                                {project.name}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-white/90 font-black bg-black/30 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10 shrink-0">
+                                                                                {project.progress || 0}%
+                                                                            </span>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        );
+                    })()}
                 </Card>
             )
             }
+
+            <KeyTaskSettingsModal
+                isOpen={isKeyTaskSettingsOpen}
+                onClose={() => setIsKeyTaskSettingsOpen(false)}
+            />
 
             {/* Modal */}
             {
@@ -645,6 +816,61 @@ const Projects: React.FC = () => {
                                         ))}
                                         {formData.milestones?.length === 0 && (
                                             <p className="text-sm text-slate-400 italic">No milestones defined.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Key Tasks for Timeline */}
+                                <div className="border-t border-slate-100 pt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-lg font-bold text-slate-800">关键任务 (甘特图展示)</h3>
+                                            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">预览可用</span>
+                                        </div>
+                                        <button type="button" onClick={addKeyTask} className="text-sm text-blue-600 font-bold hover:underline">+ 添加关键任务</button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {formData.keyTasks?.map((kt, index) => (
+                                            <div key={index} className="flex gap-3 items-end bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                                <div className="flex-1">
+                                                    <label className="text-xs font-bold text-slate-500 mb-1 block">任务名称</label>
+                                                    <select
+                                                        className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-sm"
+                                                        value={kt.definitionId}
+                                                        onChange={e => updateKeyTask(index, 'definitionId', e.target.value)}
+                                                    >
+                                                        {keyTaskDefinitions.map(def => (
+                                                            <option key={def.id} value={def.id}>{def.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="w-1/4">
+                                                    <label className="text-xs font-bold text-slate-500 mb-1 block">开始日期</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-sm"
+                                                        value={kt.startDate}
+                                                        onChange={e => updateKeyTask(index, 'startDate', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="w-1/4">
+                                                    <label className="text-xs font-bold text-slate-500 mb-1 block">结束日期</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-sm"
+                                                        value={kt.endDate}
+                                                        onChange={e => updateKeyTask(index, 'endDate', e.target.value)}
+                                                    />
+                                                </div>
+                                                <button type="button" onClick={() => removeKeyTask(index)} className="p-2.5 text-slate-400 hover:text-red-500 transition-colors">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {(!formData.keyTasks || formData.keyTasks.length === 0) && (
+                                            <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                                                <p className="text-sm text-slate-400">暂未添加关键任务，甘特图将显示默认进度条</p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
