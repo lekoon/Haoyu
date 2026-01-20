@@ -4,18 +4,32 @@ import type { Project } from '../types';
 import { Users, Edit2, GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const KanbanBoard: React.FC<{ onEditProject: (project: Project) => void }> = ({ onEditProject }) => {
-    const { projects, updateProject } = useStore();
+const KanbanBoard: React.FC<{
+    onEditProject: (project: Project) => void;
+    groupBy?: 'status' | 'projectType';
+}> = ({ onEditProject, groupBy = 'status' }) => {
+    const { projects, updateProject, projectTypeDefinitions } = useStore();
     const { t } = useTranslation();
     const [draggedProject, setDraggedProject] = useState<Project | null>(null);
     const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
-    const columns = [
-        { id: 'planning', label: t('projects.planning'), color: 'bg-blue-100 text-blue-700', borderColor: 'border-blue-400' },
-        { id: 'active', label: t('projects.active'), color: 'bg-green-100 text-green-700', borderColor: 'border-green-400' },
-        { id: 'on-hold', label: t('projects.onHold'), color: 'bg-orange-100 text-orange-700', borderColor: 'border-orange-400' },
-        { id: 'completed', label: t('projects.completed'), color: 'bg-purple-100 text-purple-700', borderColor: 'border-purple-400' },
-    ];
+    const columns = groupBy === 'status'
+        ? [
+            { id: 'planning', label: t('projects.planning'), color: 'bg-blue-100 text-blue-700', borderColor: 'border-blue-400' },
+            { id: 'active', label: t('projects.active'), color: 'bg-green-100 text-green-700', borderColor: 'border-green-400' },
+            { id: 'on-hold', label: t('projects.onHold'), color: 'bg-orange-100 text-orange-700', borderColor: 'border-orange-400' },
+            { id: 'completed', label: t('projects.completed'), color: 'bg-purple-100 text-purple-700', borderColor: 'border-purple-400' },
+        ]
+        : [
+            ...projectTypeDefinitions.map(type => ({
+                id: type.id,
+                label: type.name,
+                color: 'bg-slate-100 text-slate-700',
+                borderColor: 'border-slate-300',
+                headerColor: type.color
+            })),
+            { id: 'none', label: '未分类', color: 'bg-slate-50 text-slate-400', borderColor: 'border-slate-200' }
+        ];
 
     const handleDragStart = (e: React.DragEvent, project: Project) => {
         setDraggedProject(project);
@@ -40,19 +54,27 @@ const KanbanBoard: React.FC<{ onEditProject: (project: Project) => void }> = ({ 
         setDragOverColumn(null);
     };
 
-    const handleDrop = (e: React.DragEvent, newStatus: string) => {
+    const handleDrop = (e: React.DragEvent, columnId: string) => {
         e.preventDefault();
         setDragOverColumn(null);
 
-        if (draggedProject && draggedProject.status !== newStatus) {
-            updateProject(draggedProject.id, {
-                status: newStatus as Project['status']
-            });
+        if (draggedProject) {
+            if (groupBy === 'status' && draggedProject.status !== columnId) {
+                updateProject(draggedProject.id, {
+                    status: columnId as Project['status']
+                });
+            } else if (groupBy === 'projectType' && draggedProject.projectType !== columnId) {
+                updateProject(draggedProject.id, {
+                    projectType: columnId === 'none' ? undefined : columnId
+                });
+            } else {
+                return;
+            }
 
             // 显示成功提示
             const notification = document.createElement('div');
             notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
-            notification.textContent = `${draggedProject.name} moved to ${newStatus}`;
+            notification.textContent = `${draggedProject.name} updated`;
             document.body.appendChild(notification);
             setTimeout(() => {
                 notification.remove();
@@ -64,7 +86,11 @@ const KanbanBoard: React.FC<{ onEditProject: (project: Project) => void }> = ({ 
     return (
         <div className="flex gap-6 overflow-x-auto pb-6">
             {columns.map(col => {
-                const columnProjects = projects.filter(p => p.status === col.id);
+                const columnProjects = projects.filter(p =>
+                    groupBy === 'status'
+                        ? p.status === col.id
+                        : (p.projectType === col.id || (!p.projectType && col.id === 'none'))
+                );
                 const isDragOver = dragOverColumn === col.id;
 
                 return (
@@ -80,8 +106,13 @@ const KanbanBoard: React.FC<{ onEditProject: (project: Project) => void }> = ({ 
                     >
                         {/* Column Header */}
                         <div className="mb-4 flex items-center justify-between">
-                            <div className={`px-3 py-2 rounded-lg font-bold text-sm ${col.color}`}>
-                                {col.label}
+                            <div className="flex items-center gap-2">
+                                {(col as any).headerColor && (
+                                    <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: (col as any).headerColor }}></div>
+                                )}
+                                <div className={`px-3 py-2 rounded-lg font-bold text-sm ${col.color}`}>
+                                    {col.label}
+                                </div>
                             </div>
                             <span className="text-sm text-slate-500 font-medium">
                                 {columnProjects.length}

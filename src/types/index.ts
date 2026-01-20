@@ -2,7 +2,7 @@
 export interface User {
     id: string;
     username: string;
-    role: 'admin' | 'manager' | 'user' | 'readonly';
+    role: 'admin' | 'manager' | 'user' | 'readonly' | 'pmo';
     name?: string;
     email?: string;
     avatar?: string;
@@ -29,8 +29,28 @@ export interface ResourceBooking {
     startDate: string;
     endDate: string;
     reservedBy: string; // User ID
+    reservedByName?: string;
+    reservedByDept?: string;
+    purpose?: string;
     usageType?: 'test' | 'development' | 'demo' | 'validation';
     status?: 'planned' | 'active' | 'completed' | 'cancelled';
+    initialStatusConfirmed?: boolean;
+    returnStatusConfirmed?: boolean;
+}
+
+export interface MaintenancePlan {
+    id: string;
+    resourceId: string;
+    resourceName: string;
+    applicant: string;
+    applicantDept: string;
+    plannedDate: string;
+    type: 'breakdown' | 'routine' | 'upgrade';
+    description: string;
+    status: 'pending' | 'accepted' | 'rejected' | 'completed';
+    approver?: string;
+    approvalRemarks?: string;
+    createdAt: string;
 }
 
 export interface ReplacementRecord {
@@ -42,6 +62,15 @@ export interface ReplacementRecord {
     notes?: string;
 }
 
+export interface SoftwareHistoryRecord {
+    id: string;
+    version: string;
+    date: string;
+    changedBy: string; // User ID
+    changedByName: string;
+    notes?: string;
+}
+
 export interface BayResource {
     id: string;
     name: string;
@@ -49,29 +78,40 @@ export interface BayResource {
     status: ResourceStatus;
     currentProjectId?: string;
     currentProjectName?: string;
+    currentMachineId?: string;
+    currentMachineName?: string;
     health: number; // 0-100
     lastMaintenance: string;
     nextMaintenance: string;
     bookings: ResourceBooking[];
     conflicts?: string[]; // IDs of conflicting bookings
     replacementHistory?: ReplacementRecord[];
+    maintenancePlans?: MaintenancePlan[];
     usageHistory?: ResourceBooking[]; // Detailed usage history
+    softwareVersion?: string;
+    softwareHistory?: SoftwareHistoryRecord[];
 }
 
 export interface MachineResource {
     id: string;
     name: string;
     model: string;
+    platform?: string;
     status: ResourceStatus;
     currentProjectId?: string;
     currentProjectName?: string;
+    currentBayId?: string;
+    currentBayName?: string;
     health: number; // 0-100
     lastMaintenance: string;
     nextMaintenance: string;
     bookings: ResourceBooking[];
     conflicts?: string[];
     replacementHistory?: ReplacementRecord[];
+    maintenancePlans?: MaintenancePlan[];
     usageHistory?: ResourceBooking[];
+    softwareVersion?: string;
+    softwareHistory?: SoftwareHistoryRecord[];
 }
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
@@ -161,6 +201,14 @@ export interface ProjectKeyTask {
     definitionId: string; // Reference to KeyTaskDefinition
     startDate: string;
     endDate: string;
+}
+
+// Project Type Definition (Configurable)
+export interface ProjectTypeDefinition {
+    id: string;
+    name: string;
+    color: string;
+    description?: string;
 }
 
 // Cost Analysis
@@ -289,6 +337,7 @@ export interface Task {
 export interface Project {
     id: string;
     name: string;
+    code?: string;
     description: string;
     status: 'planning' | 'active' | 'completed' | 'on-hold';
     priority: 'P0' | 'P1' | 'P2' | 'P3';
@@ -297,6 +346,7 @@ export interface Project {
     manager?: string;
     department?: string;
     category?: 'web' | 'mobile' | 'data' | 'infrastructure' | 'custom';
+    projectType?: string; // ID of ProjectTypeDefinition
 
     // Dynamic Factors: key is FactorDefinition.id, value is 0-10 score
     factors: Record<string, number>;
@@ -346,6 +396,16 @@ export interface Project {
         endDate: string;
         purpose: string;
     }[];
+
+    // PMO Strategic Metrics
+    pmoMetrics?: PMOMetrics;
+
+    // PMO Health & Monitoring (Linkage)
+    healthIndicators?: ProjectHealthIndicators;
+    pmoAdvice?: string;
+
+    // Milestone Dependencies (Manual)
+    milestoneDependencies?: MilestoneDependency[];
 
     estimatedCost?: number; // 预估成本（向后兼容）
 
@@ -546,8 +606,12 @@ export interface CrossProjectDependency {
     id: string;
     sourceProjectId: string;
     sourceProjectName: string;
+    sourceMilestoneId?: string;
+    sourceMilestoneName?: string;
     targetProjectId: string;
     targetProjectName: string;
+    targetMilestoneId?: string;
+    targetMilestoneName?: string;
 
     dependencyType: 'finish-to-start' | 'start-to-start' | 'finish-to-finish' | 'start-to-finish';
     description: string;
@@ -650,7 +714,17 @@ export interface NotificationItem {
 
 // ========== Extended Data Models ==========
 
-// Project Dependencies
+// Project Dependencies (Milestone Level)
+export interface MilestoneDependency {
+    id: string;
+    sourceMilestoneId: string; // Milestone ID in the current project
+    targetProjectId: string;   // Target project ID
+    targetMilestoneId: string; // Milestone ID in the target project
+    type: 'FS' | 'SS' | 'FF' | 'SF';
+    lag?: number; // Days
+    description?: string;
+}
+
 export interface ProjectDependency {
     id: string;
     sourceProjectId: string;
@@ -1101,4 +1175,44 @@ export interface GhostTaskReport {
 
     // Timestamp
     generatedAt: string;
+}
+// 9. Portfolio Visualization (组合可视化数据结构)
+
+export interface PMOMetrics {
+    strategicConsistency: number; // 战略一致性得分 (0-5)
+    rdInvestment: number; // 预计研发投入 (万元)
+
+    // 价值 vs 风险 维度 (0-5分)
+    valueRiskMetrics: {
+        commercialROI: number;      // 商业回报 (NPV + 毛利率)
+        strategicFit: number;       // 战略契合度
+        technicalFeasibility: number; // 技术可行性 (e.g. 核心部件国产化)
+        marketWindow: number;       // 市场窗口
+        resourceDependency: number;   // 资源依赖度 (跨部门协作复杂度)
+    };
+
+    // 现金流预测
+    cashFlow: {
+        annualBudget: number;       // 年度研发预算
+        currentInvestment: number;  // 本项目研发投入
+        futureROI: number[];        // 未来3年预期净现金流 [Year1, Year2, Year3]
+    };
+
+    // 资源负荷 (按月/按角色)
+    resourceLoad: MonthlyResourceLoad[];
+
+    // 技术平台 (用于路线图分组)
+    techPlatform?: 'Traditional' | 'PCCT' | 'AI' | 'Cloud' | 'Other';
+}
+
+export interface MonthlyResourceLoad {
+    roleId: string; // e.g., 'algorithm', 'hardware'
+    roleName: string; // e.g., 'AI算法工程师', '硬件工程师'
+    monthlyUsage: Record<string, number>; // { '2026-01': 2.5, '2026-02': 3.0 } 人月
+}
+
+export interface ResourceCapacity {
+    roleId: string;
+    roleName: string;
+    capacity: number; // 总可用产能 (人月/月)
 }

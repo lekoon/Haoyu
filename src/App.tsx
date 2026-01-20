@@ -8,6 +8,10 @@ import PerformanceMonitor from './components/PerformanceMonitor';
 // Eager load critical routes
 import Login from './pages/Login';
 import Home from './pages/Home';
+import PMODashboard from './pages/PMODashboard';
+import DependencyAnalysis from './pages/DependencyAnalysis';
+import WhatIfSimulation from './pages/WhatIfSimulation';
+import ProjectMonitorCenter from './pages/ProjectMonitorCenter';
 
 // Lazy load other routes for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -27,8 +31,6 @@ const RiskManagement = lazy(() => import('./pages/RiskManagement'));
 const EVMAnalysis = lazy(() => import('./pages/EVMAnalysis'));
 const EnvironmentManagement = lazy(() => import('./pages/EnvironmentManagement'));
 const RequirementTraceabilityMatrix = lazy(() => import('./pages/RequirementTraceabilityMatrix'));
-const WhatIfSimulation = lazy(() => import('./pages/WhatIfSimulation'));
-const PMODashboard = lazy(() => import('./pages/PMODashboard'));
 const BayMachineResource = lazy(() => import('./pages/BayMachineResource'));
 
 import SkeletonLoader from './components/SkeletonLoader';
@@ -58,6 +60,10 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/pmo" element={<LayoutRoute><PMODashboard /></LayoutRoute>} />
+          <Route path="/pmo/monitor" element={<LayoutRoute><ProjectMonitorCenter /></LayoutRoute>} />
+          <Route path="/pmo/dependencies" element={<LayoutRoute><DependencyAnalysis /></LayoutRoute>} />
+          <Route path="/simulation" element={<LayoutRoute><WhatIfSimulation /></LayoutRoute>} />
 
           {/* Protected Routes */}
           <Route path="/" element={<LayoutRoute><Home /></LayoutRoute>} />
@@ -88,9 +94,7 @@ function App() {
           <Route path="/reports" element={<LayoutRoute><AdvancedReports /></LayoutRoute>} />
 
           {/* PMO Strategic Tools */}
-          <Route path="/pmo" element={<LayoutRoute><PMODashboard /></LayoutRoute>} />
           <Route path="/projects/:projectId/rtm" element={<LayoutRoute><RequirementTraceabilityMatrix /></LayoutRoute>} />
-          <Route path="/simulation" element={<LayoutRoute><WhatIfSimulation /></LayoutRoute>} />
 
           {/* User & Settings */}
           <Route path="/workbench" element={<LayoutRoute><UserWorkbench /></LayoutRoute>} />

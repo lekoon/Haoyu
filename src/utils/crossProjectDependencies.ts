@@ -1,13 +1,45 @@
 import type { Project, CrossProjectDependency } from '../types';
 
 /**
- * Detect cross-project dependencies based on resource conflicts and timeline overlaps
+ * Detect cross-project dependencies based on manual definitions and resource conflicts
  */
 export function detectCrossProjectDependencies(projects: Project[]): CrossProjectDependency[] {
     const dependencies: CrossProjectDependency[] = [];
     const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'planning');
 
-    // Check each pair of projects
+    // 1. Process Manual Milestone Dependencies
+    // In our UI, Project A defines a dependency on Project B.
+    // This means Project B is the PREDECESSOR (source) and Project A is the SUCCESSOR (target).
+    activeProjects.forEach(project => {
+        (project.milestoneDependencies || []).forEach(md => {
+            const predecessorProject = projects.find(p => p.id === md.targetProjectId);
+            if (!predecessorProject) return;
+
+            const successorMilestone = project.milestones?.find(m => m.id === md.sourceMilestoneId);
+            const predecessorMilestone = predecessorProject.milestones?.find(m => m.id === md.targetMilestoneId);
+
+            dependencies.push({
+                id: md.id,
+                sourceProjectId: predecessorProject.id,
+                sourceProjectName: predecessorProject.name,
+                sourceMilestoneId: md.targetMilestoneId,
+                sourceMilestoneName: predecessorMilestone?.name,
+                targetProjectId: project.id,
+                targetProjectName: project.name,
+                targetMilestoneId: md.sourceMilestoneId,
+                targetMilestoneName: successorMilestone?.name,
+                dependencyType: md.type === 'FS' ? 'finish-to-start' :
+                    md.type === 'SS' ? 'start-to-start' :
+                        md.type === 'FF' ? 'finish-to-finish' : 'start-to-finish',
+                description: md.description || `${predecessorProject.name} 的 ${predecessorMilestone?.name || '里程碑'} 阻塞了本项目`,
+                criticalPath: false,
+                status: 'active',
+                createdDate: new Date().toISOString()
+            });
+        });
+    });
+
+    // 2. Auto-detection based on resource conflicts (Secondary)
     for (let i = 0; i < activeProjects.length; i++) {
         for (let j = i + 1; j < activeProjects.length; j++) {
             const project1 = activeProjects[i];
@@ -16,26 +48,27 @@ export function detectCrossProjectDependencies(projects: Project[]): CrossProjec
             // Check for resource conflicts (shared resources)
             const sharedResources = findSharedResources(project1, project2);
 
-            // Check for timeline dependencies
-            const timelineDep = analyzeTimelineDependency(project1, project2);
+            if (sharedResources.length > 0) {
+                // To avoid duplicate or conflicting auto-deps, we only add if there isn't a manual one
+                const manualExists = dependencies.some(d =>
+                    (d.sourceProjectId === project1.id && d.targetProjectId === project2.id) ||
+                    (d.sourceProjectId === project2.id && d.targetProjectId === project1.id)
+                );
 
-            if (sharedResources.length > 0 || timelineDep) {
-                const dependency: CrossProjectDependency = {
-                    id: `dep-${project1.id}-${project2.id}`,
-                    sourceProjectId: project1.id,
-                    sourceProjectName: project1.name,
-                    targetProjectId: project2.id,
-                    targetProjectName: project2.name,
-                    dependencyType: timelineDep || 'finish-to-start',
-                    description: sharedResources.length > 0
-                        ? `共享资源: ${sharedResources.join(', ')}`
-                        : '时间依赖',
-                    criticalPath: false, // Will be calculated later
-                    status: 'active',
-                    createdDate: new Date().toISOString()
-                };
-
-                dependencies.push(dependency);
+                if (!manualExists) {
+                    dependencies.push({
+                        id: `auto-res-${project1.id}-${project2.id}`,
+                        sourceProjectId: project1.id,
+                        sourceProjectName: project1.name,
+                        targetProjectId: project2.id,
+                        targetProjectName: project2.name,
+                        dependencyType: 'finish-to-start',
+                        description: `共享资源冲突: ${sharedResources.join(', ')}`,
+                        criticalPath: false,
+                        status: 'active',
+                        createdDate: new Date().toISOString()
+                    });
+                }
             }
         }
     }
@@ -53,35 +86,6 @@ function findSharedResources(project1: Project, project2: Project): string[] {
     return resources1.filter(r => resources2.includes(r));
 }
 
-/**
- * Analyze timeline dependency between two projects
- */
-function analyzeTimelineDependency(
-    project1: Project,
-    project2: Project
-): 'finish-to-start' | 'start-to-start' | 'finish-to-finish' | 'start-to-finish' | null {
-    const start1 = new Date(project1.startDate);
-    const end1 = new Date(project1.endDate);
-    const start2 = new Date(project2.startDate);
-    const end2 = new Date(project2.endDate);
-
-    // Check if project2 starts after project1 ends (finish-to-start)
-    if (start2 > end1 && Math.abs(start2.getTime() - end1.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-        return 'finish-to-start';
-    }
-
-    // Check if both start around the same time (start-to-start)
-    if (Math.abs(start1.getTime() - start2.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-        return 'start-to-start';
-    }
-
-    // Check if both end around the same time (finish-to-finish)
-    if (Math.abs(end1.getTime() - end2.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-        return 'finish-to-finish';
-    }
-
-    return null;
-}
 
 /**
  * Calculate critical path through cross-project dependencies

@@ -1,493 +1,560 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useStore } from '../store/useStore';
-import { usePMOStore } from '../store/usePMOStore';
+import React from 'react';
 import {
-    TrendingUp, AlertTriangle, CheckCircle, Users, GitBranch, FileText,
-    Network, LayoutDashboard, DollarSign, Target, Briefcase
+    ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
+    Tooltip, Cell, BarChart, Bar, CartesianGrid, RadarChart,
+    PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
+} from 'recharts';
+import {
+    TrendingUp, Shield, Activity, DollarSign, Users,
+    Layers, Zap, ArrowUpRight, Calendar, Network
 } from 'lucide-react';
-import { Card, Badge, Button } from '../components/ui';
-import ProjectHealthMonitor from '../components/ProjectHealthMonitor';
-import ProjectHealthGrid from '../components/ProjectHealthGrid';
-import DependencyAnalysis from './DependencyAnalysis';
-import ResourceRiskPredictor from '../components/ResourceRiskPredictor';
-import { calculatePortfolioMetrics } from '../utils/portfolioHealth';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from 'recharts';
-import ChangeRequestDetailModal from '../components/ChangeRequestDetailModal';
-import { approveGate, rejectGate } from '../utils/stageGateManagement';
-import type { ChangeRequest, StageGate } from '../types';
+import { useStore } from '../store/useStore';
+import { Card } from '../components/ui';
+import clsx from 'clsx';
+import { differenceInMonths, parseISO, startOfMonth, addMonths } from 'date-fns';
 
-type TabType = 'overview' | 'dependencies' | 'risks';
+const PMODashboard: React.FC = () => {
+    const { projects } = useStore();
 
-const OverviewContent: React.FC<{
-    projects: any[];
-    stats: any;
-    changeRequests: any[];
-    setSelectedRequest: (cr: any) => void;
-    navigate: any;
-    setActiveTab: (tab: TabType) => void;
-}> = ({ projects, stats, changeRequests, setSelectedRequest, navigate, setActiveTab }) => {
-    const portfolioMetrics = useMemo(() => {
-        return calculatePortfolioMetrics(projects);
-    }, [projects]);
+    // 1. Data Processing for Portfolio Heatmap
+    const heatmapData = projects.map(p => ({
+        name: p.name,
+        x: p.score || 0, // Priority/Value Score
+        y: p.status === 'planning' ? 1 : p.status === 'active' ? 2 : p.status === 'on-hold' ? 1.5 : 3, // Status Mapping
+        z: p.pmoMetrics?.rdInvestment || 0, // R&D Investment (Bubble Size)
+        consistency: p.pmoMetrics?.strategicConsistency || 0, // Strategic Consistency (Color)
+        statusLabel: p.status === 'planning' ? '规划中' : p.status === 'active' ? '进行中' : p.status === 'on-hold' ? '暂停' : '已上市'
+    }));
 
-    const healthChartData = [
-        { name: '健康', value: portfolioMetrics.healthDistribution.green, color: '#10b981' },
-        { name: '警告', value: portfolioMetrics.healthDistribution.amber, color: '#f59e0b' },
-        { name: '风险', value: portfolioMetrics.healthDistribution.red, color: '#ef4444' }
-    ].filter(d => d.value > 0);
+    const getConsistencyColor = (score: number) => {
+        if (score <= 2) return '#ef4444'; // Red - Low consistency
+        if (score <= 3.5) return '#f59e0b'; // Amber - Medium
+        return '#02dc9a'; // Brand Teal/Green - High
+    };
+
+    // 2. Data Processing for Resource Load
+    const months = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'];
+    const aiLoadData = months.map(month => {
+        const data: any = { month };
+        projects.forEach(p => {
+            const aiUsage = p.pmoMetrics?.resourceLoad.find(rl => rl.roleId === 'ai')?.monthlyUsage[month] || 0;
+            if (aiUsage > 0) data[p.name] = aiUsage;
+        });
+        return data;
+    });
+
+    const hardwareLoadData = months.map(month => {
+        const data: any = { month };
+        projects.forEach(p => {
+            const hwUsage = p.pmoMetrics?.resourceLoad.find(rl => rl.roleId === 'hardware')?.monthlyUsage[month] || 0;
+            if (hwUsage > 0) data[p.name] = hwUsage;
+        });
+        return data;
+    });
+
+    // 3. Strategic Roadmap Calculation
+    const timelineStart = startOfMonth(parseISO('2026-01-01'));
+    const totalTimelineMonths = 36; // 3 year vision
+
+    const platformGrouping = projects.reduce((acc: any, p) => {
+        const platform = p.pmoMetrics?.techPlatform || 'Other';
+        if (!acc[platform]) acc[platform] = [];
+        acc[platform].push(p);
+        return acc;
+    }, {});
+
+    // 4. Value Risk Radar Aggregation
+    const radarData = [
+        { subject: '商业回报', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.commercialROI || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '战略契合', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.strategicFit || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '技术可行', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.technicalFeasibility || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '市场窗口', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.marketWindow || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '资源依赖', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.resourceDependency || 0), 0) / (projects.length || 1), fullMark: 5 },
+    ];
+
+    // 5. Cash Flow Waterfall
+    const currentInvestmentTotal = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.currentInvestment || 0), 0);
+    const totalAnnualBudget = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.annualBudget || 0), 0);
+    const futureROI_Y1 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.futureROI[0] || 0), 0);
+    const futureROI_Y2 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.futureROI[1] || 0), 0);
+    const futureROI_Y3 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.futureROI[2] || 0), 0);
+
+    const waterfallData = [
+        { name: '年度总预算', value: totalAnnualBudget, color: '#3b82f6', display: `¥${totalAnnualBudget}W` },
+        { name: '已投入成本', value: -currentInvestmentTotal, color: '#f43f5e', display: `-¥${currentInvestmentTotal}W` },
+        { name: 'Y1 预期回报', value: futureROI_Y1, color: '#10b981', display: `+¥${futureROI_Y1}W` },
+        { name: 'Y2 预期回报', value: futureROI_Y2, color: '#10b981', display: `+¥${futureROI_Y2}W` },
+        { name: 'Y3 预期回报', value: futureROI_Y3, color: '#10b981', display: `+¥${futureROI_Y3}W` },
+    ];
+
+    const npv = totalAnnualBudget - currentInvestmentTotal + futureROI_Y1 + futureROI_Y2 + futureROI_Y3;
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* 1. 战略级核心指标 (Hero Scoreboard) - 增加视觉冲击力 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-                <Card className="lg:col-span-2 p-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none shadow-xl relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform">
-                        <Target size={140} />
-                    </div>
-                    <div className="relative z-10 flex flex-col h-full justify-between">
-                        <div>
-                            <div className="flex items-center gap-2 mb-4 opacity-80">
-                                <GitBranch size={20} />
-                                <span className="text-sm font-bold uppercase tracking-widest">战略执行总览 (CTPM Portfolio)</span>
+        <div className="space-y-8 pb-24 max-w-[1700px] mx-auto animate-in fade-in duration-700">
+            {/* Premium Header - Glassmorphism */}
+            <div className="relative p-10 rounded-[48px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl shadow-2xl border border-white/20 dark:border-slate-700/50 overflow-hidden">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full -mr-48 -mt-48 blur-[100px] animate-pulse" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/5 rounded-full -ml-24 -mb-24 blur-[80px]" />
+
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-blue-600 rounded-2xl text-white shadow-lg shadow-blue-500/30">
+                                <TrendingUp size={22} />
                             </div>
-                            <div className="flex items-end justify-between">
-                                <div>
-                                    <div className="text-4xl font-black mb-1">{stats.activeProjects} / {stats.totalProjects}</div>
-                                    <p className="text-blue-100 text-sm">活跃项目数 / 总项目库</p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-xl font-bold text-emerald-300">{stats.completionRate.toFixed(1)}%</div>
-                                    <p className="text-blue-200 text-xs text-nowrap">全组合平均进度</p>
-                                </div>
+                            <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em]">Executive Insight</span>
+                        </div>
+                        <h1 className="text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter sm:text-6xl leading-[0.9]">
+                            PMO <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">战略透视</span> 板
+                        </h1>
+                        <p className="text-lg text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed">
+                            数字化项目组合管控中心：实时解码研发价值密度、资源负载极限与长期财务 ROI 链路。
+                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                            <button
+                                onClick={() => window.location.hash = '#/pmo/dependencies'}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105"
+                            >
+                                <Network size={14} /> 切换依赖图谱
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4">
+                        <div className="p-6 bg-white dark:bg-slate-900/80 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm min-w-[160px]">
+                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">组合净现值 (NPV)</div>
+                            <div className="text-3xl font-black text-slate-900 dark:text-white">¥{npv}W</div>
+                            <div className="flex items-center gap-1 text-green-500 text-[10px] font-bold mt-1">
+                                <ArrowUpRight size={12} /> +12.5% vs 去年同期
                             </div>
                         </div>
-                        <div className="mt-6 w-full bg-white/20 h-2 rounded-full overflow-hidden">
-                            <div className="bg-white h-full shadow-[0_0_10px_rgba(255,255,255,0.5)] transition-all duration-1000" style={{ width: `${stats.completionRate}%` }} />
+                        <div className="p-6 bg-blue-600 rounded-[32px] shadow-2xl shadow-blue-600/30 min-w-[160px] text-white">
+                            <div className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-1">在研项目总投入</div>
+                            <div className="text-3xl font-black">¥{(currentInvestmentTotal / 100).toFixed(1)}M</div>
+                            <div className="text-[10px] font-bold text-blue-100/70 mt-1 uppercase tracking-tighter">占年度研发预算 64%</div>
                         </div>
                     </div>
-                </Card>
-
-                <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg flex flex-col justify-between hover:shadow-xl transition-all">
-                    <div>
-                        <div className="flex items-center gap-2 mb-4 text-orange-500">
-                            <AlertTriangle size={20} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">关键变更审批</span>
-                        </div>
-                        <div className="text-3xl font-black text-slate-900 dark:text-slate-100">{stats.pendingChangeRequests}</div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-red-500 uppercase">Urgent Action Required</span>
-                        <Button size="sm" variant="ghost" onClick={() => navigate('/pmo')} className="hover:bg-orange-50 dark:hover:bg-orange-900/20 text-orange-600"><FileText size={16} /></Button>
-                    </div>
-                </Card>
-
-                <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg flex flex-col justify-between hover:shadow-xl transition-all">
-                    <div>
-                        <div className="flex items-center gap-2 mb-4 text-emerald-500">
-                            <DollarSign size={20} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">组合预算执行</span>
-                        </div>
-                        <div className="text-3xl font-black text-slate-900 dark:text-slate-100">¥{(portfolioMetrics.totalBudget / 10000).toFixed(0)}w</div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 text-[10px]">
-                        <div className="flex justify-between text-slate-500 mb-1 font-bold">
-                            <span>BUDGET BURN</span>
-                            <span className="text-emerald-600">{(portfolioMetrics.totalSpent / portfolioMetrics.totalBudget * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                            <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{ width: `${(portfolioMetrics.totalSpent / portfolioMetrics.totalBudget * 100)}%` }} />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg flex flex-col justify-between hover:shadow-xl transition-all">
-                    <div>
-                        <div className="flex items-center gap-2 mb-4 text-indigo-500">
-                            <Users size={20} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">人力资源效能</span>
-                        </div>
-                        <div className="text-3xl font-black text-slate-900 dark:text-slate-100">{portfolioMetrics.resourceUtilizationRate}%</div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-400">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="neutral" className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-none font-bold text-[9px]">{portfolioMetrics.totalResourcesAllocated} RESOURCES ACTIVE</Badge>
-                        </div>
-                    </div>
-                </Card>
+                </div>
             </div>
 
-            {/* 2. 项目健康监控矩阵 (Main Engine) - 横向巨幕布局 */}
-            <div className="grid grid-cols-1 gap-6">
-                <ProjectHealthGrid projects={projects} />
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-            {/* 3. 系统防御与管控中心 (Analysis & Command) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* 组合健康分布图 - 占据 4/12 */}
-                <Card className="lg:col-span-4 p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100 mb-6 flex items-center justify-between border-b pb-4 border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center gap-2 uppercase tracking-tight">
-                            <TrendingUp size={18} className="text-emerald-500" />
-                            Health Status Distribution
+                {/* 1. Portfolio Heatmap - Large Section */}
+                <Card className="lg:col-span-8 p-10 rounded-[40px] shadow-xl border-none bg-white dark:bg-slate-800/80 overflow-hidden group">
+                    <div className="flex items-center justify-between mb-10">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <Activity className="text-rose-500" size={18} />
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">项目组合投资热力图</h3>
+                            </div>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase">X:项目价值评分 | Y:生命周期状态 | 气泡:投入规模 | 颜色:战略一致性</p>
                         </div>
-                        <Badge variant="success">LIVE DATA</Badge>
-                    </h3>
-                    <div className="h-[220px]">
+                    </div>
+
+                    <div className="h-[450px] w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={healthChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={85}
-                                    paddingAngle={8}
-                                    dataKey="value"
-                                    stroke="none"
-                                >
-                                    {healthChartData.map((entry: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <RechartsTooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                            <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" strokeOpacity={0.4} />
+                                <XAxis
+                                    type="number"
+                                    dataKey="x"
+                                    name="项目价值"
+                                    domain={[0, 10]}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 12, fontWeight: '800', fill: '#94a3b8' }}
                                 />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
-                            </PieChart>
+                                <YAxis
+                                    type="number"
+                                    dataKey="y"
+                                    name="状态"
+                                    domain={[0.5, 3.5]}
+                                    ticks={[1, 2, 3]}
+                                    tickFormatter={(v) => v === 1 ? '规划' : v === 2 ? '开发' : '上市'}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 12, fontWeight: '800', fill: '#94a3b8' }}
+                                />
+                                <ZAxis type="number" dataKey="z" range={[200, 3000]} name="投入" unit="万" />
+                                <Tooltip
+                                    cursor={{ strokeDasharray: '3 3' }}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800">
+                                                    <div className="text-sm font-black text-slate-900 dark:text-white mb-2">{data.name}</div>
+                                                    <div className="space-y-1">
+                                                        <div className="flex justify-between text-[10px] gap-4">
+                                                            <span className="text-slate-400 font-bold uppercase">当前状态</span>
+                                                            <span className="text-blue-600 font-black">{data.statusLabel}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-[10px] gap-4">
+                                                            <span className="text-slate-400 font-bold uppercase">投资额</span>
+                                                            <span className="text-slate-900 dark:text-white font-black">¥{data.z}W</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-[10px] gap-4">
+                                                            <span className="text-slate-400 font-bold uppercase">战略评分</span>
+                                                            <span className="font-black" style={{ color: getConsistencyColor(data.consistency) }}>{data.consistency.toFixed(1)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Scatter name="Projects" data={heatmapData}>
+                                    {heatmapData.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={getConsistencyColor(entry.consistency)}
+                                            stroke={getConsistencyColor(entry.consistency)}
+                                            fillOpacity={0.7}
+                                            strokeWidth={2}
+                                            className="hover:fill-opacity-100 transition-all cursor-pointer"
+                                        />
+                                    ))}
+                                </Scatter>
+                            </ScatterChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="flex flex-wrap gap-8 mt-10 pt-8 border-t border-slate-50 dark:border-slate-700/50">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">战略脱节项</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">一般契合度</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-[0_0_8px_rgba(2,220,154,0.5)]" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">核心战略锚点</span>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* 4. Value vs Risk Radar - Sidebar */}
+                <Card className="lg:col-span-4 p-10 rounded-[40px] shadow-xl border-none bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+                    <div className="relative z-10 h-full flex flex-col">
+                        <div className="flex items-center gap-3 mb-10">
+                            <div className="p-2.5 bg-white/10 rounded-2xl text-purple-400">
+                                <Zap size={18} />
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="text-xl font-black uppercase tracking-tighter">价值 vs 风险平衡器</h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">组合多维度综合评估</p>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 min-h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                                    <PolarGrid stroke="#475569" strokeDasharray="3 3" />
+                                    <PolarAngleAxis
+                                        dataKey="subject"
+                                        tick={{ fontSize: 10, fontWeight: '900', fill: '#94a3b8' }}
+                                    />
+                                    <PolarRadiusAxis angle={30} domain={[0, 5]} hide />
+                                    <Radar
+                                        name="组合均值"
+                                        dataKey="A"
+                                        stroke="#a855f7"
+                                        fill="#a855f7"
+                                        fillOpacity={0.4}
+                                        strokeWidth={3}
+                                    />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="space-y-4 mt-8">
+                            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">Strategic Health Check</div>
+                                <div className="text-xs font-medium leading-relaxed">
+                                    组合整体战略契合度极高 ({radarData[1].A.toFixed(1)}/5.0)，主要资源瓶颈集中在跨团队依赖与国产化适配。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* 2. Resource Load - AI */}
+                <Card className="lg:col-span-6 p-10 rounded-[40px] shadow-xl border-none bg-white dark:bg-slate-800/80">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-500/20">
+                                    <Users size={18} />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">AI 算法团队 资源负载链</h3>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">可用产能上限: 20 人月/月</p>
+                        </div>
+                    </div>
+
+                    <div className="h-[320px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={aiLoadData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" strokeOpacity={0.4} />
+                                <XAxis
+                                    dataKey="month"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 11, fontWeight: '800', fill: '#94a3b8' }}
+                                    tickFormatter={(v) => v.split('-')[1] + '月'}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 11, fontWeight: '800', fill: '#94a3b8' }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: '#f8fafc', opacity: 0.5 }}
+                                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)' }}
+                                />
+                                {projects.map((p, i) => (
+                                    <Bar
+                                        key={p.id}
+                                        dataKey={p.name}
+                                        stackId="a"
+                                        fill={['#3b82f6', '#8b5cf6', '#0ea5e9', '#6366f1', '#4f46e5'][i % 5]}
+                                        radius={i === projects.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
+                                    />
+                                ))}
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
 
-                {/* 防御状态报告 (Command Center Module) - 占据 8/12 */}
-                <Card className="lg:col-span-8 p-0 bg-slate-900 border-none shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[300px] group">
-                    <div className="p-8 flex-1 flex flex-col justify-between">
-                        <div>
-                            <h3 className="text-xl font-black text-white mb-6 flex items-center gap-3">
-                                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]" />
-                                PMO INTELLIGENCE SHIELD
-                            </h3>
-                            <div className="space-y-6">
-                                <div className="bg-slate-800/80 p-5 rounded-2xl border border-white/5 backdrop-blur-sm">
-                                    <p className="text-slate-500 text-[10px] font-black uppercase mb-2 tracking-widest flex items-center gap-2">
-                                        <CheckCircle size={12} className="text-emerald-500" />
-                                        Autonomous Analytics Report
-                                    </p>
-                                    <p className="text-slate-200 text-sm leading-relaxed font-medium">
-                                        系统防御层运行稳定。检测到 <span className="text-red-400 font-black px-1.5 py-0.5 bg-red-500/10 rounded">{portfolioMetrics.criticalRisks}</span> 项关键风险暴露，
-                                        建议针对当前环境负载为 <span className="text-emerald-400 font-black">{((1 - stats.availableEnvironments / Math.max(1, stats.totalEnvironments)) * 100).toFixed(0)}%</span> 的瓶颈项开启推演。
-                                    </p>
+                {/* 2. Resource Load - Hardware */}
+                <Card className="lg:col-span-6 p-10 rounded-[40px] shadow-xl border-none bg-white dark:bg-slate-800/80">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-indigo-500 rounded-2xl text-white shadow-lg shadow-indigo-500/20">
+                                    <Shield size={18} />
                                 </div>
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">硬件工程团队 关键负荷</h3>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-4 mt-8">
-                            <Button
-                                onClick={() => navigate('/simulation')}
-                                variant="primary"
-                                className="bg-blue-600 hover:bg-blue-500 text-white border-none px-6 py-6 font-bold shadow-xl shadow-blue-900/40 rounded-xl"
-                            >
-                                <TrendingUp className="mr-2 h-4 w-4" /> 开启 What-If 推演
-                            </Button>
-                            <Button
-                                onClick={() => setActiveTab('dependencies')}
-                                variant="secondary"
-                                className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700 px-6 py-6 font-bold rounded-xl"
-                            >
-                                <Network className="mr-2 h-4 w-4" /> 跨项目深度分析
-                            </Button>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">可用产能上限: 35 人月/月</p>
                         </div>
                     </div>
-                    <div className="bg-white/5 p-8 w-full md:w-72 border-l border-white/5 flex flex-col justify-center backdrop-blur-xl">
-                        <div className="space-y-8">
-                            <div className="relative">
-                                <div className="text-[10px] font-black text-slate-500 mb-1 tracking-widest uppercase">需求交付完成率</div>
-                                <div className="text-4xl font-black text-white">{stats.requirementCompletionRate.toFixed(0)}<span className="text-lg opacity-40 ml-1">%</span></div>
-                                <div className="absolute -left-3 top-0 bottom-0 w-1 bg-emerald-500 rounded-full" />
-                            </div>
-                            <div className="relative">
-                                <div className="text-[10px] font-black text-slate-500 mb-1 tracking-widest uppercase">环境可用资源</div>
-                                <div className="text-4xl font-black text-white">{stats.availableEnvironments}<span className="text-lg opacity-40 ml-1">/{stats.totalEnvironments}</span></div>
-                                <div className="absolute -left-3 top-0 bottom-0 w-1 bg-indigo-500 rounded-full" />
-                            </div>
-                            <div className="pt-4">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full text-[10px] font-black border border-emerald-500/20">
-                                    <CheckCircle size={14} /> DEFENSE SECURE
+
+                    <div className="h-[320px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={hardwareLoadData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" strokeOpacity={0.4} />
+                                <XAxis
+                                    dataKey="month"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 11, fontWeight: '800', fill: '#94a3b8' }}
+                                    tickFormatter={(v) => v.split('-')[1] + '月'}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 11, fontWeight: '800', fill: '#94a3b8' }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: '#f8fafc', opacity: 0.5 }}
+                                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)' }}
+                                />
+                                {projects.map((p, i) => (
+                                    <Bar
+                                        key={p.id}
+                                        dataKey={p.name}
+                                        stackId="a"
+                                        fill={['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#818cf8'][i % 5]}
+                                        radius={i === projects.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
+                                    />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+
+                {/* 5. Cash Flow Waterfall */}
+                <Card className="lg:col-span-12 p-10 rounded-[48px] shadow-xl border-none bg-white dark:bg-slate-800/80">
+                    <div className="flex items-center justify-between mb-12">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-teal-500 rounded-2xl text-white shadow-lg shadow-teal-500/20">
+                                    <DollarSign size={20} />
                                 </div>
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">研发投资生命周期瀑布</h3>
+                            </div>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">年度预算分配 &rarr; 项目群投资消耗 &rarr; 未来 3 年动态回报脉络</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 items-center">
+                        <div className="lg:col-span-3 h-[400px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={waterfallData}
+                                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" strokeOpacity={0.4} />
+                                    <XAxis
+                                        dataKey="name"
+                                        tick={{ fontSize: 12, fontWeight: '900', fill: '#64748b' }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis hide />
+                                    <Tooltip
+                                        cursor={{ fill: '#f1f5f9', opacity: 0.4 }}
+                                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={80}>
+                                        {waterfallData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="space-y-6">
+                            {waterfallData.map((item, idx) => (
+                                <div key={idx} className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[24px] border border-slate-100 dark:border-slate-800 flex justify-between items-center group hover:scale-[1.02] transition-transform">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{item.name}</span>
+                                    </div>
+                                    <span className={clsx(
+                                        "text-sm font-black monospace",
+                                        item.value < 0 ? "text-rose-500" : "text-emerald-500"
+                                    )}>{item.display}</span>
+                                </div>
+                            ))}
+                            <div className="p-6 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-[28px] text-white shadow-xl shadow-blue-500/20">
+                                <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Portfolio Dynamic NPV</div>
+                                <div className="text-3xl font-black">¥{npv}W</div>
                             </div>
                         </div>
                     </div>
                 </Card>
-            </div>
 
-            {/* 4. 底层管控：变更流转与健康指标识别 (Log & Monitoring) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* 待审变更请求清单 - 占据 7/12 */}
-                <Card className="lg:col-span-7 p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-8 border-b pb-4 border-slate-100 dark:border-slate-700">
-                        <h3 className="text-base font-black flex items-center gap-2 uppercase tracking-tight">
-                            <FileText size={18} className="text-blue-500" />
-                            Pending Change Control
-                        </h3>
-                        <Button variant="ghost" size="sm" className="text-[10px] uppercase font-black text-blue-600 tracking-widest" onClick={() => navigate('/pmo')}>
-                            Open Control Center
-                        </Button>
-                    </div>
-                    {changeRequests.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left text-slate-400 border-b border-slate-100 dark:border-slate-700">
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-widest">Project Name</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-widest">Type</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-widest">Priority</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-widest text-right">Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                    {changeRequests.slice(0, 5).map((cr) => (
-                                        <tr
-                                            key={cr.id}
-                                            onClick={() => setSelectedRequest(cr)}
-                                            className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                                        >
-                                            <td className="py-5 font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{cr.projectName}</td>
-                                            <td className="py-5">
-                                                <Badge variant="neutral" className="bg-slate-100 dark:bg-slate-700 border-none text-[9px] font-black uppercase">{cr.category}</Badge>
-                                            </td>
-                                            <td className="py-5">
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${cr.status === 'pending' ? 'bg-orange-500' : 'bg-emerald-500'}`} />
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">{cr.status}</span>
+                {/* 3. Strategic Technology Roadmap */}
+                <Card className="lg:col-span-12 p-10 rounded-[48px] shadow-xl border-none bg-slate-900 text-white overflow-hidden relative">
+                    <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px]" />
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-16">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-white/10 rounded-2xl text-blue-400">
+                                        <Layers size={20} />
+                                    </div>
+                                    <h3 className="text-2xl font-black uppercase tracking-tighter">战略技术演进全景 (Roadmap 2026-2028)</h3>
+                                </div>
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">按技术平台解构代际演进通路 | 已对齐上市关键里程碑与资源投入时序</p>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400">
+                                    <Calendar size={14} /> Quarter View
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-16">
+                            {Object.entries(platformGrouping).map(([platform, platformProjects]: [string, any]) => (
+                                <div key={platform} className="space-y-6">
+                                    <div className="flex items-center gap-6">
+                                        <div className="min-w-[140px] px-5 py-2 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
+                                            {platform}
+                                        </div>
+                                        <div className="h-px flex-1 bg-white/5" />
+                                    </div>
+
+                                    <div className="space-y-10 pl-4">
+                                        {platformProjects.map((p: any) => {
+                                            const start = p.startDate ? parseISO(p.startDate) : timelineStart;
+                                            const end = p.endDate ? parseISO(p.endDate) : addMonths(start, 12);
+
+                                            let startMonths = differenceInMonths(start, timelineStart);
+                                            let durationMonths = differenceInMonths(end, start);
+
+                                            // Clamping for visualization
+                                            if (startMonths < 0) {
+                                                durationMonths += startMonths;
+                                                startMonths = 0;
+                                            }
+                                            if (startMonths > totalTimelineMonths) startMonths = totalTimelineMonths;
+                                            if (startMonths + durationMonths > totalTimelineMonths) durationMonths = totalTimelineMonths - startMonths;
+                                            if (durationMonths < 1) durationMonths = 3; // Min 3 months for visibility
+
+                                            const leftPercent = (startMonths / totalTimelineMonths) * 100;
+                                            const widthPercent = (durationMonths / totalTimelineMonths) * 100;
+
+                                            return (
+                                                <div key={p.id} className="grid grid-cols-12 items-center gap-8">
+                                                    <div className="col-span-3 lg:col-span-2">
+                                                        <div className="text-sm font-black uppercase tracking-tighter leading-[1.1] truncate group">
+                                                            {p.name}
+                                                            <div className="h-0.5 w-4 bg-blue-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left mt-1" />
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 mt-1">
+                                                            <div className={clsx(
+                                                                "w-1.5 h-1.5 rounded-full animate-pulse",
+                                                                p.status === 'active' ? 'bg-blue-500' : 'bg-slate-600'
+                                                            )} />
+                                                            <span className="text-[9px] font-bold text-slate-500 uppercase">{p.status}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="col-span-9 lg:col-span-10 relative h-10 bg-white/[0.03] rounded-3xl group/bar">
+                                                        {/* Quarterly markers */}
+                                                        <div className="absolute inset-0 flex justify-between pointer-events-none px-0">
+                                                            {Array.from({ length: 12 }).map((_, i) => (
+                                                                <div key={i} className="h-full border-r border-white/5" />
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Project Bar */}
+                                                        <div
+                                                            className={clsx(
+                                                                "absolute h-full flex items-center px-4 transition-all duration-500 hover:scale-[1.01] hover:brightness-110 z-10 rounded-[14px] shadow-2xl",
+                                                                p.status === 'active' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white' :
+                                                                    p.status === 'planning' ? 'bg-slate-700 text-slate-400' : 'bg-emerald-600 text-white'
+                                                            )}
+                                                            style={{
+                                                                left: `${leftPercent}%`,
+                                                                width: `${widthPercent}%`,
+                                                            }}
+                                                        >
+                                                            <span className="text-[9px] font-black uppercase whitespace-nowrap overflow-hidden tracking-tighter opacity-80 group-hover/bar:opacity-100">
+                                                                {durationMonths}M Dev Phase
+                                                            </span>
+
+                                                            {/* Milestone Markers */}
+                                                            <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-4 h-4 bg-yellow-400 rounded-full border-[3px] border-slate-900 shadow-xl group-hover/bar:scale-125 transition-transform" />
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </td>
-                                            <td className="py-5 text-right text-slate-400 font-mono text-[10px]">{new Date(cr.requestDate).toLocaleDateString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ) : (
-                        <div className="py-20 text-center">
-                            <Briefcase size={40} className="mx-auto text-slate-200 mb-4 opacity-50" />
-                            <p className="text-slate-400 text-sm font-medium">变更请求队列为空</p>
-                        </div>
-                    )}
-                </Card>
 
-                {/* 异常项监控看板 - 占据 5/12 */}
-                <Card className="lg:col-span-5 p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
-                    <h3 className="text-base font-black mb-8 flex items-center gap-2 uppercase tracking-tight border-b pb-4 border-slate-100 dark:border-slate-700">
-                        <AlertTriangle size={18} className="text-red-500" />
-                        Exception Watchlist
-                    </h3>
-                    <div className="max-h-[380px] overflow-y-auto no-scrollbar scroll-smooth">
-                        <ProjectHealthMonitor projects={projects} />
+                        {/* Timeline Labels */}
+                        <div className="mt-16 pt-8 border-t border-white/5 flex justify-between px-[16.6%] lg:px-[16.6%]">
+                            <span className="text-[10px] font-black text-slate-600 uppercase">2026 Q1</span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">2026 Q3</span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">2027 Q1</span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">2027 Q3</span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">2028 Q1</span>
+                        </div>
                     </div>
                 </Card>
             </div>
-        </div>
-    );
-};
-
-const PMODashboard: React.FC = () => {
-    const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
-    const tabParam = searchParams.get('tab') as TabType;
-    const { projects, updateProject, user, resourcePool } = useStore();
-    const {
-        changeRequests,
-        approveChangeRequest,
-        rejectChangeRequest,
-        environmentResources,
-        requirements,
-        simulations
-    } = usePMOStore();
-
-    const [selectedRequest, setSelectedRequest] = useState<ChangeRequest | null>(null);
-
-    const [activeTab, setActiveTab] = useState<TabType>(
-        (tabParam && ['overview', 'portfolio', 'dependencies', 'risks'].includes(tabParam))
-            ? tabParam
-            : 'overview'
-    );
-
-    // Sync state when URL params change
-    React.useEffect(() => {
-        const newTab = searchParams.get('tab') as TabType;
-        if (newTab && ['overview', 'portfolio', 'dependencies', 'risks'].includes(newTab)) {
-            setActiveTab(newTab);
-        }
-    }, [searchParams]);
-
-    const handleTabChange = (tab: TabType) => {
-        setActiveTab(tab);
-        setSearchParams({ tab });
-    };
-
-    // 统计数据
-    const stats = useMemo(() => {
-        const activeProjects = projects.filter((p) => p.status === 'active');
-        const totalProjects = projects.length;
-        const completedProjects = projects.filter((p) => p.status === 'completed').length;
-
-        const pendingChangeRequests = changeRequests.filter((cr) => cr.status === 'pending').length;
-        const totalChangeRequests = changeRequests.length;
-
-        const totalRequirements = requirements.length;
-        const completedRequirements = requirements.filter((r) => r.status === 'completed').length;
-
-        const availableEnvironments = environmentResources.filter(
-            (env) => env.status === 'available'
-        ).length;
-
-        return {
-            activeProjects: activeProjects.length,
-            totalProjects,
-            completedProjects,
-            completionRate: totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0,
-            pendingChangeRequests,
-            totalChangeRequests,
-            totalRequirements,
-            completedRequirements,
-            requirementCompletionRate:
-                totalRequirements > 0 ? (completedRequirements / totalRequirements) * 100 : 0,
-            availableEnvironments,
-            totalEnvironments: environmentResources.length,
-            totalSimulations: simulations.length,
-        };
-    }, [projects, changeRequests, requirements, environmentResources, simulations]);
-
-    // 最近的变更请求
-    const recentChangeRequests = useMemo(() => {
-        return [...changeRequests]
-            .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime())
-            .slice(0, 5);
-    }, [changeRequests]);
-
-    return (
-        <div className="animate-fadeIn">
-            {/* 页面标题 */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                        PMO 战略管控中心
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400">
-                        项目组合管理、范围防御、资源冲突管控一站式平台
-                    </p>
-                </div>
-            </div>
-
-            {/* 标签页导航 - 增加溢出处理 */}
-            <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto no-scrollbar scrollbar-hide whitespace-nowrap">
-                <button
-                    onClick={() => handleTabChange('overview')}
-                    className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === 'overview'
-                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                        } `}
-                >
-                    <LayoutDashboard size={18} />
-                    管控概览
-                </button>
-                <button
-                    onClick={() => handleTabChange('dependencies')}
-                    className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === 'dependencies'
-                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                        } `}
-                >
-                    <Network size={18} />
-                    依赖分析
-                </button>
-                <button
-                    onClick={() => handleTabChange('risks')}
-                    className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === 'risks'
-                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                        } `}
-                >
-                    <AlertTriangle size={18} />
-                    风险预测
-                </button>
-            </div>
-
-            {/* 条件渲染内容 */}
-            <div className="space-y-6">
-                {activeTab === 'overview' && (
-                    <OverviewContent projects={projects} stats={stats} changeRequests={recentChangeRequests} setSelectedRequest={setSelectedRequest} navigate={navigate} setActiveTab={setActiveTab} />
-                )}
-
-
-                {activeTab === 'dependencies' && (
-                    <div className="animate-fadeIn">
-                        <DependencyAnalysis />
-                    </div>
-                )}
-
-
-
-                {activeTab === 'risks' && (
-                    <div className="animate-fadeIn">
-                        <ResourceRiskPredictor projects={projects} resourcePool={resourcePool} />
-                    </div>
-                )}
-            </div>
-
-            {/* Change Request Detail Modal */}
-            {selectedRequest && (
-                <ChangeRequestDetailModal
-                    request={selectedRequest}
-                    onClose={() => setSelectedRequest(null)}
-                    isPMO={user?.role === 'admin'}
-                    onApprove={(id, comment) => {
-                        if (!user) return;
-
-                        // 1. Approve the change request in PMO store
-                        approveChangeRequest(id, user.id, user.name || user.username);
-
-                        // 2. If it's a stage gate, update the project's gate status
-                        if (selectedRequest.category === 'project_status' && selectedRequest.metadata?.type === 'stage_gate') {
-                            const project = projects.find(p => p.id === selectedRequest.projectId);
-                            if (project && (project as any).gates && project.id) {
-                                const gateId = selectedRequest.metadata.gateId;
-                                const updatedGates = (project as any).gates.map((g: StageGate) => {
-                                    if (g.id === gateId) {
-                                        return approveGate(g, user.id, user.name || user.username, comment);
-                                    }
-                                    return g;
-                                });
-                                updateProject(project.id, { ...project, gates: updatedGates } as any);
-                            }
-                        }
-
-                        setSelectedRequest(null);
-                    }}
-                    onReject={(id, reason) => {
-                        if (!user) return;
-
-                        // 1. Reject the change request in PMO store
-                        rejectChangeRequest(id, user.id, user.name || user.username, reason);
-
-                        // 2. If it's a stage gate, update the project's gate status
-                        if (selectedRequest.category === 'project_status' && selectedRequest.metadata?.type === 'stage_gate') {
-                            const project = projects.find(p => p.id === selectedRequest.projectId);
-                            if (project && (project as any).gates && project.id) {
-                                const gateId = selectedRequest.metadata.gateId;
-                                const updatedGates = (project as any).gates.map((g: StageGate) => {
-                                    if (g.id === gateId) {
-                                        return rejectGate(g, user.id, user.name || user.username, reason);
-                                    }
-                                    return g;
-                                });
-                                updateProject(project.id, { ...project, gates: updatedGates } as any);
-                            }
-                        }
-
-                        setSelectedRequest(null);
-                    }}
-                />
-            )}
         </div>
     );
 };

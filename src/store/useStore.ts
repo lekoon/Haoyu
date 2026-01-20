@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, devtools } from 'zustand/middleware';
-import type { Project, FactorDefinition, User, ResourcePoolItem, Notification, Alert, ProjectTemplate, KeyTaskDefinition, BayResource, MachineResource } from '../types';
+import type { Project, FactorDefinition, User, ResourcePoolItem, Notification, Alert, ProjectTemplate, KeyTaskDefinition, BayResource, MachineResource, BaySize, ProjectTypeDefinition } from '../types';
 import { calculateProjectScore, rankProjects } from '../utils/algorithm';
 import { createBaseline as createBaselineSnapshot } from '../utils/baselineManagement';
 
@@ -15,9 +15,10 @@ interface StoreState {
     keyTaskDefinitions: KeyTaskDefinition[];
     physicalBays: BayResource[];
     physicalMachines: MachineResource[];
+    projectTypeDefinitions: ProjectTypeDefinition[];
 
     // Actions
-    login: (username: string, role: 'admin' | 'manager' | 'user' | 'readonly') => void;
+    login: (username: string, role: 'admin' | 'manager' | 'user' | 'readonly' | 'pmo') => void;
     logout: () => void;
     updateUser: (updates: Partial<User>) => void;
 
@@ -60,9 +61,16 @@ interface StoreState {
     deleteKeyTaskDefinition: (id: string) => void;
 
     // Physical Resources
-    setPhysicalBays: (bays: BayResource[]) => void;
-    setPhysicalMachines: (machines: MachineResource[]) => void;
+    setPhysicalBays: (bays: BayResource[] | ((prev: BayResource[]) => BayResource[])) => void;
+    setPhysicalMachines: (machines: MachineResource[] | ((prev: MachineResource[]) => MachineResource[])) => void;
+    deletePhysicalBay: (id: string) => void;
+    deletePhysicalMachine: (id: string) => void;
     updatePhysicalResource: (id: string, updates: any) => void;
+
+    // Project Type Definitions
+    addProjectTypeDefinition: (name: string, color: string) => void;
+    updateProjectTypeDefinition: (id: string, updates: Partial<ProjectTypeDefinition>) => void;
+    deleteProjectTypeDefinition: (id: string) => void;
 }
 
 // Default data
@@ -80,6 +88,13 @@ const DEFAULT_RESOURCES: ResourcePoolItem[] = [
     { id: 'res-3', name: 'Product Managers', department: 'Product Dept', category: 'management', totalQuantity: 5 },
     { id: 'res-4', name: 'QA Specialists', department: 'QA Dept', category: 'testing', totalQuantity: 8 },
     { id: 'res-5', name: 'UX Designers', department: 'Design Dept', category: 'design', totalQuantity: 4 },
+];
+
+const DEFAULT_PROJECT_TYPES: ProjectTypeDefinition[] = [
+    { id: 'type-rnd', name: '新产品研发', color: '#3b82f6' }, // Blue
+    { id: 'type-pre', name: '预研项目', color: '#10b981' }, // Green
+    { id: 'type-reg', name: '注册变更', color: '#f59e0b' }, // Amber
+    { id: 'type-maint', name: '产品维护', color: '#8b5cf6' }, // Purple
 ];
 
 const DEFAULT_TEMPLATES: ProjectTemplate[] = [
@@ -187,6 +202,46 @@ const DEFAULT_KEY_TASKS: KeyTaskDefinition[] = [
     { id: 'kt-eco', name: 'ECO', color: '#8b71cc' },
 ];
 
+// --- Mock Data for Physical Resources ---
+const PRODUCTION_EQUIPMENT_MODELS = [
+    'uCT 530', 'uCT 550', 'uCT 760', 'uCT 780', 'uCT 710', 'uCT 820',
+    'uCT Atlas Astound', 'uCT 960+', 'uCT ATLAS', 'uCT 968', 'uCT 968 Pro', 'uCT 968 Elite'
+];
+const PLATFORMS = ['Falcon', 'Eagle', 'Titan', 'Zeus'];
+
+const MOCK_BAYS: BayResource[] = Array.from({ length: 16 }).map((_, i) => ({
+    id: `bay-${i + 1}`,
+    name: `Bay ${String(i + 1).padStart(2, '0')}`,
+    size: (['S', 'M', 'L'] as BaySize[])[i % 3],
+    status: 'available',
+    health: 95 + Math.random() * 5,
+    lastMaintenance: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    nextMaintenance: new Date(Date.now() + (30 + i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    bookings: [],
+    conflicts: [],
+    replacementHistory: [],
+    maintenancePlans: [],
+    usageHistory: [],
+    version: 1
+} as any));
+
+const MOCK_MACHINES: MachineResource[] = PRODUCTION_EQUIPMENT_MODELS.map((model, i) => ({
+    id: `mach-${i + 1}`,
+    name: `${model} #${String(i + 1).padStart(2, '0')}`,
+    model: model,
+    platform: PLATFORMS[i % PLATFORMS.length],
+    health: 98 + Math.random() * 2,
+    status: 'available',
+    lastMaintenance: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    nextMaintenance: new Date(Date.now() + (45 + i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    bookings: [],
+    conflicts: [],
+    replacementHistory: [],
+    maintenancePlans: [],
+    usageHistory: [],
+    version: 1
+} as any));
+
 export const useStore = create<StoreState>()(
     devtools(
         persist(
@@ -199,15 +254,16 @@ export const useStore = create<StoreState>()(
                 notifications: [],
                 alerts: [],
                 keyTaskDefinitions: DEFAULT_KEY_TASKS,
-                physicalBays: [],
-                physicalMachines: [],
+                physicalBays: MOCK_BAYS,
+                physicalMachines: MOCK_MACHINES,
+                projectTypeDefinitions: DEFAULT_PROJECT_TYPES,
 
                 login: (username, role) => set({
                     user: {
                         id: 'u-1',
                         username,
                         role,
-                        name: role === 'admin' ? 'Administrator' : role === 'manager' ? 'Project Manager' : role === 'readonly' ? 'Viewer' : 'Standard User',
+                        name: role === 'pmo' ? 'PMO Specialist' : role === 'admin' ? 'Administrator' : role === 'manager' ? 'Project Manager' : role === 'readonly' ? 'Viewer' : 'Standard User',
                         email: `${username}@example.com`,
                         avatar: `https://ui-avatars.com/api/?name=${username}&background=random`
                     }
@@ -333,8 +389,9 @@ export const useStore = create<StoreState>()(
                     const endDate = new Date();
                     endDate.setMonth(endDate.getMonth() + template.defaultDuration);
 
+                    const id = `proj-${Date.now()}`;
                     const newProject: Project = {
-                        id: `proj-${Date.now()}`,
+                        id,
                         name: projectName,
                         description: template.description,
                         status: 'planning',
@@ -360,7 +417,19 @@ export const useStore = create<StoreState>()(
                                 department: res?.department,
                                 category: res?.category
                             };
-                        })
+                        }),
+                        healthIndicators: {
+                            projectId: id,
+                            projectName: projectName,
+                            overallHealth: 'green',
+                            scheduleHealth: 'green',
+                            budgetHealth: 'green',
+                            scopeHealth: 'green',
+                            qualityHealth: 'green',
+                            riskHealth: 'green',
+                            trend: 'stable'
+                        },
+                        pmoAdvice: ''
                     };
 
                     return newProject;
@@ -417,9 +486,19 @@ export const useStore = create<StoreState>()(
                     keyTaskDefinitions: state.keyTaskDefinitions.filter(kt => kt.id !== id)
                 }), false, 'keyTasks/delete'),
 
-                setPhysicalBays: (bays: BayResource[]) => set({ physicalBays: bays }, false, 'physical/setBays'),
-                setPhysicalMachines: (machines: MachineResource[]) => set({ physicalMachines: machines }, false, 'physical/setMachines'),
-                updatePhysicalResource: (id: string, updates: any) => {
+                setPhysicalBays: (bays) => set((state) => ({
+                    physicalBays: typeof bays === 'function' ? bays(state.physicalBays) : bays
+                }), false, 'physical/setBays'),
+                setPhysicalMachines: (machines) => set((state) => ({
+                    physicalMachines: typeof machines === 'function' ? machines(state.physicalMachines) : machines
+                }), false, 'physical/setMachines'),
+                deletePhysicalBay: (id: string) => set((state) => ({
+                    physicalBays: state.physicalBays.filter(bay => bay.id !== id)
+                }), false, 'physical/deleteBay'),
+                deletePhysicalMachine: (id: string) => set((state) => ({
+                    physicalMachines: state.physicalMachines.filter(mach => mach.id !== id)
+                }), false, 'physical/deleteMachine'),
+                updatePhysicalResource: (id, updates) => {
                     const isBay = id.startsWith('bay');
                     if (isBay) {
                         set((state) => ({
@@ -435,10 +514,24 @@ export const useStore = create<StoreState>()(
                         }), false, 'physical/updateMachine');
                     }
                 },
+                addProjectTypeDefinition: (name, color) => set((state) => ({
+                    projectTypeDefinitions: [
+                        ...state.projectTypeDefinitions,
+                        { id: `type-${Date.now()}`, name, color }
+                    ]
+                }), false, 'projectTypes/add'),
+                updateProjectTypeDefinition: (id, updates) => set((state) => ({
+                    projectTypeDefinitions: state.projectTypeDefinitions.map(d =>
+                        d.id === id ? { ...d, ...updates } : d
+                    )
+                }), false, 'projectTypes/update'),
+                deleteProjectTypeDefinition: (id) => set((state) => ({
+                    projectTypeDefinitions: state.projectTypeDefinitions.filter(d => d.id !== id)
+                }), false, 'projectTypes/delete'),
             }),
             {
                 name: 'visorq-storage',
-                version: 1, // Add version for future migrations
+                version: 1,
                 storage: createJSONStorage(() => localStorage),
                 partialize: (state) => ({
                     user: state.user,
@@ -449,7 +542,8 @@ export const useStore = create<StoreState>()(
                     alerts: state.alerts,
                     keyTaskDefinitions: state.keyTaskDefinitions,
                     physicalBays: state.physicalBays,
-                    physicalMachines: state.physicalMachines
+                    physicalMachines: state.physicalMachines,
+                    projectTypeDefinitions: state.projectTypeDefinitions
                 }),
             }
         ),
@@ -473,6 +567,7 @@ export const useUnreadAlerts = () => useStore((state) =>
     state.alerts.filter(a => !a.read)
 );
 export const useTemplates = () => useStore((state) => state.projectTemplates);
+export const useProjectTypeDefinitions = () => useStore((state) => state.projectTypeDefinitions);
 
 // Computed selectors
 export const useActiveProjects = () => useStore((state) =>

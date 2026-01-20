@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, FolderKanban, PieChart, Settings, Users, LogOut,
     Moon, Sun, Bell, Check, Trash2, Brain, FileText, Copy, Upload,
-    TrendingUp, Search, Shield, BarChart3, Briefcase, Box
+    TrendingUp, Search, Shield, BarChart3, Briefcase, Box, Activity
 } from 'lucide-react';
 import { checkDeadlines, checkResourceConflicts } from '../utils/notifications';
 import clsx from 'clsx';
@@ -151,10 +151,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         // PMO 战略管控
         if (path.startsWith('/pmo') || path.startsWith('/simulation') || path.startsWith('/environments')) {
             return [
-                { label: 'PMO 仪表板', path: '/pmo', icon: LayoutDashboard, description: '管控中心' },
-                { label: '依赖分析', path: '/pmo?tab=dependencies', icon: Search, description: '跨项目依赖' },
-                { label: '环境资源', path: '/environments', icon: Shield, description: '环境管理' },
-                { label: 'What-If 推演', path: '/simulation', icon: Brain, description: '沙盘模拟' },
+                { label: '战略透视', path: '/pmo', icon: LayoutDashboard, description: '组合看板' },
+                { label: '项目监控', path: '/pmo/monitor', icon: Activity, description: '全生命周期监控' },
+                { label: '依赖图谱', path: '/pmo/dependencies', icon: Search, description: '跨项目拓扑' },
+                { label: '集成环境', path: '/environments', icon: Shield, description: '生产力资源' },
+                { label: 'What-If 推演', path: '/simulation', icon: Brain, description: '风险博弈' },
             ];
         }
 

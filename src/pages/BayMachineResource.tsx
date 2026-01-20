@@ -79,7 +79,9 @@ const BayMachineResource: React.FC = () => {
         physicalMachines,
         setPhysicalBays,
         setPhysicalMachines,
-        updatePhysicalResource
+        updatePhysicalResource,
+        deletePhysicalBay,
+        deletePhysicalMachine
     } = useStore();
     const [viewTab, setViewTab] = useState<'monitor' | 'risk' | 'maintenance' | 'calendar'>('monitor');
     const [viewMode, setViewMode] = useState<'visual' | 'list'>('visual');
@@ -128,7 +130,7 @@ const BayMachineResource: React.FC = () => {
     const [isFeishuSyncing, setIsFeishuSyncing] = useState(false);
 
     // Permission Helpers
-    const isPMO = user?.role === 'admin';
+    const isPMO = user?.role === 'admin' || user?.role === 'pmo';
     const isPM = user?.role === 'manager';
     const isUser = user?.role === 'user';
 
@@ -974,6 +976,21 @@ const BayMachineResource: React.FC = () => {
                                                     </div>
                                                 </div>
 
+                                                {isPMO && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (window.confirm(`确定要删除 ${item.name} 吗？`)) {
+                                                                if (resourceType === 'bay') deletePhysicalBay(item.id);
+                                                                else deletePhysicalMachine(item.id);
+                                                            }
+                                                        }}
+                                                        className="absolute top-4 right-4 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all shadow-sm opacity-0 group-hover:opacity-100 z-30"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+
                                                 <div className="z-10 mt-5">
                                                     <div className={`text-[9px] font-black uppercase tracking-[0.1em] mb-1 ${item.status === 'available' ? 'text-slate-400' : 'text-white/60'
                                                         }`}>
@@ -1064,6 +1081,7 @@ const BayMachineResource: React.FC = () => {
                                                 <th className="px-8 py-5">逻辑绑定关系</th>
                                                 <th className="px-8 py-5">分配/调度记录</th>
                                                 <th className="px-8 py-5">下次维保基准</th>
+                                                {isPMO && <th className="px-8 py-5">操作</th>}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100/30 dark:divide-slate-800/30">
@@ -1130,6 +1148,22 @@ const BayMachineResource: React.FC = () => {
                                                     <td className="px-8 py-5 text-xs font-mono font-bold text-slate-400 group-hover:text-blue-500 transition-colors">
                                                         {item.nextMaintenance}
                                                     </td>
+                                                    {isPMO && (
+                                                        <td className="px-8 py-5">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (window.confirm(`确定要删除 ${item.name} 吗？`)) {
+                                                                        if (resourceType === 'bay') deletePhysicalBay(item.id);
+                                                                        else deletePhysicalMachine(item.id);
+                                                                    }
+                                                                }}
+                                                                className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-2xl transition-all"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             ))}
                                         </tbody>
