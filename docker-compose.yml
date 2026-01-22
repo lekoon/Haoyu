@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: haoyu-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: haoyu
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - haoyu-network
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: haoyu-api
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/haoyu?schema=public
+      JWT_SECRET: super-secret-key-change-in-production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    networks:
+      - haoyu-network
+
+  client:
+    build:
+      context: .
+      dockerfile: ./apps/client/Dockerfile
+    container_name: haoyu-client
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - haoyu-network
+
+networks:
+  haoyu-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

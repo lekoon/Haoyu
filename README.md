@@ -1,16 +1,16 @@
-# Visorq - Enterprise Project Portfolio Management System
+# Haoyu - Enterprise Project Portfolio Management System
 
 <div align="center">
 
-![Visorq](https://img.shields.io/badge/Visorq-v1.0.0-blue)
+![Haoyu](https://img.shields.io/badge/Haoyu-v1.0.0-blue)
 ![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-3178C6?logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-6.0.7-646CFF?logo=vite)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**一个功能完整的企业级项目组合管理系统**
+**一个功能完整的企业级项目组合管理系�?*
 
-[功能特性](#功能特性) • [快速开始](#快速开始) • [文档](#文档) • [部署](#部署) • [贡献](#贡献)
+[功能特性](#功能特�? �?[快速开始](#快速开�? �?[文档](#文档) �?[部署](#部署) �?[贡献](#贡献)
 
 </div>
 
@@ -18,50 +18,50 @@
 
 ## 📋 目录
 
-- [项目简介](#项目简介)
-- [功能特性](#功能特性)
+- [项目简介](#项目简�?
+- [功能特性](#功能特�?
 - [技术栈](#技术栈)
-- [快速开始](#快速开始)
+- [快速开始](#快速开�?
 - [项目结构](#项目结构)
 - [核心功能](#核心功能)
 - [文档](#文档)
 - [部署](#部署)
-- [开发指南](#开发指南)
+- [开发指南](#开发指�?
 - [常见问题](#常见问题)
 - [贡献](#贡献)
-- [许可证](#许可证)
+- [许可证](#许可�?
 
-## 🎯 项目简介
+## 🎯 项目简�?
 
-Visorq 是一个现代化的企业级项目组合管理系统，旨在帮助企业和团队高效管理项目、资源和成本。系统提供了直观的可视化界面、智能的资源分配、实时的冲突检测和全面的成本分析功能。
+Haoyu 是一个现代化的企业级项目组合管理系统，旨在帮助企业和团队高效管理项目、资源和成本。系统提供了直观的可视化界面、智能的资源分配、实时的冲突检测和全面的成本分析功能�?
 
-### 为什么选择 Visorq？
+### 为什么选择 Haoyu�?
 
-- ✨ **直观易用**: 拖拽式操作，零学习成本
-- 🚀 **功能完整**: 涵盖项目管理全生命周期
-- 📊 **数据可视化**: 丰富的图表和仪表盘
-- 🌍 **国际化**: 支持中英文切换
+- �?**直观易用**: 拖拽式操作，零学习成�?
+- 🚀 **功能完整**: 涵盖项目管理全生命周�?
+- 📊 **数据可视�?*: 丰富的图表和仪表�?
+- 🌍 **国际�?*: 支持中英文切�?
 - 🎨 **现代设计**: 支持暗黑模式，响应式布局
-- ⚡ **高性能**: 基于 React 18 和 Vite 构建
+- �?**高性能**: 基于 React 18 �?Vite 构建
 
-## ✨ 功能特性
+## �?功能特�?
 
 ### 项目管理
 - 📝 项目CRUD操作
 - 🎯 多因子优先级评分
-- 📊 项目状态跟踪
+- 📊 项目状态跟�?
 - 📋 项目模板系统
-- 🔍 高级搜索和筛选
+- 🔍 高级搜索和筛�?
 - 📦 批量操作
 
 ### 资源管理
-- 👥 资源池管理
+- 👥 资源池管�?
 - 📅 容量规划
-- 🗓️ 资源甘特图
-- 📈 利用率分析
-- ⚠️ 冲突检测
-- 🎯 技能匹配
-- 🔥 资源热力图
+- 🗓�?资源甘特�?
+- 📈 利用率分�?
+- ⚠️ 冲突检�?
+- 🎯 技能匹�?
+- 🔥 资源热力�?
 - 🎨 可视化仪表盘
 
 ### 成本分析
@@ -70,46 +70,46 @@ Visorq 是一个现代化的企业级项目组合管理系统，旨在帮助企�
 - 💡 优化建议
 - 📈 成本趋势分析
 
-### 个人工作台
+### 个人工作�?
 - 👤 个人信息展示
 - 📅 本周工作概览
-- ⏱️ 时间线视图
+- ⏱️ 时间线视�?
 - ⚠️ 超载预警
 
 ### 系统功能
-- 🔐 用户认证和权限
-- 🌐 中英文切换
+- 🔐 用户认证和权�?
+- 🌐 中英文切�?
 - 🌙 暗黑模式
 - 🔔 通知系统
 - 💾 数据备份/恢复
-- 📤 数据导出（CSV/PDF）
-- ⌨️ 键盘快捷键
+- 📤 数据导出（CSV/PDF�?
+- ⌨️ 键盘快捷�?
 
-## 🛠️ 技术栈
+## 🛠�?技术栈
 
 ### 核心框架
 - **React 18.3.1** - UI 框架
 - **TypeScript 5.6.2** - 类型安全
 - **Vite 6.0.7** - 构建工具
 
-### 状态管理
-- **Zustand 5.0.2** - 轻量级状态管理
+### 状态管�?
+- **Zustand 5.0.2** - 轻量级状态管�?
 
 ### 路由
-- **React Router 7.1.1** - 客户端路由
+- **React Router 7.1.1** - 客户端路�?
 
 ### UI 组件
 - **Tailwind CSS 3.4.17** - 样式框架
-- **Lucide React** - 图标库
-- **Recharts** - 图表库
+- **Lucide React** - 图标�?
+- **Recharts** - 图表�?
 - **@dnd-kit** - 拖拽功能
 
-### 工具库
-- **i18next** - 国际化
+### 工具�?
+- **i18next** - 国际�?
 - **date-fns** - 日期处理
 - **clsx** - 类名管理
 
-## 🚀 快速开始
+## 🚀 快速开�?
 
 ### 环境要求
 
@@ -120,16 +120,16 @@ Visorq 是一个现代化的企业级项目组合管理系统，旨在帮助企�
 
 ```bash
 # 克隆项目
-git clone https://github.com/lekoon/Visorq.git
+git clone https://github.com/lekoon/Haoyu.git
 
 # 进入项目目录
-cd Visorq
+cd Haoyu
 
 # 安装依赖
 npm install
 ```
 
-### 开发
+### 开�?
 
 ```bash
 # 启动开发服务器
@@ -151,43 +151,43 @@ npm run preview
 ### 默认账号
 
 ```
-用户名: admin
+用户�? admin
 密码: admin123
 ```
 
 ## 📁 项目结构
 
 ```
-Visorq/
+Haoyu/
 ├── src/
-│   ├── components/          # 可复用组件
-│   │   ├── resource-viz/   # 资源可视化组件
-│   │   ├── Layout.tsx
-│   │   ├── ErrorBoundary.tsx
-│   │   └── ...
-│   ├── pages/              # 页面组件
-│   │   ├── Dashboard.tsx
-│   │   ├── Projects.tsx
-│   │   ├── Resources.tsx
-│   │   ├── UserWorkbench.tsx
-│   │   └── ...
-│   ├── store/              # Zustand 状态管理
-│   │   └── useStore.ts
-│   ├── utils/              # 工具函数
-│   │   ├── conflictDetection.ts
-│   │   ├── skillMatching.ts
-│   │   ├── costAnalysis.ts
-│   │   └── ...
-│   ├── i18n/               # 国际化配置
-│   │   ├── zh.ts
-│   │   └── en.ts
-│   ├── types/              # TypeScript 类型定义
-│   │   └── index.ts
-│   ├── hooks/              # 自定义 Hooks
-│   │   └── useDarkMode.ts
-│   ├── App.tsx
-│   └── main.tsx
-├── public/                 # 静态资源
+�?  ├── components/          # 可复用组�?
+�?  �?  ├── resource-viz/   # 资源可视化组�?
+�?  �?  ├── Layout.tsx
+�?  �?  ├── ErrorBoundary.tsx
+�?  �?  └── ...
+�?  ├── pages/              # 页面组件
+�?  �?  ├── Dashboard.tsx
+�?  �?  ├── Projects.tsx
+�?  �?  ├── Resources.tsx
+�?  �?  ├── UserWorkbench.tsx
+�?  �?  └── ...
+�?  ├── store/              # Zustand 状态管�?
+�?  �?  └── useStore.ts
+�?  ├── utils/              # 工具函数
+�?  �?  ├── conflictDetection.ts
+�?  �?  ├── skillMatching.ts
+�?  �?  ├── costAnalysis.ts
+�?  �?  └── ...
+�?  ├── i18n/               # 国际化配�?
+�?  �?  ├── zh.ts
+�?  �?  └── en.ts
+�?  ├── types/              # TypeScript 类型定义
+�?  �?  └── index.ts
+�?  ├── hooks/              # 自定�?Hooks
+�?  �?  └── useDarkMode.ts
+�?  ├── App.tsx
+�?  └── main.tsx
+├── public/                 # 静态资�?
 ├── docs/                   # 文档
 ├── package.json
 ├── vite.config.ts
@@ -202,33 +202,33 @@ Visorq/
 <details>
 <summary>点击查看详情</summary>
 
-- **关键指标卡**: 项目总数、超载人数、P0资源满足率、人天投入
-- **项目进度快照**: 横向滚动卡片展示所有项目状态
-- **资源热力图**: 周维度展示每个成员的工作负载
+- **关键指标�?*: 项目总数、超载人数、P0资源满足率、人天投�?
+- **项目进度快照**: 横向滚动卡片展示所有项目状�?
+- **资源热力�?*: 周维度展示每个成员的工作负载
 
 </details>
 
-### 2. 拖拽式资源分配
+### 2. 拖拽式资源分�?
 
 <details>
 <summary>点击查看详情</summary>
 
-- 从资源池拖拽成员到项目
+- 从资源池拖拽成员到项�?
 - 实时冲突检测和警告
 - 撤销/重做支持
 - 复制上周分配数据
 
 </details>
 
-### 3. 智能技能匹配
+### 3. 智能技能匹�?
 
 <details>
 <summary>点击查看详情</summary>
 
-- 技能缺口分析
+- 技能缺口分�?
 - 自动资源推荐
-- 匹配度评分
-- 技能趋势分析
+- 匹配度评�?
+- 技能趋势分�?
 
 </details>
 
@@ -253,7 +253,7 @@ Visorq/
 - [第三阶段报告](./第三阶段功能完成报告.md)
 - [第四阶段报告](./第四阶段功能完成报告.md)
 - [第五阶段报告](./第五阶段功能完成报告.md)
-- [资源可视化报告](./资源可视化功能完成报告.md)
+- [资源可视化报告](./资源可视化功能完成报�?md)
 - [第六阶段报告](./第六阶段功能完成报告.md)
 
 ## 🚢 部署
@@ -261,7 +261,7 @@ Visorq/
 ### GitHub Pages 部署
 
 ```bash
-# 构建并部署
+# 构建并部�?
 npm run deploy
 ```
 
@@ -269,10 +269,10 @@ npm run deploy
 
 ```bash
 # 构建镜像
-docker build -t visorq .
+docker build -t haoyu .
 
 # 运行容器
-docker run -d -p 8080:80 visorq
+docker run -d -p 8080:80 haoyu
 ```
 
 ### Nginx 部署
@@ -289,16 +289,16 @@ server {
 }
 ```
 
-详细部署说明请参考 [部署指南](./部署指南.md)。
+详细部署说明请参�?[部署指南](./部署指南.md)�?
 
-## 💻 开发指南
+## 💻 开发指�?
 
 ### 代码规范
 
-项目使用 ESLint 和 Prettier 进行代码规范检查：
+项目使用 ESLint �?Prettier 进行代码规范检查：
 
 ```bash
-# 运行 lint 检查
+# 运行 lint 检�?
 npm run lint
 
 # 自动修复
@@ -307,68 +307,68 @@ npm run lint:fix
 
 ### 提交规范
 
-使用 Conventional Commits 规范：
+使用 Conventional Commits 规范�?
 
 ```
-feat: 新功能
+feat: 新功�?
 fix: 修复bug
 docs: 文档更新
 style: 代码格式调整
 refactor: 重构
 test: 测试相关
-chore: 构建/工具链相关
+chore: 构建/工具链相�?
 ```
 
 ### 分支策略
 
 - `main`: 生产分支
-- `develop`: 开发分支
+- `develop`: 开发分�?
 - `feature/*`: 功能分支
-- `hotfix/*`: 紧急修复分支
+- `hotfix/*`: 紧急修复分�?
 
-## ❓ 常见问题
+## �?常见问题
 
 <details>
-<summary>如何重置数据？</summary>
+<summary>如何重置数据�?/summary>
 
-进入设置页面，点击"清除所有数据"按钮。
+进入设置页面，点�?清除所有数�?按钮�?
 
 </details>
 
 <details>
-<summary>如何备份数据？</summary>
+<summary>如何备份数据�?/summary>
 
-进入设置页面，点击"备份数据"按钮下载备份文件。
+进入设置页面，点�?备份数据"按钮下载备份文件�?
 
 </details>
 
 <details>
 <summary>支持哪些浏览器？</summary>
 
-支持所有现代浏览器（Chrome, Firefox, Safari, Edge）。不支持 IE11。
+支持所有现代浏览器（Chrome, Firefox, Safari, Edge）。不支持 IE11�?
 
 </details>
 
 <details>
 <summary>数据存储在哪里？</summary>
 
-数据存储在浏览器的 localStorage 中。建议定期备份数据。
+数据存储在浏览器�?localStorage 中。建议定期备份数据�?
 
 </details>
 
 ## 🤝 贡献
 
-欢迎贡献代码、报告问题或提出建议！
+欢迎贡献代码、报告问题或提出建议�?
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+1. Fork 本仓�?
+2. 创建特性分�?(`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+5. 开�?Pull Request
 
-## 📄 许可证
+## 📄 许可�?
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+本项目采�?MIT 许可�?- 详见 [LICENSE](LICENSE) 文件
 
 ## 🙏 致谢
 
@@ -383,8 +383,8 @@ chore: 构建/工具链相关
 
 <div align="center">
 
-**[⬆ 回到顶部](#visorq---enterprise-project-portfolio-management-system)**
+**[�?回到顶部](#haoyu---enterprise-project-portfolio-management-system)**
 
-Made with ❤️ by Visorq Team
+Made with ❤️ by Haoyu Team
 
 </div>
