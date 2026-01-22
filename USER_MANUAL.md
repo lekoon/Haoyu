@@ -11,8 +11,8 @@ Haoyu 是一款专为企业级项目管理、资源分配及战略决策设计�
 
 ### 1. 一键开发初始化 (本地开发)
 如果您是要进行二次开发或本地运行：
-1.  **Windows**: 双击 root 目录下的 setup-dev.bat。
-2.  **Linux/Mac**: 运行 chmod +x setup-dev.sh && ./setup-dev.sh。
+1.  **Windows**: 双击 root 目录下的 `setup-dev.bat`。
+2.  **Linux/Mac**: 运行 `chmod +x setup-dev.sh && ./setup-dev.sh`。
 
 初始化完成后，运行：
 `ash
@@ -23,8 +23,8 @@ npm run dev
 
 ### 2. 一键生产部署 (Docker)
 如果您仅需要在服务器运行平台：
-1.  **Windows**: 运行 deploy.bat。
-2.  **Linux/Mac**: 运行 ./deploy.sh。
+1.  **Windows**: 运行 `deploy.bat`。
+2.  **Linux/Mac**: 运行 `./deploy.sh`。
 *   **访问入口**: http://localhost:80
 
 ---
