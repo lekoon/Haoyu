@@ -1,0 +1,239 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  USER
+  READONLY
+  PMO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  name      String?
+  email     String?  @unique
+  role      Role     @default(USER)
+  avatar    String?
+  
+  managedProjects Project[] @relation("ProjectManager")
+  createdProjects Project[] @relation("ProjectCreator")
+  
+  assignedTasks  Task[]
+  ownedRisks     Risk[]    @relation("RiskOwner")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  code        String?
+  description String?
+  status      String   @default("planning")
+  priority    String   @default("P2")
+  startDate   DateTime
+  endDate     DateTime
+  category    String?
+  
+  managerId   String?
+  manager     User?    @relation("ProjectManager", fields: [managerId], references: [id])
+  
+  creatorId   String?
+  creator     User?    @relation("ProjectCreator", fields: [creatorId], references: [id])
+
+  factors     Json?    // Record<string, number>
+  
+  score       Float?
+  rank        Int?
+  budget      Float?
+  actualCost  Float?
+  
+  tasks       Task[]
+  risks       Risk[]
+  milestones  Milestone[]
+  changeRequests ChangeRequest[]
+  requirements   Requirement[]
+  assignments    ProjectAssignment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  progress    Float    @default(0)
+  color       String?
+  type        String   @default("task")
+  
+  parentId    String?
+  parent      Task?    @relation("TaskParent", fields: [parentId], references: [id])
+  children    Task[]   @relation("TaskParent")
+  
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  assigneeId  String?
+  assignee    User?    @relation(fields: [assigneeId], references: [id])
+  
+  status      String   @default("planning")
+  priority    String?
+  
+  dependencies Json?    // String[] of Task IDs
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Risk {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String
+  status      String
+  priority    String
+  probability Int
+  impact      Int
+  riskScore   Int
+  
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  ownerId     String?
+  owner       User?    @relation("RiskOwner", fields: [ownerId], references: [id])
+  
+  identifiedDate DateTime @default(now())
+  resolvedDate   DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Milestone {
+  id          String   @id @default(uuid())
+  name        String
+  date        DateTime
+  completed   Boolean  @default(false)
+  description String?
+  
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Resource {
+  id            String   @id @default(uuid())
+  name          String
+  department    String?
+  category      String?
+  totalQuantity Int      @default(1)
+  costPerUnit   Float?
+  
+  skills        Json?    // Skill[]
+  members       TeamMember[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model TeamMember {
+  id           String   @id @default(uuid())
+  name         String
+  role         String
+  department   String?
+  email        String?
+  avatar       String?
+  availability Float    @default(40)
+  hourlyRate   Float?
+  
+  resourceId   String
+  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  
+  assignments  ProjectAssignment[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ProjectAssignment {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  projectName String
+  hours       Float
+  startDate   DateTime
+  endDate     DateTime
+  
+  memberId    String
+  member      TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FactorDefinition {
+  id          String   @id @default(uuid())
+  name        String
+  weight      Float    @default(1.0)
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ChangeRequest {
+  id                    String   @id @default(uuid())
+  title                 String
+  description           String?
+  type                  String
+  status                String   @default("pending")
+  priority              String   @default("medium")
+  
+  estimatedCostIncrease Float    @default(0)
+  scheduleImpactDays    Int      @default(0)
+  businessJustification String?
+  
+  projectId             String
+  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  creatorId             String
+  
+  approvedBy            String?
+  approvedByName        String?
+  approvalDate          DateTime?
+  rejectionReason       String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Requirement {
+  id             String   @id @default(uuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  title          String
+  description    String?
+  priority       String   @default("should")
+  status         String   @default("draft")
+  
+  relatedTaskIds Json?    // String[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
