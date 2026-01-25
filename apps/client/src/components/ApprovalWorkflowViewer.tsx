@@ -103,8 +103,8 @@ export const ApprovalWorkflowViewer: React.FC<ApprovalWorkflowViewerProps> = ({
                             className="bg-blue-600 h-2 rounded-full transition-all"
                             style={{
                                 width: `${(workflow.approvers.filter((a) => a.status === 'approved')
-                                        .length /
-                                        workflow.approvers.filter((a) => a.isRequired).length) *
+                                    .length /
+                                    workflow.approvers.filter((a) => a.isRequired).length) *
                                     100
                                     }%`,
                             }}
@@ -115,7 +115,7 @@ export const ApprovalWorkflowViewer: React.FC<ApprovalWorkflowViewerProps> = ({
 
             {/* 审批步骤 */}
             <div className="space-y-3">
-                {workflow.approvers.map((step, index) => {
+                {workflow.approvers.map((step) => {
                     const isCurrentStep = step === currentStep;
                     const canApproveThis = canCurrentUserApprove && isCurrentStep;
 

@@ -1,4 +1,4 @@
-import { Risk, RiskCategory } from '../types';
+import type { Risk, RiskCategory } from '../types';
 
 /**
  * Risk Template for common project risks
@@ -264,7 +264,6 @@ export const createRiskFromTemplate = (
         probability: template.probability,
         impact: template.impact,
         owner,
-        ownerName: owner,
         status: 'identified',
         mitigationStrategy: template.mitigationStrategy,
         mitigationActions: [],

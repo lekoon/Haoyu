@@ -127,7 +127,9 @@ const calculateRiskCorrelation = (
     }
 
     // 7. Same stakeholders/owners
-    if (risk1.owner === risk2.owner) {
+    const ownerId1 = typeof risk1.owner === 'string' ? risk1.owner : (risk1.owner as any)?.id;
+    const ownerId2 = typeof risk2.owner === 'string' ? risk2.owner : (risk2.owner as any)?.id;
+    if (ownerId1 && ownerId1 === ownerId2) {
         score += 0.15;
         reasons.push('相同负责人');
     }
@@ -198,7 +200,7 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
 /**
  * Detect if risk2 could be a cascading effect of risk1
  */
-const isCascadingRisk = (risk1: Risk, risk2: Risk, project1: Project, project2: Project): boolean => {
+const isCascadingRisk = (risk1: Risk, risk2: Risk, _project1: Project, _project2: Project): boolean => {
     // Schedule risks can cascade to cost risks
     if (risk1.category === 'schedule' && risk2.category === 'cost') {
         return true;

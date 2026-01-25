@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Network, TrendingUp, AlertTriangle, ArrowRight } from 'lucide-react';
-import { Project, Risk } from '../types';
+import type { Project, Risk } from '../types';
 import { analyzeRiskCorrelations, analyzeProjectRiskImpacts } from '../utils/crossProjectRiskAnalysis';
 import { getRiskCategoryInfo, getRiskPriorityColor } from '../utils/riskManagement';
 

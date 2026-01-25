@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Trash2 } from 'lucide-react';
-import { Risk, RiskCategory, RiskStatus, RiskMitigationAction } from '../types';
-import { createRisk, getRiskCategoryInfo, getRiskStatusInfo } from '../utils/riskManagement';
+import type { Risk, RiskCategory, RiskStatus, RiskMitigationAction } from '../types';
+import { createRisk } from '../utils/riskManagement';
 
 interface RiskFormModalProps {
     isOpen: boolean;
@@ -74,9 +74,9 @@ const RiskFormModal: React.FC<RiskFormModalProps> = ({
                 ...formData,
                 mitigationActions: mitigationActions.map((action, idx) => ({
                     ...action,
-                    id: action.id || `action-${Date.now()}-${idx}`,
+                    id: (action as any).id || `action-${Date.now()}-${idx}`,
                 })) as RiskMitigationAction[],
-            } as Risk;
+            };
         } else {
             // Create new risk
             risk = createRisk(
@@ -85,7 +85,7 @@ const RiskFormModal: React.FC<RiskFormModalProps> = ({
                 formData.category as RiskCategory,
                 formData.probability!,
                 formData.impact!,
-                formData.owner!,
+                typeof formData.owner === 'string' ? formData.owner : (formData.owner as any)?.id || currentUserId,
                 formData.description!
             );
             risk = {
@@ -111,6 +111,7 @@ const RiskFormModal: React.FC<RiskFormModalProps> = ({
             ...mitigationActions,
             {
                 description: '',
+                title: '',
                 owner: currentUserId,
                 dueDate: new Date().toISOString().split('T')[0],
                 status: 'pending',

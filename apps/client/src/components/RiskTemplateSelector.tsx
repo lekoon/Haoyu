@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Plus, Filter } from 'lucide-react';
-import { RiskTemplate, RISK_TEMPLATES, getTemplatesByCategory, searchTemplates } from '../utils/riskTemplates';
-import { RiskCategory } from '../types';
+import { RISK_TEMPLATES, searchTemplates } from '../utils/riskTemplates';
+import type { RiskTemplate, RiskCategory } from '../types';
 import { getRiskCategoryInfo } from '../utils/riskManagement';
 
 interface RiskTemplateSelectorProps {
@@ -94,8 +94,8 @@ const RiskTemplateSelector: React.FC<RiskTemplateSelectorProps> = ({ isOpen, onC
                                     key={cat.value}
                                     onClick={() => setSelectedCategory(cat.value)}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedCategory === cat.value
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
                                         }`}
                                 >
                                     {cat.label}

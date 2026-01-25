@@ -25,6 +25,13 @@ dist-ssr
 
 
 
+.env
+*.db
+*.db-journal
+build_log*.txt
+tmp/
+*.bak
+
 .nx/cache
 .nx/workspace-data
 vite.config.*.timestamp*

@@ -34,15 +34,10 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
     onTaskUpdate,
     onTaskDelete,
     onTaskAdd: _onTaskAdd,
-    onMilestoneAdd,
-    onMilestoneUpdate,
-    onMilestoneDelete,
     onDependencyAdd,
-    onDependencyDelete,
     onEditTask,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const sidebarRef = useRef<HTMLDivElement>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('Day');
     const [zoomLevel, setZoomLevel] = useState(1);
     const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
@@ -191,7 +186,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
         }
     };
 
-    const finishLinking = (e: React.MouseEvent, targetId: string) => {
+    const finishLinking = (_e: React.MouseEvent, targetId: string) => {
         if (linkingState && linkingState.sourceId !== targetId) {
             onDependencyAdd?.(linkingState.sourceId, targetId);
         }
@@ -332,7 +327,7 @@ const InteractiveGanttChart: React.FC<InteractiveGanttChartProps> = ({
                                 }}
                             >
                                 <div style={{ transform: `translateY(${-scrollPos.y}px)` }} className="pt-4">
-                                    {tasks.map((task, i) => (
+                                    {tasks.map((task) => (
                                         <div
                                             key={task.id}
                                             className={`h-[48px] px-4 flex items-center text-sm border-b border-slate-50 hover:bg-blue-50/50 transition-colors group cursor-pointer ${selectedTasks.has(task.id) ? 'bg-blue-50' : ''}`}

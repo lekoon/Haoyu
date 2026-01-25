@@ -1,6 +1,5 @@
 import React from 'react';
-import { Risk } from '../types';
-import { getRiskPriorityColor } from '../utils/riskManagement';
+import type { Risk } from '../types';
 
 interface RiskMatrixProps {
     risks: Risk[];

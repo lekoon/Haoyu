@@ -2,34 +2,78 @@
 
 Haoyu 是一款专为企业级项目管理、资源分配及战略决策设计的综合性平台。它集成了实时进度追踪、科学的战略评分、动态资源冲突检测以及全方位的风险控制模块。
 
-##  快速入门
+---
 
-### 环境准备
-*   **Node.js**: v18.0.0 或更高版本
-*   **Database**: PostgreSQL 15+
-*   **Docker**: (可选) 用于快速部署镜像
+## 🚀 快速启动与服务器运行指南
 
-### 1. 一键开发初始化 (本地开发)
-如果您是要进行二次开发或本地运行：
-1.  **Windows**: 双击 root 目录下的 `setup-dev.bat`。
-2.  **Linux/Mac**: 运行 `chmod +x setup-dev.sh && ./setup-dev.sh`。
+如果您在运行过程中遇到前端或后端无法访问的情况，请按照以下详细步骤进行操作。
 
-初始化完成后，运行：
-`ash
+### 1. 环境依赖检查
+在启动前，请确保您的本地环境已安装：
+*   **Node.js**: v18.0.0+ (建议使用 v20+)
+*   **Docker Desktop**: 用于运行数据库环境。
+*   **Nx**: (可选) `npm install -g nx`
+
+### 2. 第一步：运行数据库 (Docker)
+本系统依赖 PostgreSQL 数据库。最简单的启动方式是使用 Docker：
+1.  打开终端，进入项目根目录。
+2.  执行以下命令启动数据库：
+    ```bash
+    docker-compose up -d db
+    ```
+3.  检查数据库状态：`docker ps` 确保名为 `haoyu-db` 的容器正在运行。
+
+### 3. 第二步：环境初始化 (仅首次运行)
+同步依赖并生成数据库客户端：
+*   **Windows**: 双击 root 目录下的 `setup-dev.bat`。
+*   **Linux/Mac**: 运行 `chmod +x setup-dev.sh && ./setup-dev.sh`。
+
+### 4. 第三步：启动开发服务器
+您可以选择“一键启动”或“分步启动”（推荐用于排查问题）。
+
+#### A. 一键启动 (所有服务)
+在根目录下运行：
+```bash
 npm run dev
-`
-*   **前端访问**: http://localhost:4000
-*   **后端接口**: http://localhost:3000/api
+```
+此命令会同时启动 API 后端和 Client 前端。
 
-### 2. 一键生产部署 (Docker)
-如果您仅需要在服务器运行平台：
-1.  **Windows**: 运行 `deploy.bat`。
-2.  **Linux/Mac**: 运行 `./deploy.sh`。
-*   **访问入口**: http://localhost:80
+#### B. 分步启动 (推荐)
+如果您发现前端无法访问，请开启两个终端窗口分别执行：
+-   **Terminal 1 (后端 API)**:
+    ```bash
+    npx nx serve api
+    ```
+    *默认地址: http://localhost:3000/api*
+-   **Terminal 2 (前端 Client)**:
+    ```bash
+    npx nx serve client
+    ```
+    *默认地址: http://localhost:4000*
+
+### 5. 访问入口
+| 服务 | URL | 说明 |
+| :--- | :--- | :--- |
+| **前端界面** | [http://localhost:4000](http://localhost:4000) | 主要操作入口 |
+| **API 文档** | [http://localhost:3000/api](http://localhost:3000/api) | 后端接口调试 |
+| **数据库** | localhost:5432 | PostgreSQL 5432 端口 |
 
 ---
 
-##  核心模块说明
+## 🛠️ 故障排查 (常见问题)
+
+### 1. 前端无法访问 / 页面空白
+*   **检查端口占用**: 确保 4000 端口没有被其他程序占用。
+*   **Host 绑定**: 系统默认绑定到 `0.0.0.0`，如果通过 `localhost` 无法访问，请尝试 [http://127.0.0.1:4000](http://127.0.0.1:4000)。
+*   **根目录问题**: 如果遇到 404，请确认 `apps/client/vite.config.ts` 中的 `root` 配置是否设定为 `'.'`。
+
+### 2. 无法登录 / API 报错
+*   **数据库连接**: 检查 `.env` 中的 `DATABASE_URL` 是否正确指向了运行中的 Docker 容器。
+*   **API 服务状态**: 确保后端终端没有报错。如果 API 挂掉，前端将无法获取数据。
+
+---
+
+## 核心模块说明
 
 ### 1. 项目看板与详情
 *   **健康度仪表盘**: 系统根据进度、成本和风险自动生成的 0-100 分实时评分。
@@ -45,7 +89,7 @@ npm run dev
 
 ---
 
-##  技术架构
+## 技术架构
 *   **前端**: React 18, Vite, React Query, Tailwind CSS.
 *   **后端**: NestJS, Prisma ORM, PostgreSQL.
 *   **运维**: Nx, Docker, GitHub Actions.

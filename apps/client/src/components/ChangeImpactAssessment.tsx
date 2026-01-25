@@ -6,7 +6,7 @@ import { Button, Card } from './ui';
 
 interface ChangeImpactAssessmentProps {
     project: Project;
-    onSubmit: (changeRequest: Omit<ChangeRequest, 'id' | 'createdAt'>) => void;
+    onSubmit: (changeRequest: Omit<ChangeRequest, 'id' | 'createdAt' | 'updatedAt'>) => void;
     onCancel: () => void;
     currentUser: { id: string; name: string };
 }
@@ -42,7 +42,7 @@ export const ChangeImpactAssessment: React.FC<ChangeImpactAssessmentProps> = ({
 
         // 实时验证
         if (field === 'estimatedCostIncrease' || field === 'scheduleImpactDays' || field === 'businessJustification') {
-            const tempChangeRequest: ChangeRequest = {
+            const tempChangeRequest = {
                 id: 'temp',
                 projectId: project.id,
                 projectName: project.name,
@@ -51,20 +51,27 @@ export const ChangeImpactAssessment: React.FC<ChangeImpactAssessmentProps> = ({
                 requestDate: new Date().toISOString(),
                 status: 'draft',
                 createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                type: 'scope',
+                priority: 'medium',
+                creatorId: currentUser.id,
                 ...newData,
-            };
+            } as ChangeRequest;
             setValidation(validateChangeRequest(project, tempChangeRequest));
         }
     };
 
     const handleSubmit = () => {
-        const changeRequest: Omit<ChangeRequest, 'id' | 'createdAt'> = {
+        const changeRequest: Omit<ChangeRequest, 'id' | 'createdAt' | 'updatedAt'> = {
             projectId: project.id,
             projectName: project.name,
             requestedBy: currentUser.id,
             requestedByName: currentUser.name,
             requestDate: new Date().toISOString(),
             status: 'pending',
+            type: 'scope',
+            priority: 'medium',
+            creatorId: currentUser.id,
             ...formData,
         };
 

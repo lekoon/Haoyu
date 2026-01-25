@@ -13,7 +13,7 @@ import type {
 interface PMOStoreState {
     // Change Requests
     changeRequests: ChangeRequest[];
-    addChangeRequest: (changeRequest: Omit<ChangeRequest, 'id' | 'createdAt'>) => void;
+    addChangeRequest: (changeRequest: Omit<ChangeRequest, 'id' | 'createdAt' | 'updatedAt'>) => void;
     updateChangeRequest: (id: string, updates: Partial<ChangeRequest>) => void;
     approveChangeRequest: (id: string, approverId: string, approverName: string) => void;
     rejectChangeRequest: (id: string, approverId: string, approverName: string, reason: string) => void;
@@ -21,16 +21,16 @@ interface PMOStoreState {
 
     // Environment Resources
     environmentResources: EnvironmentResource[];
-    addEnvironmentResource: (resource: Omit<EnvironmentResource, 'id' | 'createdAt' | 'bookings'>) => void;
+    addEnvironmentResource: (resource: Omit<EnvironmentResource, 'id' | 'createdAt' | 'updatedAt' | 'bookings'>) => void;
     updateEnvironmentResource: (id: string, updates: Partial<EnvironmentResource>) => void;
     deleteEnvironmentResource: (id: string) => void;
-    bookEnvironment: (booking: Omit<EnvironmentBooking, 'id' | 'createdAt'>) => void;
+    bookEnvironment: (booking: Omit<EnvironmentBooking, 'id' | 'createdAt' | 'updatedAt'>) => void;
     cancelEnvironmentBooking: (environmentId: string, bookingId: string) => void;
     getAvailableEnvironments: (startDate: string, endDate: string, type?: string) => EnvironmentResource[];
 
     // Requirements (for RTM)
     requirements: Requirement[];
-    addRequirement: (requirement: Omit<Requirement, 'id' | 'createdAt'>) => void;
+    addRequirement: (requirement: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>) => void;
     updateRequirement: (id: string, updates: Partial<Requirement>) => void;
     deleteRequirement: (id: string) => void;
     linkRequirementToTask: (requirementId: string, taskId: string) => void;
@@ -39,13 +39,13 @@ interface PMOStoreState {
 
     // Approval Workflows
     approvalWorkflows: ApprovalWorkflow[];
-    createApprovalWorkflow: (workflow: Omit<ApprovalWorkflow, 'id' | 'createdAt'>) => void;
+    createApprovalWorkflow: (workflow: Omit<ApprovalWorkflow, 'id' | 'createdAt' | 'updatedAt'>) => void;
     updateApprovalStep: (workflowId: string, stepNumber: number, decision: 'approve' | 'reject', comments?: string) => void;
     getWorkflowsByEntity: (entityId: string) => ApprovalWorkflow[];
 
     // Project Simulations
     simulations: ProjectSimulation[];
-    createSimulation: (simulation: Omit<ProjectSimulation, 'id' | 'createdAt'>) => void;
+    createSimulation: (simulation: Omit<ProjectSimulation, 'id' | 'createdAt' | 'updatedAt'>) => void;
     updateSimulation: (id: string, updates: Partial<ProjectSimulation>) => void;
     deleteSimulation: (id: string) => void;
     setActiveSimulation: (id: string | null) => void;
@@ -74,6 +74,7 @@ export const usePMOStore = create<PMOStoreState>()(
                     ...changeRequest,
                     id: `cr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                 };
                 set((state) => ({
                     changeRequests: [...state.changeRequests, newChangeRequest],
@@ -134,6 +135,7 @@ export const usePMOStore = create<PMOStoreState>()(
                     id: `env-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     bookings: [],
                     createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                 };
                 set((state) => ({
                     environmentResources: [...state.environmentResources, newResource],
@@ -159,6 +161,7 @@ export const usePMOStore = create<PMOStoreState>()(
                     ...booking,
                     id: `booking-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                 };
 
                 set((state) => ({
@@ -219,6 +222,7 @@ export const usePMOStore = create<PMOStoreState>()(
                     ...requirement,
                     id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                 };
                 set((state) => ({
                     requirements: [...state.requirements, newRequirement],
@@ -277,6 +281,7 @@ export const usePMOStore = create<PMOStoreState>()(
                     ...workflow,
                     id: `wf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                 };
                 set((state) => ({
                     approvalWorkflows: [...state.approvalWorkflows, newWorkflow],
@@ -329,6 +334,7 @@ export const usePMOStore = create<PMOStoreState>()(
                     ...simulation,
                     id: `sim-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                 };
                 set((state) => ({
                     simulations: [...state.simulations, newSimulation],

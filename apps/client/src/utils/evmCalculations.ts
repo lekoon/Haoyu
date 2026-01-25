@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import type { Project, Task, EVMMetrics } from '../types';
+import type { Project, EVMMetrics } from '../types';
 
 /**
  * Calculate Earned Value Management (EVM) metrics for a project
@@ -15,8 +15,8 @@ export function calculateEVM(project: Project): EVMMetrics {
     const timeProgress = Math.min(Math.max(elapsedDuration / totalDuration, 0), 1);
 
     // Budget values
-    const budget = project.budget || project.totalBudget || 0;
-    const actualCost = project.actualCost || project.budgetUsed || 0;
+    const budget = project.budget || 0;
+    const actualCost = project.actualCost || 0;
 
     // Planned Value (PV) - What we planned to accomplish by now
     const plannedValue = budget * timeProgress;
@@ -60,20 +60,52 @@ export function calculateEVM(project: Project): EVMMetrics {
         ? remainingWork / remainingBudget
         : 1;
 
+    const status = getEVMStatus({
+        projectId: project.id,
+        asOfDate: today.toISOString(),
+        plannedValue, earnedValue, actualCost: actualCostValue,
+        schedulePerformanceIndex, costPerformanceIndex,
+        scheduleVariance, costVariance,
+        estimateAtCompletion, estimateToComplete,
+        varianceAtCompletion, toCompletePerformanceIndex,
+        pv: plannedValue, ev: earnedValue, ac: actualCostValue, bac: budget,
+        spi: schedulePerformanceIndex, cpi: costPerformanceIndex,
+        sv: scheduleVariance, cv: costVariance,
+        eac: estimateAtCompletion, etc: estimateToComplete,
+        vac: varianceAtCompletion, tcpi: toCompletePerformanceIndex,
+        status: { schedule: 'on-track', cost: 'under-budget' } // placeholder
+    });
+
     return {
         projectId: project.id,
         asOfDate: today.toISOString(),
         plannedValue,
+        pv: plannedValue,
         earnedValue,
+        ev: earnedValue,
         actualCost: actualCostValue,
+        ac: actualCostValue,
+        bac: budget,
         schedulePerformanceIndex,
+        spi: schedulePerformanceIndex,
         costPerformanceIndex,
+        cpi: costPerformanceIndex,
         scheduleVariance,
+        sv: scheduleVariance,
         costVariance,
+        cv: costVariance,
         estimateAtCompletion,
+        eac: estimateAtCompletion,
         estimateToComplete,
+        etc: estimateToComplete,
         varianceAtCompletion,
-        toCompletePerformanceIndex
+        vac: varianceAtCompletion,
+        toCompletePerformanceIndex,
+        tcpi: toCompletePerformanceIndex,
+        status: {
+            schedule: status.scheduleStatus === 'on-track' ? 'on_track' : status.scheduleStatus,
+            cost: status.costStatus === 'on-budget' ? 'on_track' : status.costStatus
+        }
     };
 }
 
@@ -91,9 +123,9 @@ export function generateEVMTimeSeries(project: Project, dataPoints: number = 10)
     const today = new Date();
 
     const totalDuration = differenceInDays(endDate, startDate);
-    const budget = project.budget || project.totalBudget || 0;
+    const budget = project.budget || 0;
     const currentProgress = (project.progress || 0) / 100;
-    const actualCost = project.actualCost || project.budgetUsed || 0;
+    const actualCost = project.actualCost || 0;
 
     const series: { date: string; pv: number; ev: number; ac: number }[] = [];
 

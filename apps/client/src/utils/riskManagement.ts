@@ -1,4 +1,4 @@
-import { Risk, RiskPriority, RiskCategory, RiskStatus, RiskMitigationAction, RiskHistoryEntry } from '../types';
+import type { Risk, RiskPriority, RiskCategory, RiskStatus, RiskMitigationAction, RiskHistoryEntry } from '../types';
 
 /**
  * Calculate risk score (probability × impact)

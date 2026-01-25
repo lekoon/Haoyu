@@ -60,15 +60,15 @@ const ProjectMonitorCenter: React.FC = () => {
     // Calculate aggregate stats
     const stats = useMemo(() => {
         const total = projects.length;
-        const critical = projects.filter(p => (p.pmoMetrics?.valueRiskMetrics.resourceDependency || 0) > 4).length;
+        const critical = projects.filter(p => (p.pmoMetrics?.valueRiskMetrics?.resourceDependency || 0) > 4).length;
         const delayed = projects.filter(p => p.status === 'on-hold').length; // Simplified logic
-        const investment = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.currentInvestment || 0), 0);
+        const investment = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow?.currentInvestment || 0), 0);
 
         return { total, critical, delayed, investment };
     }, [projects]);
 
     const getHealthStatus = (project: any) => {
-        const risk = project.pmoMetrics?.valueRiskMetrics.resourceDependency || 0;
+        const risk = project.pmoMetrics?.valueRiskMetrics?.resourceDependency || 0;
         if (risk > 4) return 'critical';
         if (risk > 3) return 'warning';
         return 'stable';
@@ -256,7 +256,7 @@ const ProjectMonitorCenter: React.FC = () => {
                                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">资源投入</span>
                                             </div>
                                             <div className="text-sm font-black text-slate-700 dark:text-slate-200">
-                                                {project.pmoMetrics?.resourceLoad.reduce((sum, r) => sum + Object.values(r.monthlyUsage).reduce((s, u) => s + u, 0), 0) || 0} Man-Day
+                                                {project.pmoMetrics?.resourceLoad?.reduce((sum, r) => sum + Object.values(r.monthlyUsage || {}).reduce((s, u) => s + (u || 0), 0), 0) || 0} Man-Day
                                             </div>
                                         </div>
                                         <div className="p-4 rounded-3xl bg-slate-50/50 dark:bg-slate-900/40 border border-slate-50 dark:border-slate-800">
@@ -265,7 +265,7 @@ const ProjectMonitorCenter: React.FC = () => {
                                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">实际支出</span>
                                             </div>
                                             <div className="text-sm font-black text-slate-700 dark:text-slate-200">
-                                                ¥{project.actualCost || project.pmoMetrics?.cashFlow.currentInvestment || 0}W
+                                                ¥{project.actualCost || project.pmoMetrics?.cashFlow?.currentInvestment || 0}W
                                             </div>
                                         </div>
                                         <div className="p-4 rounded-3xl bg-slate-50/50 dark:bg-slate-900/40 border border-slate-50 dark:border-slate-800">
@@ -274,7 +274,7 @@ const ProjectMonitorCenter: React.FC = () => {
                                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">冲突预警</span>
                                             </div>
                                             <div className="text-sm font-black text-slate-700 dark:text-slate-200">
-                                                {project.healthIndicators?.riskHealth === 'red' ? 'CRITICAL' : (project.pmoMetrics?.valueRiskMetrics.resourceDependency || 0) > 3 ? 'HIGH' : 'LOW'}
+                                                {project.healthIndicators?.riskHealth === 'red' ? 'CRITICAL' : (project.pmoMetrics?.valueRiskMetrics?.resourceDependency || 0) > 3 ? 'HIGH' : 'LOW'}
                                             </div>
                                         </div>
                                         <div className="p-4 rounded-3xl bg-slate-50/50 dark:bg-slate-900/40 border border-slate-50 dark:border-slate-800">

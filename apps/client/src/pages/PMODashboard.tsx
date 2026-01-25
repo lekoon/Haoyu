@@ -37,7 +37,7 @@ const PMODashboard: React.FC = () => {
     const aiLoadData = months.map(month => {
         const data: any = { month };
         projects.forEach(p => {
-            const aiUsage = p.pmoMetrics?.resourceLoad.find(rl => rl.roleId === 'ai')?.monthlyUsage[month] || 0;
+            const aiUsage = p.pmoMetrics?.resourceLoad?.find(rl => rl.roleId === 'ai')?.monthlyUsage?.[month] || 0;
             if (aiUsage > 0) data[p.name] = aiUsage;
         });
         return data;
@@ -46,7 +46,7 @@ const PMODashboard: React.FC = () => {
     const hardwareLoadData = months.map(month => {
         const data: any = { month };
         projects.forEach(p => {
-            const hwUsage = p.pmoMetrics?.resourceLoad.find(rl => rl.roleId === 'hardware')?.monthlyUsage[month] || 0;
+            const hwUsage = p.pmoMetrics?.resourceLoad?.find(rl => rl.roleId === 'hardware')?.monthlyUsage?.[month] || 0;
             if (hwUsage > 0) data[p.name] = hwUsage;
         });
         return data;
@@ -65,19 +65,19 @@ const PMODashboard: React.FC = () => {
 
     // 4. Value Risk Radar Aggregation
     const radarData = [
-        { subject: '商业回报', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.commercialROI || 0), 0) / (projects.length || 1), fullMark: 5 },
-        { subject: '战略契合', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.strategicFit || 0), 0) / (projects.length || 1), fullMark: 5 },
-        { subject: '技术可行', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.technicalFeasibility || 0), 0) / (projects.length || 1), fullMark: 5 },
-        { subject: '市场窗口', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.marketWindow || 0), 0) / (projects.length || 1), fullMark: 5 },
-        { subject: '资源依赖', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics.resourceDependency || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '商业回报', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics?.commercialROI || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '战略契合', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics?.strategicFit || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '技术可行', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics?.technicalFeasibility || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '市场窗口', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics?.marketWindow || 0), 0) / (projects.length || 1), fullMark: 5 },
+        { subject: '资源依赖', A: projects.reduce((sum, p) => sum + (p.pmoMetrics?.valueRiskMetrics?.resourceDependency || 0), 0) / (projects.length || 1), fullMark: 5 },
     ];
 
     // 5. Cash Flow Waterfall
-    const currentInvestmentTotal = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.currentInvestment || 0), 0);
-    const totalAnnualBudget = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.annualBudget || 0), 0);
-    const futureROI_Y1 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.futureROI[0] || 0), 0);
-    const futureROI_Y2 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.futureROI[1] || 0), 0);
-    const futureROI_Y3 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow.futureROI[2] || 0), 0);
+    const currentInvestmentTotal = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow?.currentInvestment || 0), 0);
+    const totalAnnualBudget = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow?.annualBudget || 0), 0);
+    const futureROI_Y1 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow?.futureROI?.[0] || 0), 0);
+    const futureROI_Y2 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow?.futureROI?.[1] || 0), 0);
+    const futureROI_Y3 = projects.reduce((sum, p) => sum + (p.pmoMetrics?.cashFlow?.futureROI?.[2] || 0), 0);
 
     const waterfallData = [
         { name: '年度总预算', value: totalAnnualBudget, color: '#3b82f6', display: `¥${totalAnnualBudget}W` },

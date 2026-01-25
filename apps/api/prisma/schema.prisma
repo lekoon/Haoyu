@@ -57,6 +57,7 @@ model Project {
   rank        Int?
   budget      Float?
   actualCost  Float?
+  pmoAdvice   String?
   
   tasks       Task[]
   risks       Risk[]

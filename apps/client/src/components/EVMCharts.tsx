@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-    TrendingUp, TrendingDown, DollarSign, Calendar,
+    DollarSign, Calendar,
     Target, AlertCircle, CheckCircle, Activity
 } from 'lucide-react';
 import {
@@ -86,9 +86,9 @@ const EVMCharts: React.FC<EVMChartsProps> = ({ project }) => {
                         animate={{ width: `${percentage}%` }}
                         transition={{ duration: 1, ease: 'easeOut' }}
                         className={`absolute top-0 left-0 h-full rounded-full ${value >= 1.05 ? 'bg-green-500' :
-                                value >= 0.95 ? 'bg-blue-500' :
-                                    value >= 0.85 ? 'bg-orange-500' :
-                                        'bg-red-500'
+                            value >= 0.95 ? 'bg-blue-500' :
+                                value >= 0.85 ? 'bg-orange-500' :
+                                    'bg-red-500'
                             }`}
                     />
                     {/* Threshold marker at 1.0 */}
@@ -120,8 +120,8 @@ const EVMCharts: React.FC<EVMChartsProps> = ({ project }) => {
                     </p>
                 </div>
                 <div className={`px-4 py-2 rounded-lg ${evmStatus.overallHealth === 'good' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
-                        evmStatus.overallHealth === 'warning' ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' :
-                            'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                    evmStatus.overallHealth === 'warning' ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' :
+                        'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
                     }`}>
                     <div className="flex items-center gap-2">
                         {evmStatus.overallHealth === 'good' ? <CheckCircle size={20} /> :

@@ -2,9 +2,8 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type {
     Project, FactorDefinition, User, ResourcePoolItem, ProjectTemplate,
-    KeyTaskDefinition, BayResource, MachineResource, BaySize, ProjectTypeDefinition
+    KeyTaskDefinition, BayResource, MachineResource, BaySize, ProjectTypeDefinition, Role
 } from '@haoyu/shared';
-import { Role } from '@haoyu/shared';
 import type { Notification, Alert } from '../types';
 import { calculateProjectScore, rankProjects } from '../utils/algorithm';
 import { createBaseline as createBaselineSnapshot } from '../utils/baselineManagement';
@@ -17,13 +16,31 @@ interface StoreState {
     projectTemplates: ProjectTemplate[];
     notifications: Notification[];
     alerts: Alert[];
+    // ... previous interfaces
     keyTaskDefinitions: KeyTaskDefinition[];
     physicalBays: BayResource[];
     physicalMachines: MachineResource[];
     projectTypeDefinitions: ProjectTypeDefinition[];
 
+    // New: Local Store for Tasks & Risks (Demo Mode Support)
+    tasks: Task[];
+    risks: Risk[];
+
     // Actions
     login: (username: string, role: Role) => void;
+    // ... existing actions ...
+
+    // Task Actions
+    setTasks: (tasks: Task[]) => void;
+    addTask: (task: Task) => void;
+    updateTask: (id: string, updates: Partial<Task>) => void;
+    deleteTask: (id: string) => void;
+
+    // Risk Actions
+    setRisks: (risks: Risk[]) => void;
+    addRisk: (risk: Risk) => void;
+    updateRisk: (id: string, updates: Partial<Risk>) => void;
+    deleteRisk: (id: string) => void;
     logout: () => void;
     updateUser: (updates: Partial<User>) => void;
     setProjects: (projects: Project[]) => void;
@@ -249,11 +266,228 @@ const MOCK_MACHINES: MachineResource[] = PRODUCTION_EQUIPMENT_MODELS.map((model,
     version: 1
 } as any));
 
+const DEFAULT_PROJECTS: Project[] = [
+    {
+        id: 'p-1',
+        name: 'Zeus Platform Migration',
+        code: 'PRJ-2026-001',
+        description: 'Migrate legacy systems to the new Zeus microservices platform.',
+        status: 'active',
+        priority: 'P0',
+        startDate: '2026-01-15',
+        endDate: '2026-08-30',
+        progress: 35,
+        category: 'infrastructure',
+        department: 'Platform Engineering',
+        managerId: 'u-1',
+        creatorId: 'u-1',
+        factors: { strategic_alignment: 9, financial_roi: 8, risk_level: 6, market_urgency: 9, tech_feasibility: 7 },
+        score: 8.4,
+        rank: 1,
+        budget: 5000000,
+        actualCost: 1200000,
+        pmoAdvice: 'Critical path monitoring recommended due to high dependency complexity.',
+        pmoMetrics: {
+            strategicConsistency: 4.5,
+            rdInvestment: 500,
+            resourceLoad: [
+                { roleId: 'ai', monthlyUsage: { '2026-01': 5, '2026-02': 8, '2026-03': 10 } },
+                { roleId: 'hardware', monthlyUsage: { '2026-01': 2, '2026-02': 2 } }
+            ],
+            valueRiskMetrics: {
+                commercialROI: 4.2,
+                strategicFit: 4.8,
+                technicalFeasibility: 3.5,
+                marketWindow: 4.0,
+                resourceDependency: 4.5
+            },
+            cashFlow: {
+                annualBudget: 500,
+                currentInvestment: 120,
+                futureROI: [150, 200, 300]
+            },
+            techPlatform: 'Zeus'
+        },
+        healthIndicators: {
+            overallHealth: 'amber',
+            scheduleHealth: 'green',
+            budgetHealth: 'amber',
+            scopeHealth: 'green',
+            qualityHealth: 'green',
+            riskHealth: 'amber',
+            trend: 'stable'
+        },
+        milestones: [
+            { id: 'm-1', name: 'Architecture Sign-off', date: '2026-02-01', completed: true, projectId: 'p-1' },
+            { id: 'm-2', name: 'Core Services Migration', date: '2026-05-15', completed: false, projectId: 'p-1' }
+        ],
+        pdsgMembers: [
+            { id: 'tm-1', name: 'Alice', role: 'Architect', availability: 100, assignments: [], skills: [] },
+            { id: 'tm-2', name: 'Bob', role: 'DevOps', availability: 100, assignments: [], skills: [] }
+        ],
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 'p-2',
+        name: 'AI Diagnostic Assistant',
+        code: 'PRJ-2026-002',
+        description: 'AI-powered assistant for rapid medical diagnostics.',
+        status: 'planning',
+        priority: 'P1',
+        startDate: '2026-03-01',
+        endDate: '2026-12-20',
+        progress: 5,
+        category: 'product',
+        department: 'AI Research',
+        factors: { strategic_alignment: 10, financial_roi: 9, risk_level: 8, market_urgency: 8, tech_feasibility: 5 },
+        score: 9.1,
+        rank: 2,
+        budget: 8000000,
+        actualCost: 50000,
+        pmoAdvice: 'High technical risk detected. Verify core algorithm feasibility before heavy investment.',
+        pmoMetrics: {
+            strategicConsistency: 4.9,
+            rdInvestment: 800,
+            resourceLoad: [
+                { roleId: 'ai', monthlyUsage: { '2026-03': 15, '2026-04': 20, '2026-05': 20 } }
+            ],
+            valueRiskMetrics: {
+                commercialROI: 5.0,
+                strategicFit: 5.0,
+                technicalFeasibility: 2.5,
+                marketWindow: 4.5,
+                resourceDependency: 3.0
+            },
+            cashFlow: {
+                annualBudget: 800,
+                currentInvestment: 5,
+                futureROI: [0, 500, 1500]
+            },
+            techPlatform: 'Falcon'
+        },
+        healthIndicators: {
+            overallHealth: 'green',
+            scheduleHealth: 'green',
+            budgetHealth: 'green',
+            scopeHealth: 'green',
+            qualityHealth: 'green',
+            riskHealth: 'green',
+            trend: 'up'
+        },
+        milestones: [
+            { id: 'm-3', name: 'POC Validation', date: '2026-04-01', completed: false, projectId: 'p-2' }
+        ],
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 'p-3',
+        name: 'Legacy CT Scanner Upgrade',
+        code: 'PRJ-2026-003',
+        description: 'Firmware upgrade for the uCT 530/550 series.',
+        status: 'active',
+        priority: 'P2',
+        startDate: '2026-02-10',
+        endDate: '2026-06-30',
+        progress: 60,
+        category: 'maintenance',
+        department: 'Sustaining Eng',
+        factors: { strategic_alignment: 5, financial_roi: 4, risk_level: 2, market_urgency: 6, tech_feasibility: 9 },
+        score: 6.5,
+        rank: 5,
+        budget: 1500000,
+        actualCost: 800000,
+        pmoAdvice: 'Proceed as planned, low risk profile.',
+        pmoMetrics: {
+            strategicConsistency: 3.5,
+            rdInvestment: 150,
+            resourceLoad: [
+                { roleId: 'hardware', monthlyUsage: { '2026-02': 5, '2026-03': 5 } }
+            ],
+            valueRiskMetrics: {
+                commercialROI: 3.0,
+                strategicFit: 3.0,
+                technicalFeasibility: 4.8,
+                marketWindow: 3.5,
+                resourceDependency: 2.0
+            },
+            cashFlow: {
+                annualBudget: 150,
+                currentInvestment: 80,
+                futureROI: [120, 100, 50]
+            },
+            techPlatform: 'Titan'
+        },
+        healthIndicators: {
+            overallHealth: 'green',
+            scheduleHealth: 'green',
+            budgetHealth: 'green',
+            scopeHealth: 'green',
+            qualityHealth: 'green',
+            riskHealth: 'green',
+            trend: 'stable'
+        },
+        milestones: [
+            { id: 'm-4', name: 'Firmware Release Candidate', date: '2026-05-01', completed: false, projectId: 'p-3' }
+        ],
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 'p-4',
+        name: 'NextGen Mobile App',
+        code: 'PRJ-2026-004',
+        description: 'New mobile interface for remote monitoring.',
+        status: 'on-hold',
+        priority: 'P3',
+        startDate: '2026-01-01',
+        endDate: '2026-05-30',
+        progress: 15,
+        category: 'product',
+        department: 'Mobile App',
+        factors: { strategic_alignment: 7, financial_roi: 6, risk_level: 5, market_urgency: 7, tech_feasibility: 8 },
+        score: 7.2,
+        rank: 3,
+        budget: 2000000,
+        actualCost: 400000,
+        pmoAdvice: 'Paused due to resource reallocation to Project Zeus.',
+        pmoMetrics: {
+            strategicConsistency: 4.0,
+            rdInvestment: 200,
+            resourceLoad: [
+                { roleId: 'ai', monthlyUsage: { '2026-01': 2 } }
+            ],
+            valueRiskMetrics: {
+                commercialROI: 3.8,
+                strategicFit: 4.0,
+                technicalFeasibility: 4.5,
+                marketWindow: 4.0,
+                resourceDependency: 3.5
+            },
+            cashFlow: {
+                annualBudget: 200,
+                currentInvestment: 40,
+                futureROI: [100, 150, 150]
+            },
+            techPlatform: 'Eagle'
+        },
+        healthIndicators: {
+            overallHealth: 'red',
+            scheduleHealth: 'red',
+            budgetHealth: 'green',
+            scopeHealth: 'amber',
+            qualityHealth: 'green',
+            riskHealth: 'red',
+            trend: 'down'
+        },
+        milestones: [],
+        createdAt: new Date().toISOString()
+    }
+];
+
 export const useStore = create<StoreState>()(
     devtools(
         (set, get) => ({
             user: null,
-            projects: [],
+            projects: DEFAULT_PROJECTS,
             factorDefinitions: DEFAULT_FACTORS,
             resourcePool: DEFAULT_RESOURCES,
             projectTemplates: DEFAULT_TEMPLATES,
@@ -269,7 +503,10 @@ export const useStore = create<StoreState>()(
                     id: 'u-1',
                     username,
                     role,
-                    name: role === Role.PMO ? 'PMO Specialist' : role === Role.ADMIN ? 'Administrator' : role === Role.MANAGER ? 'Project Manager' : role === Role.READONLY ? 'Viewer' : 'Standard User',
+                    name: role === 'pmo' || role === 'PMO' ? 'PMO Specialist' :
+                        role === 'admin' || role === 'ADMIN' ? 'Administrator' :
+                            role === 'manager' || role === 'MANAGER' ? 'Project Manager' :
+                                role === 'readonly' || role === 'READONLY' ? 'Viewer' : 'Standard User',
                     email: `${username}@example.com`,
                     avatar: `https://ui-avatars.com/api/?name=${username}&background=random`
                 }
@@ -429,8 +666,6 @@ export const useStore = create<StoreState>()(
                         };
                     }),
                     healthIndicators: {
-                        projectId: id,
-                        projectName: projectName,
                         overallHealth: 'green',
                         scheduleHealth: 'green',
                         budgetHealth: 'green',
@@ -438,8 +673,7 @@ export const useStore = create<StoreState>()(
                         qualityHealth: 'green',
                         riskHealth: 'green',
                         trend: 'stable'
-                    },
-                    pmoAdvice: ''
+                    }
                 };
 
                 return newProject;

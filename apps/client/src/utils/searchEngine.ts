@@ -32,12 +32,12 @@ export const searchResources = (resources: ResourcePoolItem[], query: string): S
     const lowerQuery = query.toLowerCase();
 
     return resources
-        .filter(r => r.name.toLowerCase().includes(lowerQuery) || (r.role && r.role.toLowerCase().includes(lowerQuery)) || r.skills?.some(s => s.name.toLowerCase().includes(lowerQuery)))
+        .filter(r => r.name.toLowerCase().includes(lowerQuery) || (r.category && r.category.toLowerCase().includes(lowerQuery)) || r.skills?.some(s => s.name.toLowerCase().includes(lowerQuery)))
         .map(r => ({
             id: r.id,
             type: 'resource',
             title: r.name,
-            subtitle: `${r.role || 'Resource'} | ${r.skills?.map(s => s.name).join(', ') || 'No skills'}`,
+            subtitle: `${r.category || 'Resource'} | ${r.skills?.map(s => s.name).join(', ') || 'No skills'}`,
             path: `/resources`, // Linking to resource page generally, maybe query param later
             matchScore: r.name.toLowerCase().indexOf(lowerQuery) === 0 ? 10 : 5,
             tags: r.skills?.map(s => s.name)
@@ -49,9 +49,9 @@ export const searchTasks = (projects: Project[], query: string): SearchResult[] 
     const results: SearchResult[] = [];
 
     projects.forEach(project => {
-        if (!project.info?.tasks) return;
+        if (!project.tasks) return;
 
-        project.info.tasks.forEach(task => {
+        project.tasks.forEach(task => {
             if (task.name.toLowerCase().includes(lowerQuery)) {
                 results.push({
                     id: task.id,

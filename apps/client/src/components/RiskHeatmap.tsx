@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { Risk } from '../types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
-import { calculateRiskPriority } from '../utils/riskManagement';
+import type { Risk } from '../types';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, subMonths } from 'date-fns';
 
 interface RiskHeatmapProps {
     risks: Risk[];

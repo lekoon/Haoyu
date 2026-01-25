@@ -19,7 +19,7 @@ import TaskImpactSimulator from '../components/TaskImpactSimulator';
 import PDSGManagement from '../components/PDSGManagement';
 import { calculateProjectHealth } from '../utils/projectHealth';
 import { DEFAULT_STAGE_GATES, getNextStage, getStageName } from '../utils/stageGateManagement';
-import type { CostEntry, Task, ProjectWithStageGate, StageGate, ProjectStage } from '../types';
+import type { CostEntry, Task, ProjectWithStageGate, StageGate, ProjectStage, ChangeRequest } from '../types';
 import { Badge, Button } from '../components/ui';
 
 import { useProjectDetail, useProjectsData } from '../hooks/useProjects';
@@ -61,6 +61,15 @@ const ProjectDetailEnhanced: React.FC = () => {
 
     // Calculate health score for header display
     const healthMetrics = useMemo(() => {
+        if (!project) return {
+            overall: 0,
+            schedule: { score: 0, spi: 0, status: 'warning', issues: [] },
+            cost: { score: 0, cpi: 0, status: 'warning', issues: [] },
+            resources: { score: 0, utilization: 0, conflicts: 0, status: 'warning', issues: [] },
+            risks: { score: 0, total: 0, critical: 0, status: 'warning', issues: [] },
+            quality: { score: 0, defectRate: 0, status: 'warning', issues: [] },
+            team: { score: 0, morale: 0, velocity: 0, status: 'warning', issues: [] }
+        } as any;
         return calculateProjectHealth(project, tasks || [], []);
     }, [project, tasks]);
 
@@ -466,8 +475,9 @@ const ProjectDetailEnhanced: React.FC = () => {
                             currentUserName={user?.name || 'Anonymous User'}
                             userRole={(user?.role || 'user') as any}
                             onRequestApproval={(gate) => {
-                                addChangeRequest({
+                                const cr: Omit<ChangeRequest, 'id' | 'createdAt' | 'updatedAt'> = {
                                     projectId: project.id,
+                                    projectName: project.name,
                                     requestedBy: user?.id || 'anonymous',
                                     requestedByName: user?.name || '项目经理',
                                     requestDate: new Date().toISOString(),
@@ -484,7 +494,8 @@ const ProjectDetailEnhanced: React.FC = () => {
                                     impactLevel: 'medium',
                                     businessJustification: '项目已完成当前阶段所有必需任务，申请进入下一流程节点。',
                                     status: 'pending'
-                                });
+                                };
+                                addChangeRequest(cr);
                             }}
                         />
                     </div>
